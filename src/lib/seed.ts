@@ -8,8 +8,8 @@ export const seedSettings: SiteSettings = {
   tagline: "Hand-poured candles, made in small batches.",
   aboutBlurb:
     "We pour every candle by hand in our workshop — soy and coconut wax, cotton wicks, and fragrance blends we build ourselves. This catalogue carries our full range with sizes, pricing and minimum quantities, so you have everything in one place.",
-  whatsappNumber: "919999999999",
-  email: "hello@sugandhacandles.com",
+  instagramHandle: "sugandha_candles_",
+  email: "sugandha.workspace@gmail.com",
   phone: "+91 99999 99999",
   addressLines: ["Sugandha Candles", "Workshop No. 12, Industrial Area", "Jaipur, Rajasthan 302013"],
   currency: "INR",

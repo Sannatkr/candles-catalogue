@@ -51,7 +51,8 @@ export type SiteSettings = {
   businessName: string;
   tagline: string;
   aboutBlurb: string;
-  whatsappNumber: string;
+  /** Instagram username without the @. Powers every enquiry button. */
+  instagramHandle: string;
   email: string;
   phone: string;
   addressLines: string[];

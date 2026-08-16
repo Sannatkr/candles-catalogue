@@ -22,6 +22,21 @@ export function bestPrice(product: Product) {
   return prices.length ? Math.min(...prices) : product.basePrice;
 }
 
-export function whatsappLink(number: string, message: string) {
-  return `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+const handle = (value: string) => value.replace(/^@/, "").trim();
+
+/** Opens straight into a DM thread, on the app if installed and web otherwise. */
+export function instagramDmLink(instagramHandle: string) {
+  return `https://ig.me/m/${handle(instagramHandle)}`;
+}
+
+export function instagramProfileLink(instagramHandle: string) {
+  return `https://instagram.com/${handle(instagramHandle)}`;
+}
+
+/**
+ * Instagram cannot pre-fill a DM, so email carries the detail a buyer would
+ * otherwise have to type out.
+ */
+export function emailLink(address: string, subject: string, body: string) {
+  return `mailto:${address}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }

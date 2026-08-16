@@ -22,7 +22,7 @@ const STEPS = [
   {
     n: "02",
     title: "Send us the list",
-    body: "Message us the product names and quantities. We send a proforma invoice the same working day.",
+    body: "Send us the product names and quantities on Instagram. We send a proforma invoice the same working day.",
   },
   {
     n: "03",

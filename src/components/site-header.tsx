@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { InstagramIcon } from "@/components/instagram-icon";
 
 const NAV = [
   { href: "/collections", label: "Collections" },
@@ -11,7 +12,13 @@ const NAV = [
   { href: "/terms", label: "Terms & Payment" },
 ];
 
-export function SiteHeader({ businessName, whatsappHref }: { businessName: string; whatsappHref: string }) {
+export function SiteHeader({
+  businessName,
+  instagramHref,
+}: {
+  businessName: string;
+  instagramHref: string;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -58,11 +65,12 @@ export function SiteHeader({ businessName, whatsappHref }: { businessName: strin
             );
           })}
           <a
-            href={whatsappHref}
+            href={instagramHref}
             target="_blank"
             rel="noreferrer"
-            className="rounded-full bg-ink px-5 py-2.5 text-[0.85rem] text-canvas transition-colors hover:bg-ember"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[0.85rem] text-canvas transition-colors hover:bg-ember"
           >
+            <InstagramIcon size={15} />
             Enquire
           </a>
         </nav>
@@ -92,12 +100,13 @@ export function SiteHeader({ businessName, whatsappHref }: { businessName: strin
               </Link>
             ))}
             <a
-              href={whatsappHref}
+              href={instagramHref}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 mb-2 rounded-full bg-ink px-5 py-3.5 text-center text-sm text-canvas"
+              className="mt-4 mb-2 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3.5 text-center text-sm text-canvas"
             >
-              Enquire on WhatsApp
+              <InstagramIcon size={16} />
+              Message us on Instagram
             </a>
           </nav>
         </div>

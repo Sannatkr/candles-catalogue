@@ -42,10 +42,10 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
         </div>
       </Card>
 
-      <Card title="Contact" hint="The WhatsApp number powers every enquiry button on the site.">
+      <Card title="Contact" hint="Your Instagram handle powers every enquiry button on the site.">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="WhatsApp number" hint="Country code, no plus or spaces. e.g. 919876543210">
-            <Input name="whatsappNumber" defaultValue={settings.whatsappNumber} inputMode="numeric" />
+          <Field label="Instagram handle" hint="Without the @. e.g. sugandha_candles_">
+            <Input name="instagramHandle" defaultValue={settings.instagramHandle} autoCapitalize="none" />
           </Field>
           <Field label="Phone (shown to buyers)">
             <Input name="phone" defaultValue={settings.phone} />
@@ -59,7 +59,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
         </div>
       </Card>
 
-      <Card title="Terms & payment" hint="This is the page you stop re-explaining on WhatsApp.">
+      <Card title="Terms & payment" hint="This is the page you stop re-explaining in every DM.">
         <input type="hidden" name="termsSections" value={JSON.stringify(sections)} readOnly />
 
         <Field label="Opening paragraph">

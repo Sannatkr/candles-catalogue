@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import { InstagramIcon } from "@/components/instagram-icon";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { Reveal } from "@/components/reveal";
 import { getCollection, getProduct, getProducts, getSettings } from "@/lib/data";
-import { compactQty, money, whatsappLink } from "@/lib/format";
+import { compactQty, emailLink, instagramDmLink, money } from "@/lib/format";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -48,9 +49,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { label: "Packing", value: product.packaging },
   ].filter((s) => s.value);
 
-  const enquiry = whatsappLink(
-    settings.whatsappNumber,
-    `Hi ${settings.businessName}, I'd like a quote for "${product.name}". Quantity: `,
+  const dmHref = instagramDmLink(settings.instagramHandle);
+  const emailHref = emailLink(
+    settings.email,
+    `Enquiry: ${product.name}`,
+    [
+      `Hi ${settings.businessName},`,
+      "",
+      `I'd like a quote for: ${product.name}`,
+      `Quantity: (minimum ${compactQty(product.moq)} pcs)`,
+      "",
+      "Company:",
+      "Delivery city:",
+      "Required by:",
+    ].join("\n"),
   );
 
   return (
@@ -121,15 +133,30 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
 
-          <a
-            href={enquiry}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-5 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember sm:w-auto"
-          >
-            <MessageCircle size={17} />
-            Enquire about this candle
-          </a>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <a
+              href={dmHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+            >
+              <InstagramIcon size={17} />
+              DM us on Instagram
+            </a>
+            <a
+              href={emailHref}
+              className="inline-flex items-center justify-center gap-2.5 rounded-full border border-line px-7 py-4 text-[0.95rem] text-ink transition-colors hover:border-ink"
+            >
+              <Mail size={17} />
+              Email enquiry
+            </a>
+          </div>
+
+          <p className="mt-3 text-[0.8rem] text-ink-faint">
+            Instagram cannot carry the details across, so mention{" "}
+            <span className="text-ink-soft">“{product.name}”</span> in your message — or use email and
+            it is filled in for you.
+          </p>
 
           {/* Specs */}
           <div className="mt-11">

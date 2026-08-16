@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { InstagramIcon } from "@/components/instagram-icon";
+import { instagramProfileLink } from "@/lib/format";
 import type { SiteSettings } from "@/lib/types";
 
 export function SiteFooter({ settings }: { settings: SiteSettings }) {
@@ -37,6 +39,16 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
           <div>
             <p className="eyebrow">Get in touch</p>
             <ul className="mt-4 space-y-2.5 text-[0.925rem] text-ink-soft">
+              <li>
+                <a
+                  href={instagramProfileLink(settings.instagramHandle)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-ember"
+                >
+                  <InstagramIcon size={15} />@{settings.instagramHandle.replace(/^@/, "")}
+                </a>
+              </li>
               <li>
                 <a href={`mailto:${settings.email}`} className="transition-colors hover:text-ember">
                   {settings.email}

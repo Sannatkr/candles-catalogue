@@ -144,7 +144,7 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
     businessName: str(fd, "businessName"),
     tagline: str(fd, "tagline"),
     aboutBlurb: str(fd, "aboutBlurb"),
-    whatsappNumber: str(fd, "whatsappNumber"),
+    instagramHandle: str(fd, "instagramHandle").replace(/^@/, ""),
     email: str(fd, "email"),
     phone: str(fd, "phone"),
     addressLines: str(fd, "addressLines")

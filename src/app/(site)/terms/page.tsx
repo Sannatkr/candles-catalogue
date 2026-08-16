@@ -1,7 +1,7 @@
-import { MessageCircle } from "lucide-react";
+import { InstagramIcon } from "@/components/instagram-icon";
 import { Reveal } from "@/components/reveal";
 import { getSettings } from "@/lib/data";
-import { whatsappLink } from "@/lib/format";
+import { instagramDmLink } from "@/lib/format";
 
 export const metadata = { title: "Terms & Payment" };
 
@@ -79,15 +79,12 @@ export default async function TermsPage() {
               need and we will tell you honestly whether we can do it.
             </p>
             <a
-              href={whatsappLink(
-                settings.whatsappNumber,
-                `Hi ${settings.businessName}, I have a question about your trade terms.`,
-              )}
+              href={instagramDmLink(settings.instagramHandle)}
               target="_blank"
               rel="noreferrer"
               className="mt-7 inline-flex items-center gap-2.5 rounded-full bg-ink px-7 py-3.5 text-[0.925rem] text-canvas transition-colors hover:bg-ember"
             >
-              <MessageCircle size={17} />
+              <InstagramIcon size={17} />
               Talk to us
             </a>
           </Reveal>

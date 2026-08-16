@@ -37,7 +37,8 @@ Until Supabase is connected, the site runs on sample candles so it never looks e
 ### 3. Connect the site to the database
 
 1. In Supabase: **Project Settings → API**.
-2. Copy the **Project URL** and the **anon public** key.
+2. Copy the **Project URL** and the **publishable** key (`sb_publishable_…`). On older projects this
+   is called the **anon public** key — either works.
 3. In this project, copy `.env.example` to `.env.local` and paste both values in.
 4. Stop the server (Ctrl+C) and run `npm run dev` again.
 
@@ -79,7 +80,7 @@ Everything happens at `yoursite.com/admin`:
 | Change a price or MOQ | Products → Edit → Pricing |
 | Group candles differently | Collections |
 | Change payment terms, lead time, breakage policy | Settings & terms |
-| Change your WhatsApp number, address, email | Settings & terms → Contact |
+| Change your Instagram handle, address, email | Settings & terms → Contact |
 
 Changes are live the second you press Save. **You never deploy again.**
 
