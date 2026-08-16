@@ -54,14 +54,6 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
                   {settings.email}
                 </a>
               </li>
-              <li>
-                <a
-                  href={`tel:${settings.phone.replace(/\s/g, "")}`}
-                  className="transition-colors hover:text-ember"
-                >
-                  {settings.phone}
-                </a>
-              </li>
             </ul>
             <address className="mt-5 text-[0.85rem] leading-relaxed text-ink-faint not-italic">
               {settings.addressLines.map((line) => (
@@ -75,7 +67,7 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
 
         <div className="mt-14 flex flex-col gap-3 border-t border-line pt-6 text-[0.8rem] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {settings.businessName}. Trade catalogue — prices exclude GST.
+            © {new Date().getFullYear()} {settings.businessName}. Handcrafted in Greater Noida.
           </p>
           <p>Prices valid 30 days from the date this link was shared.</p>
         </div>

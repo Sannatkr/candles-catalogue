@@ -60,6 +60,10 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     description: str(fd, "description"),
     images,
     size_chart_image: str(fd, "size_chart_image") || null,
+    keywords: str(fd, "keywords")
+      .split(",")
+      .map((k) => k.trim().toLowerCase())
+      .filter(Boolean),
     fragrance: str(fd, "fragrance"),
     wax_type: str(fd, "wax_type"),
     wick_type: str(fd, "wick_type"),
@@ -145,8 +149,11 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
     aboutBlurb: str(fd, "aboutBlurb"),
     instagramHandle: str(fd, "instagramHandle").replace(/^@/, ""),
     email: str(fd, "email"),
-    phone: str(fd, "phone"),
     addressLines: str(fd, "addressLines")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean),
+    fragrances: str(fd, "fragrances")
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean),
@@ -170,4 +177,14 @@ export async function signOut() {
   const supabase = await getServerSupabase();
   await supabase.auth.signOut();
   redirect("/admin/login");
+}
+
+/* ------------------------------------------------------------- bookings -- */
+
+export async function setBookingStatus(fd: FormData) {
+  const supabase = await requireAdmin();
+  const status = str(fd, "status");
+  if (!["new", "contacted", "confirmed", "closed"].includes(status)) return;
+  await supabase.from("bookings").update({ status }).eq("id", str(fd, "id"));
+  revalidatePath("/admin/bookings");
 }

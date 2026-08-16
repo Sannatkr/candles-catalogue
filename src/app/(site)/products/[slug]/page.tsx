@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail } from "lucide-react";
-import { InstagramIcon } from "@/components/instagram-icon";
+import { ArrowLeft } from "lucide-react";
+import { ProductActions } from "@/components/product-actions";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { Reveal } from "@/components/reveal";
 import { getCollection, getProduct, getProducts, getSettings } from "@/lib/data";
-import { compactQty, emailLink, instagramDmLink, money } from "@/lib/format";
+import { compactQty, money } from "@/lib/format";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -49,22 +49,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { label: "Packing", value: product.packaging },
   ].filter((s) => s.value);
 
-  const dmHref = instagramDmLink(settings.instagramHandle);
-  const emailHref = emailLink(
-    settings.email,
-    `Enquiry: ${product.name}`,
-    [
-      `Hi ${settings.businessName},`,
-      "",
-      `I'd like a quote for: ${product.name}`,
-      "Quantity:",
-      "",
-      "Company:",
-      "Delivery city:",
-      "Required by:",
-    ].join("\n"),
-  );
-
   return (
     <>
       <div className="mx-auto max-w-[1240px] px-5 pt-8 sm:px-8">
@@ -101,7 +85,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mt-9 rounded-[16px] border border-line bg-surface p-6">
             <div className="flex items-baseline justify-between">
               <p className="eyebrow">Price per piece</p>
-              <p className="text-[0.78rem] text-ink-faint">excl. GST</p>
+              <p className="text-[0.78rem] text-ink-faint">per piece</p>
             </div>
 
             {product.priceTiers.length > 0 ? (
@@ -133,30 +117,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </p>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <a
-              href={dmHref}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
-            >
-              <InstagramIcon size={17} />
-              DM us on Instagram
-            </a>
-            <a
-              href={emailHref}
-              className="inline-flex items-center justify-center gap-2.5 rounded-full border border-line px-7 py-4 text-[0.95rem] text-ink transition-colors hover:border-ink"
-            >
-              <Mail size={17} />
-              Email enquiry
-            </a>
-          </div>
-
-          <p className="mt-3 text-[0.8rem] text-ink-faint">
-            Instagram cannot carry the details across, so mention{" "}
-            <span className="text-ink-soft">“{product.name}”</span> in your message — or use email and
-            it is filled in for you.
-          </p>
+          <ProductActions
+            product={product}
+            fragrances={settings.fragrances}
+            instagramHandle={settings.instagramHandle}
+            businessName={settings.businessName}
+          />
 
           {/* Specs */}
           <div className="mt-11">

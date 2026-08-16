@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, LayoutGrid, LogOut, Package, Settings } from "lucide-react";
+import { ClipboardList, ExternalLink, LayoutGrid, LogOut, Package, Settings } from "lucide-react";
 import { signOut } from "@/lib/admin/actions";
 
 const LINKS = [
+  { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/collections", label: "Collections", icon: LayoutGrid },
   { href: "/admin/settings", label: "Settings & terms", icon: Settings },

@@ -9,6 +9,7 @@ export type AdminProduct = {
   description: string | null;
   images: string[] | null;
   size_chart_image: string | null;
+  keywords: string[] | null;
   fragrance: string | null;
   wax_type: string | null;
   wick_type: string | null;
@@ -66,4 +67,47 @@ export async function getAdminSettings() {
   const supabase = await getServerSupabase();
   const { data } = await supabase.from("site_settings").select("data").eq("id", 1).maybeSingle();
   return (data?.data ?? {}) as Record<string, unknown>;
+}
+
+export type AdminBooking = {
+  id: string;
+  createdAt: string;
+  productSlug: string;
+  productName: string;
+  productImage: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  fragrance: string | null;
+  pincode: string | null;
+  buyerName: string;
+  buyerContact: string;
+  note: string | null;
+  status: string;
+};
+
+export async function listBookings(): Promise<AdminBooking[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("bookings")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    productSlug: row.product_slug,
+    productName: row.product_name,
+    productImage: row.product_image,
+    quantity: row.quantity ?? 0,
+    unitPrice: Number(row.unit_price ?? 0),
+    totalPrice: Number(row.total_price ?? 0),
+    fragrance: row.fragrance,
+    pincode: row.pincode,
+    buyerName: row.buyer_name,
+    buyerContact: row.buyer_contact,
+    note: row.note,
+    status: row.status ?? "new",
+  }));
 }

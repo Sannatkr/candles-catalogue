@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { bestPrice } from "@/lib/format";
-import type { Collection, Product } from "@/lib/types";
+import type { Product } from "@/lib/types";
 
 type Sort = "curated" | "price-asc" | "price-desc" | "burn-desc";
 
@@ -15,27 +15,56 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "burn-desc", label: "Longest burn" },
 ];
 
-export function ProductBrowser({
-  products,
-  collections,
-}: {
-  products: Product[];
-  collections: Collection[];
-}) {
-  const [active, setActive] = useState<string>("all");
+/**
+ * The chips a buyer actually thinks in. Each maps to keywords on the products,
+ * so adding a keyword in the admin is enough to put a candle under a chip.
+ */
+const FILTERS: { label: string; match: string[] }[] = [
+  { label: "Urli & brass", match: ["urli", "brass"] },
+  { label: "Lotus", match: ["lotus"] },
+  { label: "Diya", match: ["diya"] },
+  { label: "Gift boxes", match: ["gift box", "set", "return gift"] },
+  { label: "Pooja", match: ["pooja", "temple", "auspicious", "traditional"] },
+  { label: "Wedding", match: ["wedding", "event", "decor"] },
+  { label: "Corporate", match: ["corporate", "hamper", "housewarming"] },
+  { label: "Novelty", match: ["novelty", "dessert", "mithai", "poker", "cards"] },
+];
+
+export function ProductBrowser({ products }: { products: Product[] }) {
+  const [active, setActive] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("curated");
 
+  const haystack = useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((p) =>
+      map.set(
+        p.id,
+        [p.name, p.tagline, p.description, p.fragrance, p.waxType, ...p.keywords]
+          .join(" ")
+          .toLowerCase(),
+      ),
+    );
+    return map;
+  }, [products]);
+
+  // Only offer a chip if something actually sits under it.
+  const chips = useMemo(
+    () =>
+      FILTERS.filter((f) =>
+        products.some((p) => f.match.some((m) => (haystack.get(p.id) ?? "").includes(m))),
+      ),
+    [products, haystack],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const filter = FILTERS.find((f) => f.label === active);
 
     const filtered = products.filter((p) => {
-      if (active !== "all" && p.collectionSlug !== active) return false;
-      if (!q) return true;
-      return [p.name, p.tagline, p.fragrance, p.waxType, p.description]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
+      const text = haystack.get(p.id) ?? "";
+      if (filter && !filter.match.some((m) => text.includes(m))) return false;
+      return !q || text.includes(q);
     });
 
     const sorted = [...filtered];
@@ -43,28 +72,26 @@ export function ProductBrowser({
     if (sort === "price-desc") sorted.sort((a, b) => bestPrice(b) - bestPrice(a));
     if (sort === "burn-desc") sorted.sort((a, b) => b.burnTimeHours - a.burnTimeHours);
     return sorted;
-  }, [products, active, query, sort]);
-
-  const chips = [{ slug: "all", name: "Everything" }, ...collections];
+  }, [products, active, query, sort, haystack]);
 
   return (
     <>
       <div className="mt-12 flex flex-col gap-5 border-y border-line py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="-mx-1 flex flex-wrap gap-2 px-1">
-          {chips.map((chip) => {
-            const isActive = active === chip.slug;
+          {[{ label: "Everything", match: [] }, ...chips].map((chip) => {
+            const isActive = active === chip.label || (chip.label === "Everything" && active === "all");
             return (
               <button
-                key={chip.slug}
+                key={chip.label}
                 type="button"
-                onClick={() => setActive(chip.slug)}
+                onClick={() => setActive(chip.label === "Everything" ? "all" : chip.label)}
                 className={`rounded-full border px-4 py-2 text-[0.85rem] transition-all duration-200 ${
                   isActive
                     ? "border-ink bg-ink text-canvas"
                     : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
                 }`}
               >
-                {chip.name}
+                {chip.label}
               </button>
             );
           })}
@@ -76,7 +103,7 @@ export function ProductBrowser({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search fragrance, name…"
+              placeholder="lotus, diwali, mogra…"
               className="w-full rounded-full border border-line bg-surface py-2.5 pr-4 pl-10 text-[0.875rem] text-ink placeholder:text-ink-faint focus:border-ink/40 focus:outline-none sm:w-60"
             />
           </label>
@@ -102,9 +129,7 @@ export function ProductBrowser({
       {visible.length === 0 ? (
         <div className="py-24 text-center">
           <p className="font-display text-2xl text-ink">Nothing matched that.</p>
-          <p className="mt-2 text-[0.95rem] text-ink-soft">
-            Try a shorter word, or clear the search.
-          </p>
+          <p className="mt-2 text-[0.95rem] text-ink-soft">Try a shorter word, or clear the search.</p>
           <button
             type="button"
             onClick={() => {

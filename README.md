@@ -100,7 +100,7 @@ Send that instead of the home page when a buyer only cares about one part of the
 
 ## Notes
 
-- Prices are shown per piece and marked "excl. GST" throughout.
+- Prices are shown per piece.
 - Photos are stored in Supabase Storage and served from their CDN. Keep each under 8 MB.
 - The sample candles in `src/lib/seed.ts` show only until Supabase is connected. Once it is, the site
   shows exactly what is in your database — nothing invented.

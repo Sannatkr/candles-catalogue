@@ -1,12 +1,12 @@
 import { EmptyState } from "@/components/empty-state";
 import { ProductBrowser } from "@/components/product-browser";
 import { Reveal } from "@/components/reveal";
-import { getCollections, getProducts } from "@/lib/data";
+import { getProducts } from "@/lib/data";
 
 export const metadata = { title: "All Products" };
 
 export default async function ProductsPage() {
-  const [products, collections] = await Promise.all([getProducts(), getCollections()]);
+  const products = await getProducts();
 
   return (
     <div className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8 lg:pt-20">
@@ -16,7 +16,7 @@ export default async function ProductsPage() {
           Every design we make
         </h1>
         <p className="mt-5 max-w-[54ch] text-[1.02rem] leading-relaxed text-ink-soft">
-          Filter by collection, or search by fragrance. Prices shown are per piece and exclude GST.
+          Search by name, shape, occasion or fragrance. All prices are per piece.
         </p>
       </Reveal>
 
@@ -28,7 +28,7 @@ export default async function ProductsPage() {
           />
         </div>
       ) : (
-        <ProductBrowser products={products} collections={collections} />
+        <ProductBrowser products={products} />
       )}
     </div>
   );

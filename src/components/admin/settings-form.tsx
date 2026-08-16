@@ -47,9 +47,6 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
           <Field label="Instagram handle" hint="Without the @. e.g. sugandha_candles_">
             <Input name="instagramHandle" defaultValue={settings.instagramHandle} autoCapitalize="none" />
           </Field>
-          <Field label="Phone (shown to buyers)">
-            <Input name="phone" defaultValue={settings.phone} />
-          </Field>
           <Field label="Email">
             <Input type="email" name="email" defaultValue={settings.email} />
           </Field>
@@ -57,6 +54,13 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
             <Textarea name="addressLines" defaultValue={settings.addressLines.join("\n")} className="min-h-[90px]" />
           </Field>
         </div>
+      </Card>
+
+      <Card
+        title="Fragrance list"
+        hint="What a buyer can choose from when they order 50 pieces or more. One per line."
+      >
+        <Textarea name="fragrances" defaultValue={settings.fragrances.join("\n")} className="min-h-[220px]" />
       </Card>
 
       <Card title="Terms & payment" hint="This is the page you stop re-explaining in every DM.">

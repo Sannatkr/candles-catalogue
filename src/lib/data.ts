@@ -22,6 +22,7 @@ type ProductRow = {
   description: string | null;
   images: string[] | null;
   size_chart_image: string | null;
+  keywords: string[] | null;
   fragrance: string | null;
   wax_type: string | null;
   wick_type: string | null;
@@ -61,6 +62,7 @@ function toProduct(row: ProductRow): Product {
     description: row.description ?? "",
     images: row.images?.length ? row.images : [FALLBACK_IMAGE],
     sizeChartImage: row.size_chart_image,
+    keywords: row.keywords ?? [],
     fragrance: row.fragrance ?? "",
     waxType: row.wax_type ?? "",
     wickType: row.wick_type ?? "",

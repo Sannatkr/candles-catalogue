@@ -7,22 +7,22 @@ import { Reveal } from "@/components/reveal";
 import { getCollections, getFeaturedProducts, getSettings } from "@/lib/data";
 
 const FACTS = [
-  { label: "Poured", value: "By hand, small batch" },
+  { label: "Wax", value: "100% natural soy" },
+  { label: "Burn", value: "Smokeless, no soot" },
+  { label: "Fragrance", value: "Premium imported oils" },
   { label: "Order from", value: "A single piece" },
-  { label: "Lead time", value: "7–10 working days" },
-  { label: "Private label", value: "From 500 pieces" },
 ];
 
 const STEPS = [
   {
     n: "01",
     title: "Browse and shortlist",
-    body: "Everything is here — sizes, burn time, packing and price slabs. Nothing hidden behind a phone call.",
+    body: "Sizes, burn time, packing and every price slab are on the page. Nothing hidden behind a phone call.",
   },
   {
     n: "02",
-    title: "Send us the list",
-    body: "Send us the product names and quantities on Instagram. We send a proforma invoice the same working day.",
+    title: "Book it in a minute",
+    body: "Pick your quantity, see the rate change, and send it over. We reply on Instagram the same working day.",
   },
   {
     n: "03",
@@ -51,9 +51,9 @@ export default async function HomePage() {
           <Reveal>
             <p className="eyebrow">Wholesale Catalogue</p>
             <h1 className="mt-5 font-display text-[clamp(2.6rem,6.5vw,4.6rem)] leading-[1.02] tracking-[-0.02em] text-ink">
-              Candles worth
+              No smoke.
               <br />
-              <span className="text-ember italic">lighting twice.</span>
+              <span className="text-ember italic">Just the scent.</span>
             </h1>
             <p className="mt-7 max-w-[46ch] text-[1.05rem] leading-relaxed text-ink-soft">
               {settings.aboutBlurb}
@@ -203,6 +203,56 @@ export default async function HomePage() {
           />
         </section>
       )}
+
+      {/* Why soy */}
+      <section className="mx-auto max-w-[1240px] px-5 pt-28 sm:px-8">
+        <Reveal className="max-w-[52ch]">
+          <p className="eyebrow">Why our wax matters</p>
+          <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.85rem)] leading-tight tracking-[-0.015em] text-ink">
+            Most candles you buy are paraffin.
+          </h2>
+          <p className="mt-5 text-[1.02rem] leading-relaxed text-ink-soft">
+            Paraffin is a petroleum by-product. It is cheap, it burns hot, and it leaves the black film you
+            find on jar rims and walls. We have never used it. Every piece here is poured in 100% natural soy
+            — nothing blended in to cut cost.
+          </p>
+        </Reveal>
+
+        <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              title: "It does not blacken anything",
+              body: "Soy burns cool and clean, so there is no soot on your brass, your jar or the wall behind it. That matters when the candle sits in a pooja room every evening.",
+            },
+            {
+              title: "It lasts noticeably longer",
+              body: "A lower burn temperature means the same amount of wax runs 30–50% longer than paraffin. You are paying per piece, but you are buying hours.",
+            },
+            {
+              title: "The scent actually carries",
+              body: "Soy holds fragrance oil better and releases it slowly instead of burning it off. The room smells the same in hour four as it did in hour one.",
+            },
+            {
+              title: "Imported, skin-safe oils",
+              body: "IFRA-grade fragrance oils, not industrial perfume. Safe around children, and safe to burn in a closed room through an evening.",
+            },
+            {
+              title: "Cotton wicks, no metal core",
+              body: "Lead-free braided cotton. Nothing metallic in the flame, and a wick that curls and self-trims instead of mushrooming.",
+            },
+            {
+              title: "Poured, sculpted, finished by hand",
+              body: "Every flower, fold and petal on these pieces is shaped by hand in Greater Noida. No two are stamped identical, and that is the point.",
+            },
+          ].map((item, i) => (
+            <Reveal key={item.title} delay={(i % 3) * 80}>
+              <div className="h-px w-10 bg-ember" />
+              <h3 className="mt-5 font-display text-[1.15rem] leading-snug text-ink">{item.title}</h3>
+              <p className="mt-2.5 text-[0.925rem] leading-relaxed text-ink-soft">{item.body}</p>
+            </Reveal>
+          ))}
+        </div>
+      </section>
 
       {/* How it works */}
       <section className="mx-auto max-w-[1240px] px-5 pt-28 sm:px-8">

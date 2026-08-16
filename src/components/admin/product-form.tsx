@@ -71,6 +71,18 @@ export function ProductForm({
             <Input name="tagline" defaultValue={product?.tagline ?? ""} placeholder="Warm, resinous, a little smoky" />
           </Field>
 
+          <Field
+            label="Search words"
+            hint="Comma separated. What a buyer might type: lotus, diwali, brass, return gift."
+            className="sm:col-span-2"
+          >
+            <Input
+              name="keywords"
+              defaultValue={(product?.keywords ?? []).join(", ")}
+              placeholder="lotus, urli, brass, diwali, gifting"
+            />
+          </Field>
+
           <Field label="Description" className="sm:col-span-2">
             <Textarea
               name="description"

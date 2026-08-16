@@ -25,6 +25,7 @@ create table if not exists public.products (
   description      text default '',
   images           text[] default '{}',
   size_chart_image text,
+  keywords         text[] default '{}',
   fragrance        text default '',
   wax_type         text default '',
   wick_type        text default '',
@@ -102,8 +103,7 @@ values (1, '{}'::jsonb)
 on conflict (id) do nothing;
 
 insert into public.collections (slug, name, tagline, description, sort_order) values
-  ('signature-jars',        'Signature Jars',        'Our core range, in glass',   '', 1),
-  ('pillars-and-blocks',    'Pillars & Blocks',      'Unscented, architectural',   '', 2),
-  ('tealights-and-votives', 'Tealights & Votives',   'Small format, high volume',  '', 3),
-  ('festive-and-gifting',   'Festive & Gifting',     'Diwali, weddings, corporate','', 4)
+  ('festive-candles', 'Festive Candles', 'Diwali, weddings, gifting', '', 1)
 on conflict (slug) do nothing;
+
+-- Bookings live in 002-bookings-and-keywords.sql. Run that file too.
