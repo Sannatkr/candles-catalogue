@@ -38,9 +38,14 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
     return { ok: true, message: "", reference: "PREVIEW" };
   }
 
-  const { data, error } = await getPublicSupabase()
+  // Buyers can insert a booking but must never read the table back, so the id is
+  // generated here rather than selected after the write.
+  const id = crypto.randomUUID();
+
+  const { error } = await getPublicSupabase()
     .from("bookings")
     .insert({
+      id,
       product_slug: input.productSlug,
       product_name: input.productName,
       product_image: input.productImage,
@@ -52,11 +57,9 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
       buyer_name: input.buyerName.trim().slice(0, 120),
       buyer_contact: input.buyerContact.trim().slice(0, 120),
       note: input.note?.trim().slice(0, 500) || null,
-    })
-    .select("id")
-    .single();
+    });
 
   if (error) return { ok: false, message: "Could not save that. Please try once more." };
 
-  return { ok: true, message: "", reference: (data?.id ?? "").slice(0, 8).toUpperCase() };
+  return { ok: true, message: "", reference: id.slice(0, 8).toUpperCase() };
 }
