@@ -38,8 +38,12 @@ export default async function HomePage() {
     getFeaturedProducts(6),
   ]);
 
-  const hero = collections[0]?.coverImage ?? "/placeholders/candle-01.svg";
-  const heroAlt = collections[1]?.coverImage ?? "/placeholders/candle-05.svg";
+  // Hero is the lead collection; the inset is the next best seller behind it.
+  const hero = collections[0]?.coverImage ?? featured[0]?.images[0] ?? "/placeholders/candle-01.svg";
+  const heroAlt =
+    featured.find((p) => p.images[0] && p.images[0] !== hero)?.images[0] ??
+    collections[1]?.coverImage ??
+    "/placeholders/candle-05.svg";
 
   return (
     <>
