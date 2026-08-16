@@ -69,9 +69,10 @@ export default async function AdminBookingsPage() {
                   </p>
 
                   <p className="mt-1.5 text-[0.825rem] text-ink-soft">
-                    {b.buyerName} · {b.buyerContact}
+                    {b.buyerName || "No name given"} · {b.buyerContact}
                     {b.fragrance && ` · ${b.fragrance}`}
                     {b.pincode && ` · ${b.pincode}`}
+                    {b.state && ` (${b.state})`}
                   </p>
 
                   {b.note && <p className="mt-1.5 text-[0.825rem] text-ink-faint">“{b.note}”</p>}

@@ -80,6 +80,7 @@ export type AdminBooking = {
   totalPrice: number;
   fragrance: string | null;
   pincode: string | null;
+  state: string | null;
   buyerName: string;
   buyerContact: string;
   note: string | null;
@@ -105,6 +106,7 @@ export async function listBookings(): Promise<AdminBooking[]> {
     totalPrice: Number(row.total_price ?? 0),
     fragrance: row.fragrance,
     pincode: row.pincode,
+    state: row.state,
     buyerName: row.buyer_name,
     buyerContact: row.buyer_contact,
     note: row.note,

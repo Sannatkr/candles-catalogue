@@ -75,6 +75,7 @@ export type Booking = {
   totalPrice: number;
   fragrance: string | null;
   pincode: string | null;
+  state: string | null;
   buyerName: string;
   buyerContact: string;
   note: string | null;
