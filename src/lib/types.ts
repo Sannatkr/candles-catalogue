@@ -24,7 +24,6 @@ export type Product = {
 
   basePrice: number;
   priceTiers: PriceTier[];
-  moq: number;
   packaging: string;
 
   inStock: boolean;

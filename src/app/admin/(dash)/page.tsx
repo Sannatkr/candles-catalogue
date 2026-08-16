@@ -19,7 +19,7 @@ export default async function AdminHome() {
       href: "/admin/products/new",
       icon: Package,
       title: "Add a candle",
-      body: "Photos, price slabs, MOQ, sizes. Live the moment you save.",
+      body: "Photos, price slabs, sizes. Live the moment you save.",
     },
     {
       href: "/admin/collections/new",
@@ -31,7 +31,7 @@ export default async function AdminHome() {
       href: "/admin/settings",
       icon: Settings,
       title: "Edit terms & payment",
-      body: "Payment split, lead time, MOQ rules, breakage policy.",
+      body: "Payment split, lead time, order size, breakage policy.",
     },
   ];
 

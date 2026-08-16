@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { bestPrice, compactQty, money } from "@/lib/format";
+import { bestPrice, money } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
@@ -42,7 +42,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         </div>
         <p className="mt-1 text-[0.875rem] text-ink-soft">{product.tagline}</p>
         <p className="mt-2.5 text-[0.75rem] tracking-wide text-ink-faint uppercase">
-          MOQ {compactQty(product.moq)} pcs · {product.heightCm}×{product.diameterCm} cm
+          {product.heightCm}×{product.diameterCm} cm · {product.burnTimeHours} hr burn
         </p>
       </div>
     </Link>

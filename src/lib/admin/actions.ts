@@ -69,7 +69,6 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     weight_grams: num(fd, "weight_grams"),
     base_price: tiers[0]?.price ?? num(fd, "base_price"),
     price_tiers: tiers,
-    moq: num(fd, "moq"),
     packaging: str(fd, "packaging"),
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),

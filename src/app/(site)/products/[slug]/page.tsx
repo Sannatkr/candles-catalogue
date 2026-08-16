@@ -57,7 +57,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       `Hi ${settings.businessName},`,
       "",
       `I'd like a quote for: ${product.name}`,
-      `Quantity: (minimum ${compactQty(product.moq)} pcs)`,
+      "Quantity:",
       "",
       "Company:",
       "Delivery city:",
@@ -127,10 +127,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <p className="mt-3 font-display text-[1.6rem] text-ink">{money(product.basePrice)}</p>
             )}
 
-            <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
-              <span className="text-[0.875rem] text-ink-soft">Minimum order</span>
-              <span className="text-[0.95rem] text-ink">{compactQty(product.moq)} pieces</span>
-            </div>
+            <p className="mt-5 border-t border-line pt-4 text-[0.85rem] leading-relaxed text-ink-soft">
+              No minimum order. Buy a single piece, or cross a slab and the lower rate applies on its
+              own.
+            </p>
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">

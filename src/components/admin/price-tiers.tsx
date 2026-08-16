@@ -6,9 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 export type Tier = { minQty: number; price: number };
 
 export function PriceTiers({ name, initial }: { name: string; initial: Tier[] }) {
-  const [tiers, setTiers] = useState<Tier[]>(
-    initial.length ? initial : [{ minQty: 100, price: 0 }],
-  );
+  const [tiers, setTiers] = useState<Tier[]>(initial.length ? initial : [{ minQty: 1, price: 0 }]);
 
   const update = (i: number, patch: Partial<Tier>) =>
     setTiers((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
@@ -17,7 +15,8 @@ export function PriceTiers({ name, initial }: { name: string; initial: Tier[] })
     <div>
       <p className="text-[0.8rem] font-medium text-ink">Price slabs</p>
       <p className="mt-0.5 text-[0.75rem] text-ink-faint">
-        Price per piece at each quantity. One row is fine if you have a single price.
+        Price per piece at each quantity. Start at 1 for the single-piece rate; add rows only if you
+        discount on volume.
       </p>
 
       <input type="hidden" name={name} value={JSON.stringify(tiers)} readOnly />

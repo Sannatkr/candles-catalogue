@@ -34,7 +34,6 @@ create table if not exists public.products (
   weight_grams     numeric default 0,
   base_price       numeric default 0,
   price_tiers      jsonb   default '[]'::jsonb,
-  moq              int     default 0,
   packaging        text    default '',
   in_stock         boolean default true,
   featured         boolean default false,

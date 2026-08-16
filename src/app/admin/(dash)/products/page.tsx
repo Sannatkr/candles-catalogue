@@ -66,7 +66,7 @@ export default async function AdminProductsPage({
                 <p className="truncate font-display text-[1.05rem] text-ink">{product.name}</p>
                 <p className="mt-0.5 truncate text-[0.8rem] text-ink-soft">
                   {nameOf.get(product.collection_slug) ?? product.collection_slug} ·{" "}
-                  {money(product.base_price ?? 0)} · MOQ {product.moq ?? 0}
+                  {money(product.base_price ?? 0)}
                   {!product.in_stock && " · made to order"}
                   {product.featured && " · on home page"}
                 </p>

@@ -1,6 +1,6 @@
 # Sugandha Candles — catalogue site
 
-A link you send to a client. They see the full range with photos, sizes, price slabs, MOQ and your
+A link you send to a client. They see the full range with photos, sizes, price slabs and your
 trade terms. No cart, no checkout.
 
 You add products from `/admin`. Nothing needs to be deployed again after the first time.
@@ -77,7 +77,7 @@ Everything happens at `yoursite.com/admin`:
 | What you want to do | Where |
 | --- | --- |
 | Add or edit a candle | Products → Add candle |
-| Change a price or MOQ | Products → Edit → Pricing |
+| Change a price or a slab | Products → Edit → Pricing |
 | Group candles differently | Collections |
 | Change payment terms, lead time, breakage policy | Settings & terms |
 | Change your Instagram handle, address, email | Settings & terms → Contact |

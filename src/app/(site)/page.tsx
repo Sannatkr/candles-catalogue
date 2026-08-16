@@ -8,7 +8,7 @@ import { getCollections, getFeaturedProducts, getSettings } from "@/lib/data";
 
 const FACTS = [
   { label: "Poured", value: "By hand, small batch" },
-  { label: "MOQ from", value: "50 pieces" },
+  { label: "Order from", value: "A single piece" },
   { label: "Lead time", value: "7–10 working days" },
   { label: "Private label", value: "From 500 pieces" },
 ];
@@ -17,7 +17,7 @@ const STEPS = [
   {
     n: "01",
     title: "Browse and shortlist",
-    body: "Everything is here — sizes, burn time, packing, price slabs and MOQ. Nothing hidden behind a phone call.",
+    body: "Everything is here — sizes, burn time, packing and price slabs. Nothing hidden behind a phone call.",
   },
   {
     n: "02",
@@ -27,7 +27,7 @@ const STEPS = [
   {
     n: "03",
     title: "Advance and production",
-    body: "50% advance starts production. We share photographs before dispatch, and the balance is due then.",
+    body: "65% advance starts production. We share photographs before dispatch, and the balance is due then.",
   },
 ];
 

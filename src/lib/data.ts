@@ -31,7 +31,6 @@ type ProductRow = {
   weight_grams: number | null;
   base_price: number | null;
   price_tiers: { minQty: number; price: number }[] | null;
-  moq: number | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;
@@ -71,7 +70,6 @@ function toProduct(row: ProductRow): Product {
     weightGrams: row.weight_grams ?? 0,
     basePrice: row.base_price ?? 0,
     priceTiers: row.price_tiers ?? [],
-    moq: row.moq ?? 0,
     packaging: row.packaging ?? "",
     inStock: row.in_stock ?? true,
     featured: row.featured ?? false,

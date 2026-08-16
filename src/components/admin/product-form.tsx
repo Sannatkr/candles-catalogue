@@ -101,13 +101,11 @@ export function ProductForm({
         </div>
       </Card>
 
-      <Card title="Pricing">
-        <div className="space-y-6">
-          <PriceTiers name="price_tiers" initial={product?.price_tiers ?? []} />
-          <Field label="Minimum order quantity" hint="In pieces, per design.">
-            <Input type="number" name="moq" min={1} defaultValue={product?.moq ?? 100} />
-          </Field>
-        </div>
+      <Card
+        title="Pricing"
+        hint="There is no minimum order, so start your first slab at 1 piece — that is the single-piece rate."
+      >
+        <PriceTiers name="price_tiers" initial={product?.price_tiers ?? []} />
       </Card>
 
       <Card title="Specification">
