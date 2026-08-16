@@ -57,17 +57,25 @@ export default async function AdminBookingsPage({
         <div className="mt-8 overflow-x-auto rounded-[14px] border border-line bg-canvas">
           <table className="w-full min-w-[900px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-line">
-                {["Candle", "Qty", "Rate", "Total", "Buyer", "Delivery", "From", "Status", ""].map(
-                  (heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-[0.7rem] font-medium tracking-[0.12em] text-ink-faint uppercase"
-                    >
-                      {heading}
-                    </th>
-                  ),
-                )}
+              <tr className="border-b border-line bg-canvas-deep/35">
+                {[
+                  { label: "Candle", align: "text-left" },
+                  { label: "Qty", align: "text-right" },
+                  { label: "Rate", align: "text-right" },
+                  { label: "Total", align: "text-right" },
+                  { label: "Buyer", align: "text-left" },
+                  { label: "Delivery", align: "text-left" },
+                  { label: "From", align: "text-left" },
+                  { label: "Status", align: "text-left" },
+                  { label: "", align: "text-right" },
+                ].map((col, i) => (
+                  <th
+                    key={col.label || i}
+                    className={`px-4 py-3 text-[0.68rem] font-medium tracking-[0.12em] whitespace-nowrap text-ink-faint uppercase ${col.align}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
 
@@ -75,7 +83,7 @@ export default async function AdminBookingsPage({
               {bookings.map((b) => {
                 const status = b.status as BookingStatus;
                 return (
-                  <tr key={b.id} className="border-b border-line-soft last:border-0 align-top">
+                  <tr key={b.id} className="border-b border-line-soft align-middle transition-colors last:border-0 hover:bg-canvas-deep/25">
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-canvas-deep">
@@ -96,38 +104,50 @@ export default async function AdminBookingsPage({
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 text-[0.9rem] text-ink">{compactQty(b.quantity)}</td>
-                    <td className="px-4 py-3.5 text-[0.9rem] text-ink-soft">{money(b.unitPrice)}</td>
-                    <td className="px-4 py-3.5 text-[0.9rem] font-medium text-ink">{money(b.totalPrice)}</td>
-
-                    <td className="px-4 py-3.5">
-                      <p className="text-[0.875rem] text-ink">{b.buyerName || "—"}</p>
-                      <p className="text-[0.78rem] text-ink-faint">{b.buyerContact || "—"}</p>
+                    <td className="px-4 py-3.5 text-right text-[0.9rem] text-ink tabular-nums">
+                      {compactQty(b.quantity)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right text-[0.9rem] whitespace-nowrap text-ink-soft tabular-nums">
+                      {money(b.unitPrice)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right text-[0.9rem] font-medium whitespace-nowrap text-ink tabular-nums">
+                      {money(b.totalPrice)}
                     </td>
 
-                    <td className="px-4 py-3.5">
-                      <p className="text-[0.875rem] text-ink">{b.pincode || "—"}</p>
-                      {b.state && <p className="text-[0.78rem] text-ink-faint">{b.state}</p>}
+                    <td className="max-w-[170px] px-4 py-3.5">
+                      <p className="truncate text-[0.875rem] text-ink">{b.buyerName || "—"}</p>
+                      <p className="truncate text-[0.78rem] text-ink-faint">{b.buyerContact || "—"}</p>
                     </td>
 
-                    <td className="px-4 py-3.5 text-[0.8rem] text-ink-soft">
+                    <td className="max-w-[150px] px-4 py-3.5">
+                      <p className="text-[0.875rem] text-ink tabular-nums">{b.pincode || "—"}</p>
+                      {b.state && (
+                        <p className="truncate text-[0.78rem] text-ink-faint" title={b.state}>
+                          {b.state}
+                        </p>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-[0.8rem] whitespace-nowrap text-ink-soft">
                       {SOURCE_LABEL[b.source] ?? b.source}
                     </td>
 
-                    <td className="px-4 py-3.5">
+                    <td className="max-w-[190px] px-4 py-3.5">
                       <span
-                        className={`inline-block rounded-full px-2.5 py-1 text-[0.7rem] tracking-wide uppercase ${
+                        className={`inline-block rounded-full px-2.5 py-1 text-[0.7rem] tracking-wide whitespace-nowrap uppercase ${
                           STATUS_STYLE[status] ?? STATUS_STYLE.cancelled
                         }`}
                       >
                         {STATUS_LABEL[status] ?? b.status}
                       </span>
                       {b.note && (
-                        <p className="mt-1.5 max-w-[200px] text-[0.75rem] text-ink-faint">“{b.note}”</p>
+                        <p className="mt-1.5 truncate text-[0.75rem] text-ink-faint" title={b.note}>
+                          “{b.note}”
+                        </p>
                       )}
                     </td>
 
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-right">
                       <BookingRowActions id={b.id} status={status} label={b.productName} />
                     </td>
                   </tr>
