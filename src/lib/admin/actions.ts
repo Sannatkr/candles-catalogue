@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/admin/action-state";
+import { isBookingStatus } from "@/lib/admin/booking-status";
 import { slugify } from "@/lib/slug";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -184,7 +185,76 @@ export async function signOut() {
 export async function setBookingStatus(fd: FormData) {
   const supabase = await requireAdmin();
   const status = str(fd, "status");
-  if (!["new", "contacted", "confirmed", "closed"].includes(status)) return;
-  await supabase.from("bookings").update({ status }).eq("id", str(fd, "id"));
+  if (!isBookingStatus(status)) return;
+
+  // Stamp the moment money landed, so revenue can be reported by payment date
+  // rather than by when the order was first placed.
+  const patch: Record<string, unknown> = { status };
+  if (status === "paid" || status === "fulfilled") patch.paid_at = new Date().toISOString();
+  if (status === "new" || status === "contacted" || status === "cancelled") patch.paid_at = null;
+
+  await supabase.from("bookings").update(patch).eq("id", str(fd, "id"));
   revalidatePath("/admin/bookings");
+  revalidatePath("/admin/revenue");
+  revalidatePath("/admin");
+}
+
+export async function deleteBooking(fd: FormData) {
+  const supabase = await requireAdmin();
+  await supabase.from("bookings").delete().eq("id", str(fd, "id"));
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/revenue");
+  revalidatePath("/admin");
+}
+
+export async function createBooking(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const supabase = await requireAdmin();
+
+  const productSlug = str(fd, "product_slug");
+  if (!productSlug) return { ok: false, message: "Pick which candle this is for." };
+
+  const quantity = Math.floor(num(fd, "quantity"));
+  if (quantity < 1) return { ok: false, message: "Quantity must be at least 1." };
+
+  const unitPrice = num(fd, "unit_price");
+  if (unitPrice <= 0) return { ok: false, message: "Enter the rate you sold it at." };
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("name, images")
+    .eq("slug", productSlug)
+    .maybeSingle();
+
+  const status = str(fd, "status");
+  if (!isBookingStatus(status)) return { ok: false, message: "Pick a status." };
+
+  const paidAt =
+    status === "paid" || status === "fulfilled"
+      ? (str(fd, "paid_on") ? new Date(str(fd, "paid_on")).toISOString() : new Date().toISOString())
+      : null;
+
+  const { error } = await supabase.from("bookings").insert({
+    product_slug: productSlug,
+    product_name: product?.name ?? productSlug,
+    product_image: (product?.images as string[] | null)?.[0] ?? null,
+    quantity,
+    unit_price: unitPrice,
+    total_price: Math.round(unitPrice * quantity),
+    fragrance: str(fd, "fragrance") || null,
+    pincode: str(fd, "pincode") || null,
+    state: str(fd, "state") || null,
+    buyer_name: str(fd, "buyer_name") || null,
+    buyer_contact: str(fd, "buyer_contact") || null,
+    note: str(fd, "note") || null,
+    status,
+    source: "manual",
+    paid_at: paidAt,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/revenue");
+  revalidatePath("/admin");
+  redirect("/admin/bookings?added=1");
 }

@@ -82,9 +82,11 @@ export type AdminBooking = {
   pincode: string | null;
   state: string | null;
   buyerName: string;
-  buyerContact: string;
+  buyerContact: string | null;
   note: string | null;
   status: string;
+  source: string;
+  paidAt: string | null;
 };
 
 export async function listBookings(): Promise<AdminBooking[]> {
@@ -111,5 +113,40 @@ export async function listBookings(): Promise<AdminBooking[]> {
     buyerContact: row.buyer_contact,
     note: row.note,
     status: row.status ?? "new",
+    source: row.source ?? "website",
+    paidAt: row.paid_at ?? null,
+  }));
+}
+
+/** Paid and fulfilled orders in a window, keyed on when the money landed. */
+export async function listRevenueBookings(fromISO: string, toISO: string): Promise<AdminBooking[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("bookings")
+    .select("*")
+    .in("status", ["paid", "fulfilled"])
+    .gte("paid_at", fromISO)
+    .lte("paid_at", toISO)
+    .order("paid_at", { ascending: true })
+    .limit(5000);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    productSlug: row.product_slug,
+    productName: row.product_name,
+    productImage: row.product_image,
+    quantity: row.quantity ?? 0,
+    unitPrice: Number(row.unit_price ?? 0),
+    totalPrice: Number(row.total_price ?? 0),
+    fragrance: row.fragrance,
+    pincode: row.pincode,
+    state: row.state,
+    buyerName: row.buyer_name,
+    buyerContact: row.buyer_contact,
+    note: row.note,
+    status: row.status ?? "paid",
+    source: row.source ?? "website",
+    paidAt: row.paid_at ?? null,
   }));
 }
