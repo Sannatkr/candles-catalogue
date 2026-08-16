@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <rect width="1200" height="800" fill="#FBF8F3"/>
+  <g stroke="#CFC4B4" stroke-width="1.5" fill="none">
+    <rect x="470" y="220" width="260" height="380" rx="18"/>
+    <path d="M380 220 L380 600" stroke-dasharray="6 8"/>
+    <path d="M470 660 L730 660" stroke-dasharray="6 8"/>
+    <path d="M380 220 L440 220 M380 600 L440 600"/>
+    <path d="M470 660 L470 620 M730 660 L730 620"/>
+  </g>
+  <g fill="#8A7C6B" font-family="Helvetica, Arial, sans-serif" font-size="26">
+    <text x="300" y="418">Height</text>
+    <text x="556" y="712">Diameter</text>
+  </g>
+  <text x="600" y="120" text-anchor="middle" fill="#3A312A" font-family="Georgia, serif" font-size="40">Size Guide</text>
+  <text x="600" y="164" text-anchor="middle" fill="#8A7C6B" font-family="Helvetica, Arial, sans-serif" font-size="20">Replace with your own measured drawing</text>
+</svg>

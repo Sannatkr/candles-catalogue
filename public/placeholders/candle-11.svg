@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="78%">
+      <stop offset="0%" stop-color="#F4EAE4"/>
+      <stop offset="100%" stop-color="#E0CAC0"/>
+    </radialGradient>
+    <linearGradient id="wax" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E0CAC0"/>
+      <stop offset="22%" stop-color="#FCF5F1"/>
+      <stop offset="70%" stop-color="#FCF5F1"/>
+      <stop offset="100%" stop-color="#E0CAC0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.06"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  
+    <ellipse cx="600" cy="770" rx="170" ry="26" fill="#E0CAC0" opacity="0.55"/>
+    <rect x="500" y="420" width="200" height="340" rx="14" fill="url(#wax)"/>
+    <rect x="500" y="420" width="200" height="340" rx="14" fill="url(#sheen)"/>
+    <ellipse cx="600" cy="420" rx="100" ry="22.22222222222222" fill="#FCF5F1"/>
+    <ellipse cx="600" cy="420" rx="83.33333333333334" ry="16.666666666666668" fill="#E0CAC0" opacity="0.35"/>
+    <rect x="598" y="394" width="4" height="26" rx="2" fill="#3A2F26"/>
+    <g opacity="0.95">
+      <ellipse cx="600" cy="374" rx="34" ry="52" fill="#B2604F" opacity="0.16"/>
+      <path d="M600 342 C 614 360, 616 376, 600 390
+               C 584 376, 586 360, 600 342 Z" fill="#B2604F"/>
+    </g>
+  <rect width="1200" height="900" filter="url(#grain)" opacity="0.05"/>
+</svg>

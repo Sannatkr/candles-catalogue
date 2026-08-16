@@ -1,0 +1,35 @@
+import { EmptyState } from "@/components/empty-state";
+import { ProductBrowser } from "@/components/product-browser";
+import { Reveal } from "@/components/reveal";
+import { getCollections, getProducts } from "@/lib/data";
+
+export const metadata = { title: "All Products" };
+
+export default async function ProductsPage() {
+  const [products, collections] = await Promise.all([getProducts(), getCollections()]);
+
+  return (
+    <div className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8 lg:pt-20">
+      <Reveal>
+        <p className="eyebrow">Catalogue</p>
+        <h1 className="mt-4 font-display text-[clamp(2.3rem,5.5vw,3.7rem)] leading-[1.05] tracking-[-0.02em] text-ink">
+          Every design we make
+        </h1>
+        <p className="mt-5 max-w-[54ch] text-[1.02rem] leading-relaxed text-ink-soft">
+          Filter by collection, or search by fragrance. Prices shown are per piece and exclude GST.
+        </p>
+      </Reveal>
+
+      {products.length === 0 ? (
+        <div className="mt-14">
+          <EmptyState
+            title="Nothing published yet"
+            body="The range is going up right now. Message us and we will send what you are looking for directly."
+          />
+        </div>
+      ) : (
+        <ProductBrowser products={products} collections={collections} />
+      )}
+    </div>
+  );
+}
