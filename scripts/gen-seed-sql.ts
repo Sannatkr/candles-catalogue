@@ -28,29 +28,32 @@ for (const c of seedCollections) {
   );
 }
 
-for (const p of seedProducts) {
-  out.push(
-    `insert into public.products (`,
-    `  slug, name, collection_slug, tagline, description, images, size_chart_image, keywords,`,
-    `  fragrance, wax_type, wick_type, burn_time_hours, height_cm, diameter_cm, weight_grams,`,
-    `  base_price, price_tiers, packaging, in_stock, featured, sort_order`,
-    `) values (`,
-    `  ${q(p.slug)}, ${q(p.name)}, ${q(p.collectionSlug)}, ${q(p.tagline)}, ${q(p.description)},`,
-    `  ${arr(p.images)}, null, ${arr(p.keywords)},`,
-    `  ${q(p.fragrance)}, ${q(p.waxType)}, ${q(p.wickType)}, ${p.burnTimeHours}, ${p.heightCm}, ${p.diameterCm}, ${p.weightGrams},`,
-    `  ${p.basePrice}, ${json(p.priceTiers)}, ${q(p.packaging)}, ${p.inStock}, ${p.featured}, ${p.sortOrder}`,
-    `) on conflict (slug) do update set`,
-    `  name = excluded.name, collection_slug = excluded.collection_slug, tagline = excluded.tagline,`,
-    `  description = excluded.description, images = excluded.images, keywords = excluded.keywords,`,
-    `  fragrance = excluded.fragrance, wax_type = excluded.wax_type, wick_type = excluded.wick_type,`,
-    `  burn_time_hours = excluded.burn_time_hours, height_cm = excluded.height_cm,`,
-    `  diameter_cm = excluded.diameter_cm, weight_grams = excluded.weight_grams,`,
-    `  base_price = excluded.base_price, price_tiers = excluded.price_tiers,`,
-    `  packaging = excluded.packaging, in_stock = excluded.in_stock,`,
-    `  featured = excluded.featured, sort_order = excluded.sort_order;`,
-    "",
-  );
-}
+// One multi-row insert keeps the file short enough to paste by hand.
+const COLUMNS = [
+  "slug", "name", "collection_slug", "tagline", "description", "images", "keywords",
+  "fragrance", "wax_type", "wick_type", "burn_time_hours", "height_cm", "diameter_cm",
+  "weight_grams", "base_price", "price_tiers", "packaging", "in_stock", "featured", "sort_order",
+];
+
+out.push(`insert into public.products (${COLUMNS.join(", ")}) values`);
+out.push(
+  seedProducts
+    .map(
+      (p) =>
+        `(${q(p.slug)}, ${q(p.name)}, ${q(p.collectionSlug)}, ${q(p.tagline)}, ${q(p.description)}, ` +
+        `${arr(p.images)}, ${arr(p.keywords)}, ${q(p.fragrance)}, ${q(p.waxType)}, ${q(p.wickType)}, ` +
+        `${p.burnTimeHours}, ${p.heightCm}, ${p.diameterCm}, ${p.weightGrams}, ${p.basePrice}, ` +
+        `${json(p.priceTiers)}, ${q(p.packaging)}, ${p.inStock}, ${p.featured}, ${p.sortOrder})`,
+    )
+    .join(",\n"),
+);
+out.push(
+  `on conflict (slug) do update set`,
+  `  ${COLUMNS.filter((c) => c !== "slug")
+    .map((c) => `${c} = excluded.${c}`)
+    .join(", ")};`,
+  "",
+);
 
 out.push(
   `insert into public.site_settings (id, data) values (1, ${json(seedSettings)})`,
