@@ -78,6 +78,7 @@ export type Booking = {
   state: string | null;
   buyerName: string;
   buyerContact: string;
+  phone: string | null;
   note: string | null;
   status: "new" | "contacted" | "confirmed" | "closed";
 };

@@ -95,8 +95,11 @@ export function BookingForm({ products, fragrances }: { products: Product[]; fra
           <Field label="Name">
             <Input name="buyer_name" placeholder="Walk-in, or a shop name" />
           </Field>
-          <Field label="Phone or Instagram">
-            <Input name="buyer_contact" />
+          <Field label="Instagram username">
+            <Input name="buyer_contact" placeholder="without the @" autoCapitalize="none" />
+          </Field>
+          <Field label="Phone">
+            <Input name="phone" inputMode="tel" />
           </Field>
           <Field label="Pincode">
             <Input name="pincode" inputMode="numeric" maxLength={6} />

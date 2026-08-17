@@ -15,6 +15,7 @@ type Input = {
   state: string | null;
   buyerName: string;
   buyerContact: string;
+  phone: string;
   note: string | null;
 };
 
@@ -23,11 +24,18 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
   if (!Number.isFinite(quantity) || quantity < 1 || quantity > 100000) {
     return { ok: false, message: "Enter a quantity between 1 and 100000." };
   }
-  if (!input.buyerContact.trim()) {
-    return { ok: false, message: "Add a phone number or Instagram handle so we can reply." };
+  const handle = input.buyerContact
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/\/.*$/, "");
+  if (!handle) {
+    return { ok: false, message: "Add your Instagram username so we can reply." };
   }
-  if (!/^\d{6}$/.test(input.pincode.trim())) {
-    return { ok: false, message: "Enter a 6-digit delivery pincode." };
+
+  const pincode = input.pincode.trim();
+  if (pincode && !/^\d{6}$/.test(pincode)) {
+    return { ok: false, message: "A pincode is 6 digits — or leave it blank." };
   }
   if (quantity >= CUSTOMISE_FROM && !input.fragrance) {
     return { ok: false, message: "Pick a fragrance for this order." };
@@ -53,21 +61,24 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
     unit_price: input.unitPrice,
     total_price: Math.round(input.unitPrice * quantity),
     fragrance: input.fragrance,
-    pincode: input.pincode.trim(),
+    pincode: pincode || null,
     state: input.state?.slice(0, 120) || null,
     buyer_name: input.buyerName.trim().slice(0, 120),
-    buyer_contact: input.buyerContact.trim().slice(0, 120),
+    buyer_contact: handle.slice(0, 120),
+    phone: input.phone.trim().slice(0, 40) || null,
     note: input.note?.trim().slice(0, 500) || null,
   };
 
   let { error } = await supabase.from("bookings").insert(row);
 
-  // 42703 is "column does not exist" — the state column arrives with migration
-  // 004, so until that has been run the order still goes through without it.
-  if (error?.code === "42703") {
-    const withoutState: Partial<typeof row> = { ...row };
-    delete withoutState.state;
-    ({ error } = await supabase.from("bookings").insert(withoutState));
+  // PGRST204 is PostgREST rejecting an unknown column from its schema cache;
+  // 42703 is Postgres saying the same thing. The state and phone columns arrive
+  // with later migrations, so until those are run the order still goes through.
+  if (error?.code === "PGRST204" || error?.code === "42703") {
+    const trimmed: Partial<typeof row> = { ...row };
+    delete trimmed.state;
+    delete trimmed.phone;
+    ({ error } = await supabase.from("bookings").insert(trimmed));
   }
 
   if (error) return { ok: false, message: "Could not save that. Please try once more." };

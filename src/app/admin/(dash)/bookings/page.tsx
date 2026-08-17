@@ -115,8 +115,12 @@ export default async function AdminBookingsPage({
                     </td>
 
                     <td className="max-w-[170px] px-4 py-3.5">
-                      <p className="truncate text-[0.875rem] text-ink">{b.buyerName || "—"}</p>
-                      <p className="truncate text-[0.78rem] text-ink-faint">{b.buyerContact || "—"}</p>
+                      <p className="truncate text-[0.875rem] text-ink">
+                        {b.buyerContact ? `@${b.buyerContact.replace(/^@/, "")}` : b.buyerName || "—"}
+                      </p>
+                      <p className="truncate text-[0.78rem] text-ink-faint">
+                        {[b.buyerContact ? b.buyerName : null, b.phone].filter(Boolean).join(" · ") || "—"}
+                      </p>
                     </td>
 
                     <td className="max-w-[150px] px-4 py-3.5">

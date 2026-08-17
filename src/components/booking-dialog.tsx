@@ -40,7 +40,8 @@ export function BookingDialog({
     district: string;
   } | null>(null);
   const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -96,10 +97,11 @@ export function BookingDialog({
     `Rate: ${money(unit)} per piece`,
     `Total: ${money(total)}`,
     canPickFragrance ? `Fragrance: ${fragrance}` : null,
-    `Delivery: ${pincode}${place ? ` — ${place.district}, ${place.state}` : ""}`,
+    pincode ? `Delivery: ${pincode}${place ? ` — ${place.district}, ${place.state}` : ""}` : null,
     ``,
     name ? `Name: ${name}` : null,
-    `Contact: ${contact}`,
+    `Instagram: @${instagram.replace(/^@/, "")}`,
+    phone ? `Phone: ${phone}` : null,
     note ? `Note: ${note}` : null,
     done && done !== "PREVIEW" ? `` : null,
     done && done !== "PREVIEW" ? `Reference: ${done}` : null,
@@ -135,7 +137,8 @@ export function BookingDialog({
       pincode,
       state: place ? `${place.district ? `${place.district}, ` : ""}${place.state}` : null,
       buyerName: name,
-      buyerContact: contact,
+      buyerContact: instagram,
+      phone,
       note: note || null,
     });
 
@@ -191,60 +194,78 @@ export function BookingDialog({
               <div>
                 <p className="font-display text-[1.35rem] leading-snug text-ink">That&rsquo;s booked.</p>
                 <p className="mt-1.5 text-[0.95rem] leading-relaxed text-ink-soft">
-                  We have it, and we&rsquo;ll get back to you on{" "}
-                  <span className="text-ink">{contact}</span> within a working day.
+                  We have your order
                   {done && done !== "PREVIEW" && (
                     <>
                       {" "}
-                      Your reference is <span className="text-ink">{done}</span>.
+                      — reference <span className="text-ink">{done}</span>
                     </>
                   )}
+                  .
                 </p>
               </div>
             </div>
 
-            <p className="mt-7 text-[0.8rem] font-medium text-ink">What you asked for</p>
-            <pre className="mt-2 max-h-44 overflow-y-auto rounded-[12px] border border-line bg-surface p-4 text-[0.8rem] leading-relaxed whitespace-pre-wrap text-ink-soft">
+            {/* The paste step. Instagram gives websites no way to fill a DM, so
+                this has to be spelled out plainly or people stall on it. */}
+            <div className="mt-6 rounded-[16px] border border-ember/35 bg-ember-wash/60 p-5">
+              <p className="font-display text-[1.05rem] text-ink">Now send it to us on Instagram</p>
+
+              <ol className="mt-4 space-y-3">
+                {[
+                  copied
+                    ? "Your order details are already copied."
+                    : "Tap Copy details below to copy your order.",
+                  "Tap the button — your chat with us opens.",
+                  "Long-press the message box, hit Paste, and send.",
+                ].map((step, i) => (
+                  <li key={step} className="flex gap-3">
+                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ember text-[0.72rem] font-medium text-canvas">
+                      {i + 1}
+                    </span>
+                    <span className="text-[0.875rem] leading-relaxed text-ink">{step}</span>
+                  </li>
+                ))}
+              </ol>
+
+              <a
+                href={instagramDmLink(instagramHandle)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={copySummary}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+              >
+                <InstagramIcon size={17} />
+                Open Instagram &amp; paste
+              </a>
+
+              <button
+                type="button"
+                onClick={copySummary}
+                className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-ember/30 px-6 py-3 text-[0.85rem] text-ember-deep transition-colors hover:border-ember"
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? "Details copied" : "Copy details"}
+              </button>
+            </div>
+
+            <p className="mt-5 text-[0.8rem] font-medium text-ink">Your order</p>
+            <pre className="mt-2 max-h-40 overflow-y-auto rounded-[12px] border border-line bg-surface p-4 text-[0.8rem] leading-relaxed whitespace-pre-wrap text-ink-soft">
               {summary}
             </pre>
+
+            <p className="mt-5 text-center text-[0.78rem] leading-relaxed text-ink-faint">
+              Rather not? We have it either way, and will reach you at{" "}
+              <span className="text-ink-soft">@{instagram.replace(/^@/, "")}</span>.
+            </p>
 
             <button
               type="button"
               onClick={onClose}
-              className="mt-6 w-full rounded-full bg-ink px-6 py-3.5 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+              className="mt-3 w-full rounded-full border border-line px-6 py-3 text-[0.875rem] text-ink transition-colors hover:border-ink"
             >
-              Done
+              Close
             </button>
-
-            <div className="mt-7 border-t border-line pt-6">
-              <p className="text-[0.85rem] leading-relaxed text-ink-soft">
-                In a hurry? Message us and we&rsquo;ll answer sooner.{" "}
-                {copied
-                  ? "Your order details are already copied — just paste them in."
-                  : "Copy your details first, then paste them into the chat."}
-              </p>
-
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={copySummary}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3 text-[0.875rem] text-ink transition-colors hover:border-ink"
-                >
-                  {copied ? <Check size={15} /> : <Copy size={15} />}
-                  {copied ? "Copied" : "Copy details"}
-                </button>
-                <a
-                  href={instagramDmLink(instagramHandle)}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={copySummary}
-                  className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-full border border-line px-6 py-3 text-[0.875rem] text-ink transition-colors hover:border-ink"
-                >
-                  <InstagramIcon size={16} />
-                  Message on Instagram
-                </a>
-              </div>
-            </div>
           </div>
         ) : (
           <form onSubmit={submit} className="flex-1 overflow-y-auto px-6 py-6 sm:px-7">
@@ -316,12 +337,46 @@ export function BookingDialog({
 
             {/* Contact */}
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="text-[0.82rem] font-medium text-ink">Your Instagram username</span>
+                <span className="relative mt-2.5 flex items-center">
+                  <span className="pointer-events-none absolute left-4 text-[0.95rem] text-ink-faint">@</span>
+                  <input
+                    required
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value.replace(/\s/g, ""))}
+                    placeholder="sugandha_candles_"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className={`${FIELD} pl-9`}
+                  />
+                </span>
+                <span className="mt-2 block text-[0.75rem] text-ink-faint">
+                  We reply to your order on Instagram, so this one we do need.
+                </span>
+              </label>
+
               <label className="block">
-                <span className="text-[0.82rem] font-medium text-ink">Delivery pincode</span>
+                <span className="text-[0.82rem] font-medium text-ink">
+                  Phone <span className="font-normal text-ink-faint">— optional</span>
+                </span>
+                <input
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="For big orders, it helps"
+                  className={`mt-2.5 ${FIELD}`}
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-[0.82rem] font-medium text-ink">
+                  Delivery pincode <span className="font-normal text-ink-faint">— optional</span>
+                </span>
                 <input
                   inputMode="numeric"
                   maxLength={6}
-                  required
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
                   placeholder="201301"
@@ -340,21 +395,9 @@ export function BookingDialog({
                       {place.state}
                     </>
                   ) : (
-                    "We use this to work out freight."
+                    "Helps us work out freight."
                   )}
                 </span>
-              </label>
-
-              <label className="block">
-                <span className="text-[0.82rem] font-medium text-ink">Phone or Instagram</span>
-                <input
-                  required
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  placeholder="@yourhandle"
-                  className={`mt-2.5 ${FIELD}`}
-                />
-                <span className="mt-2 block text-[0.75rem] text-ink-faint">So we can send the quote.</span>
               </label>
 
               <label className="block sm:col-span-2">

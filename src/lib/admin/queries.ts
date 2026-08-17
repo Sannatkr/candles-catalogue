@@ -83,6 +83,7 @@ export type AdminBooking = {
   state: string | null;
   buyerName: string;
   buyerContact: string | null;
+  phone: string | null;
   note: string | null;
   status: string;
   source: string;
@@ -111,6 +112,7 @@ export async function listBookings(): Promise<AdminBooking[]> {
     state: row.state,
     buyerName: row.buyer_name,
     buyerContact: row.buyer_contact,
+    phone: row.phone ?? null,
     note: row.note,
     status: row.status ?? "new",
     source: row.source ?? "website",
@@ -144,6 +146,7 @@ export async function listRevenueBookings(fromISO: string, toISO: string): Promi
     state: row.state,
     buyerName: row.buyer_name,
     buyerContact: row.buyer_contact,
+    phone: row.phone ?? null,
     note: row.note,
     status: row.status ?? "paid",
     source: row.source ?? "website",
