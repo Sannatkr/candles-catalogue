@@ -13,11 +13,71 @@ import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileD
 const DEFAULT_ADVANCE = 65;
 const PRESETS = [50, 65, 100];
 
-/** Ready-made replies for the three moments an order needs a message. */
+/** True once the money is in, which changes what there is left to say. */
+function isSettled(status: string) {
+  return status === "paid" || status === "fulfilled";
+}
+
+/**
+ * Replies for where the order actually stands. Asking someone who has already
+ * paid to confirm and await a QR reads badly, so a settled order gets a
+ * different set entirely.
+ */
 function templates(b: AdminBooking, businessName: string, advancePct: number) {
   const who = b.buyerName ? b.buyerName.split(" ")[0] : "there";
   const ref = b.id.slice(0, 8).toUpperCase();
   const line = `${b.productName} × ${compactQty(b.quantity)} at ${money(b.unitPrice)} each = ${money(b.totalPrice)}`;
+  const where = [b.pincode, b.state].filter(Boolean).join(", ");
+
+  if (isSettled(b.status)) {
+    return [
+      {
+        key: "received",
+        label: "Payment received",
+        body: [
+          `Hi ${who}, payment received — thank you.`,
+          ``,
+          line,
+          b.fragrance ? `Fragrance: ${b.fragrance}` : null,
+          where ? `Delivery: ${where}` : null,
+          `Reference: ${ref}`,
+          ``,
+          `Your order is confirmed and going into production. I will share photographs before it goes out.`,
+        ]
+          .filter((l) => l !== null)
+          .join("\n"),
+      },
+      {
+        key: "ready",
+        label: "Ready to dispatch",
+        body: [
+          `Hi ${who}, your order is ready.`,
+          ``,
+          line,
+          `Reference: ${ref}`,
+          ``,
+          `Sharing photographs now.`,
+          where
+            ? `Confirm this is the right address and it goes out today: ${where}`
+            : `Send me the delivery address and it goes out today.`,
+        ].join("\n"),
+      },
+      {
+        key: "sent",
+        label: "Dispatched",
+        body: [
+          `Hi ${who}, your order is on its way.`,
+          ``,
+          line,
+          `Reference: ${ref}`,
+          ``,
+          `Tracking: `,
+          ``,
+          `Usually 3 to 5 days. Do send a photo once it is lit — I love seeing where they end up.`,
+        ].join("\n"),
+      },
+    ];
+  }
 
   const pct = Math.min(100, Math.max(1, Math.round(advancePct)));
   const advance = Math.round((b.totalPrice * pct) / 100);
@@ -42,7 +102,7 @@ function templates(b: AdminBooking, businessName: string, advancePct: number) {
         `Here is what we have:`,
         line,
         b.fragrance ? `Fragrance: ${b.fragrance}` : null,
-        b.pincode ? `Delivery: ${b.pincode}${b.state ? `, ${b.state}` : ""}` : null,
+        where ? `Delivery: ${where}` : null,
         `Reference: ${ref}`,
         ``,
         ...payment,
@@ -92,7 +152,8 @@ export function BookingMessage({
   onClose: () => void;
 }) {
   const [advancePct, setAdvancePct] = useState(DEFAULT_ADVANCE);
-  const [activeKey, setActiveKey] = useState("confirm");
+  const settled = isSettled(booking.status);
+  const [activeKey, setActiveKey] = useState(settled ? "received" : "confirm");
   // Null until the message is hand-edited, so changing the split or the
   // template rebuilds it rather than leaving a stale draft on screen.
   const [edited, setEdited] = useState<string | null>(null);
@@ -205,7 +266,9 @@ export function BookingMessage({
             ))}
           </dl>
 
-          {/* Advance share — drives the numbers in every template below. */}
+          {/* Advance share — drives the numbers in the templates below. Pointless
+              once the money is in, so it only shows while something is owed. */}
+          {!settled && (
           <div className="mt-8 rounded-[12px] border border-line bg-surface px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-[0.8rem] font-medium text-ink">Advance for this order</p>
@@ -249,6 +312,7 @@ export function BookingMessage({
               </span>
             </div>
           </div>
+          )}
 
           <p className="mt-8 text-[0.8rem] font-medium text-ink">Message them</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
