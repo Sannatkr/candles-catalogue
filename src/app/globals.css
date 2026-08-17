@@ -74,6 +74,23 @@
   }
 }
 
+/* Arrow that nudges towards the Instagram button on the booking confirmation. */
+@keyframes nudge-down {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 1;
+  }
+}
+
+.nudge {
+  animation: nudge-down 1.5s var(--ease-out-soft) infinite;
+}
+
 /* Scroll reveal — elements start slightly low and fade up once seen. */
 .reveal {
   opacity: 0;
@@ -97,5 +114,10 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .nudge {
+    animation: none;
+    opacity: 1;
   }
 }

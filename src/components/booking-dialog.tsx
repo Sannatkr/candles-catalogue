@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Loader2, MapPin, X } from "lucide-react";
+import { ArrowDown, Check, Copy, Loader2, MapPin, X } from "lucide-react";
 import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
@@ -207,33 +207,25 @@ export function BookingDialog({
             </div>
 
             {/* The paste step. Instagram gives websites no way to fill a DM, so
-                this has to be spelled out plainly or people stall on it. */}
-            <div className="mt-6 rounded-[16px] border border-ember/35 bg-ember-wash/60 p-5">
-              <p className="font-display text-[1.05rem] text-ink">Now send it to us on Instagram</p>
+                the arrow and the highlighted word carry the instruction. */}
+            <div className="mt-6 rounded-[16px] border border-ember/35 bg-ember-wash/60 px-5 py-6 text-center">
+              <p className="font-display text-[1.15rem] text-ink">Now send it to us on Instagram</p>
+              <p className="mx-auto mt-2.5 max-w-[34ch] text-[0.925rem] leading-relaxed text-ink-soft">
+                Your order is {copied ? "already copied" : "ready to copy"} — open the chat and{" "}
+                <span className="mx-0.5 inline-block rounded-[6px] bg-ember px-2 py-0.5 font-medium tracking-wide text-canvas uppercase">
+                  paste
+                </span>{" "}
+                it in.
+              </p>
 
-              <ol className="mt-4 space-y-3">
-                {[
-                  copied
-                    ? "Your order details are already copied."
-                    : "Tap Copy details below to copy your order.",
-                  "Tap the button — your chat with us opens.",
-                  "Long-press the message box, hit Paste, and send.",
-                ].map((step, i) => (
-                  <li key={step} className="flex gap-3">
-                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ember text-[0.72rem] font-medium text-canvas">
-                      {i + 1}
-                    </span>
-                    <span className="text-[0.875rem] leading-relaxed text-ink">{step}</span>
-                  </li>
-                ))}
-              </ol>
+              <ArrowDown size={22} aria-hidden className="nudge mx-auto mt-5 text-ember" />
 
               <a
                 href={instagramDmLink(instagramHandle)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={copySummary}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+                className="mt-3 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
               >
                 <InstagramIcon size={17} />
                 Open Instagram &amp; paste
@@ -242,9 +234,9 @@ export function BookingDialog({
               <button
                 type="button"
                 onClick={copySummary}
-                className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-ember/30 px-6 py-3 text-[0.85rem] text-ember-deep transition-colors hover:border-ember"
+                className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-2.5 text-[0.82rem] text-ember-deep transition-colors hover:bg-ember-wash"
               >
-                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Details copied" : "Copy details"}
               </button>
             </div>
