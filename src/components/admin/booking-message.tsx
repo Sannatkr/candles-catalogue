@@ -9,12 +9,23 @@ import type { AdminBooking } from "@/lib/admin/queries";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
 import { compactQty, instagramDmLink, money } from "@/lib/format";
 
+/** Matches the advance stated on the Terms page. */
+const ADVANCE_SHARE = 0.65;
+
 /** Ready-made replies for the three moments an order needs a message. */
 function templates(b: AdminBooking, businessName: string) {
   const who = b.buyerName ? b.buyerName.split(" ")[0] : "there";
   const ref = b.id.slice(0, 8).toUpperCase();
   const line = `${b.productName} × ${compactQty(b.quantity)} at ${money(b.unitPrice)} each = ${money(b.totalPrice)}`;
-  const advance = Math.round(b.totalPrice * 0.65);
+  const advance = Math.round(b.totalPrice * ADVANCE_SHARE);
+  const balance = b.totalPrice - advance;
+  const pct = Math.round(ADVANCE_SHARE * 100);
+
+  const payment = [
+    `Payment:`,
+    `Advance to start production (${pct}%): ${money(advance)}`,
+    `Balance before dispatch: ${money(balance)}`,
+  ];
 
   return [
     {
@@ -29,6 +40,8 @@ function templates(b: AdminBooking, businessName: string) {
         b.pincode ? `Delivery: ${b.pincode}${b.state ? `, ${b.state}` : ""}` : null,
         `Reference: ${ref}`,
         ``,
+        ...payment,
+        ``,
         `Shall I confirm this? Once you say yes I will send the payment QR.`,
       ]
         .filter((l) => l !== null)
@@ -41,8 +54,8 @@ function templates(b: AdminBooking, businessName: string) {
         `Confirmed, ${who} — thank you.`,
         ``,
         line,
-        `Advance to start production (65%): ${money(advance)}`,
-        `Balance before dispatch: ${money(b.totalPrice - advance)}`,
+        ``,
+        ...payment,
         ``,
         `Sending the payment QR next. Once it is through we begin pouring, and I will share photographs before dispatch.`,
       ].join("\n"),
