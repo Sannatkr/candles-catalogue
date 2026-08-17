@@ -32,6 +32,15 @@ export function bestPrice(product: Product) {
 
 const handle = (value: string) => value.replace(/^@/, "").trim();
 
+/**
+ * Instagram usernames are 1–30 characters of letters, numbers, dots and
+ * underscores. A handle that fails this can only ever produce a dead link, so
+ * it is worth catching before anyone taps it.
+ */
+export function isValidInstagramHandle(value: string) {
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle(value));
+}
+
 /** Opens straight into a DM thread, on the app if installed and web otherwise. */
 export function instagramDmLink(instagramHandle: string) {
   return `https://ig.me/m/${handle(instagramHandle)}`;

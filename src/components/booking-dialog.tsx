@@ -7,7 +7,7 @@ import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
 import { placeBooking } from "@/lib/bookings";
-import { compactQty, instagramDmLink, money, priceFor } from "@/lib/format";
+import { compactQty, instagramDmLink, instagramProfileLink, isValidInstagramHandle, money, priceFor } from "@/lib/format";
 import { lookupPincode } from "@/lib/pincode";
 import type { Product } from "@/lib/types";
 
@@ -249,6 +249,17 @@ export function BookingDialog({
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Details copied" : "Copy details"}
               </button>
+
+              {/* On a desktop the DM deep link often lands on a dead page, so
+                  give the profile as a way through. */}
+              <a
+                href={instagramProfileLink(instagramHandle)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 block text-[0.78rem] text-ember-deep underline decoration-ember/40 underline-offset-2"
+              >
+                On a computer? Open our profile instead
+              </a>
             </div>
 
             <p className="mt-5 text-[0.8rem] font-medium text-ink">Your order</p>
@@ -354,8 +365,14 @@ export function BookingDialog({
                     className={`${FIELD} pl-9`}
                   />
                 </span>
-                <span className="mt-2 block text-[0.75rem] text-ink-faint">
-                  We reply to your order on Instagram, so this one we do need.
+                <span
+                  className={`mt-2 block text-[0.75rem] ${
+                    instagram && !isValidInstagramHandle(instagram) ? "text-ember-deep" : "text-ink-faint"
+                  }`}
+                >
+                  {instagram && !isValidInstagramHandle(instagram)
+                    ? "Letters, numbers, dots and underscores only — no spaces."
+                    : "We reply to your order on Instagram, so this one we do need."}
                 </span>
               </label>
 

@@ -7,7 +7,7 @@ import { Check, Copy, X } from "lucide-react";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
 import type { AdminBooking } from "@/lib/admin/queries";
-import { compactQty, instagramDmLink, money } from "@/lib/format";
+import { compactQty, instagramDmLink, instagramProfileLink, isValidInstagramHandle, money } from "@/lib/format";
 
 /** Matches the advance stated on the Terms page; overridable per order. */
 const DEFAULT_ADVANCE = 65;
@@ -106,6 +106,8 @@ export function BookingMessage({
   const message = edited ?? active.body;
 
   const handle = booking.buyerContact?.replace(/^@/, "") ?? "";
+  // A handle Instagram cannot possibly resolve would just send him to a dead page.
+  const reachable = Boolean(handle) && isValidInstagramHandle(handle);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -283,16 +285,17 @@ export function BookingMessage({
               : "Edit it however you like before sending."}
           </p>
 
-          {handle ? (
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={copy}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? "Copied" : "Copy message"}
-              </button>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={copy}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? "Copied" : "Copy message"}
+            </button>
+
+            {reachable && (
               <a
                 href={instagramDmLink(handle)}
                 target="_blank"
@@ -301,24 +304,31 @@ export function BookingMessage({
                 className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[0.9rem] text-canvas transition-colors hover:bg-ember"
               >
                 <InstagramIcon size={17} />
-                Open @{handle} &amp; paste
+                Open chat with @{handle}
               </a>
-            </div>
-          ) : (
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={copy}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
+            )}
+          </div>
+
+          {reachable ? (
+            <p className="mt-3 text-[0.75rem] leading-relaxed text-ink-faint">
+              That opens the chat in the Instagram app. On a computer it may not open a chat directly —{" "}
+              <a
+                href={instagramProfileLink(handle)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-ember-deep underline decoration-ember/40 underline-offset-2"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? "Copied" : "Copy message"}
-              </button>
-              <p className="mt-3 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
-                No Instagram handle on this order, so there is no chat to open. Copy the message and send
-                it however you have been talking to them.
-              </p>
-            </div>
+                open their profile
+              </a>{" "}
+              and press Message instead.
+            </p>
+          ) : (
+            <p className="mt-3 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
+              {handle
+                ? `“${handle}” is not a usable Instagram username, so there is no chat to open.`
+                : "No Instagram handle on this order, so there is no chat to open."}{" "}
+              Copy the message and send it however you have been talking to them.
+            </p>
           )}
         </div>
       </div>

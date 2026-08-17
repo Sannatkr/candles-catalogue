@@ -1,6 +1,7 @@
 "use server";
 
 import { CUSTOMISE_FROM, type BookingResult } from "@/lib/booking-config";
+import { isValidInstagramHandle } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getPublicSupabase } from "@/lib/supabase/server";
 
@@ -31,6 +32,12 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
     .replace(/\/.*$/, "");
   if (!handle) {
     return { ok: false, message: "Add your Instagram username so we can reply." };
+  }
+  if (!isValidInstagramHandle(handle)) {
+    return {
+      ok: false,
+      message: "That does not look like an Instagram username — letters, numbers, dots and underscores only.",
+    };
   }
 
   const pincode = input.pincode.trim();
