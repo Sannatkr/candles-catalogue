@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { BookingFilters } from "@/components/admin/booking-filters";
 import { BookingRowActions } from "@/components/admin/booking-row-actions";
 import { SOURCE_LABEL, STATUS_LABEL, STATUS_STYLE, type BookingStatus } from "@/lib/admin/booking-status";
 import { listBookings } from "@/lib/admin/queries";
@@ -11,14 +12,32 @@ export const dynamic = "force-dynamic";
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ added?: string }>;
+  searchParams: Promise<{ added?: string; from?: string; status?: string }>;
 }) {
-  const [{ added }, bookings] = await Promise.all([searchParams, listBookings()]);
+  const [{ added, from = "all", status: statusFilter = "all" }, all] = await Promise.all([
+    searchParams,
+    listBookings(),
+  ]);
+
+  const sourceCounts: Record<string, number> = { all: all.length, website: 0, manual: 0 };
+  const statusCounts: Record<string, number> = { all: all.length };
+  all.forEach((b) => {
+    const key = b.source === "manual" ? "manual" : "website";
+    sourceCounts[key] = (sourceCounts[key] ?? 0) + 1;
+    statusCounts[b.status] = (statusCounts[b.status] ?? 0) + 1;
+  });
+
+  const bookings = all.filter((b) => {
+    const bySource = from === "all" || (from === "manual" ? b.source === "manual" : b.source !== "manual");
+    const byStatus = statusFilter === "all" || b.status === statusFilter;
+    return bySource && byStatus;
+  });
 
   const open = bookings.filter((b) => b.status === "new" || b.status === "contacted").length;
   const earned = bookings
     .filter((b) => b.status === "paid" || b.status === "fulfilled")
     .reduce((sum, b) => sum + b.totalPrice, 0);
+  const filtered = bookings.length !== all.length;
 
   return (
     <>
@@ -29,9 +48,11 @@ export default async function AdminBookingsPage({
             Bookings
           </h1>
           <p className="mt-2.5 text-[0.925rem] text-ink-soft">
-            {bookings.length === 0
+            {all.length === 0
               ? "Nothing booked yet."
-              : `${bookings.length} total · ${open} still to answer · ${money(earned)} collected`}
+              : `${bookings.length}${filtered ? ` of ${all.length}` : ""} ${
+                  bookings.length === 1 ? "order" : "orders"
+                } · ${open} still to answer · ${money(earned)} collected`}
           </p>
         </div>
         <Link
@@ -43,6 +64,15 @@ export default async function AdminBookingsPage({
         </Link>
       </div>
 
+      {all.length > 0 && (
+        <BookingFilters
+          source={from}
+          status={statusFilter}
+          sourceCounts={sourceCounts}
+          statusCounts={statusCounts}
+        />
+      )}
+
       {added && (
         <p className="mt-6 rounded-[10px] bg-[#eaf0e6] px-4 py-3 text-[0.875rem] text-[#41552f]">
           Booking added.
@@ -50,11 +80,13 @@ export default async function AdminBookingsPage({
       )}
 
       {bookings.length === 0 ? (
-        <p className="mt-10 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
-          Orders from the site land here. You can also add one yourself for anything sold offline.
+        <p className="mt-6 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
+          {filtered || all.length > 0
+            ? "No orders match that filter."
+            : "Orders from the site land here. You can also add one yourself for anything sold offline."}
         </p>
       ) : (
-        <div className="mt-8 overflow-x-auto rounded-[14px] border border-line bg-canvas">
+        <div className="mt-4 overflow-x-auto rounded-[14px] border border-line bg-canvas">
           <table className="w-full min-w-[900px] border-collapse text-left">
             <thead>
               <tr className="border-b border-line bg-canvas-deep/35">
@@ -71,7 +103,9 @@ export default async function AdminBookingsPage({
                 ].map((col, i) => (
                   <th
                     key={col.label || i}
-                    className={`px-4 py-3 text-[0.68rem] font-medium tracking-[0.12em] whitespace-nowrap text-ink-faint uppercase ${col.align}`}
+                    className={`px-4 py-3 text-[0.68rem] font-medium tracking-[0.12em] whitespace-nowrap text-ink-faint uppercase ${col.align} ${
+                      i === 0 ? "sticky left-0 z-10 border-r border-line bg-[#f5f0e6]" : ""
+                    }`}
                   >
                     {col.label}
                   </th>
@@ -83,8 +117,8 @@ export default async function AdminBookingsPage({
               {bookings.map((b) => {
                 const status = b.status as BookingStatus;
                 return (
-                  <tr key={b.id} className="border-b border-line-soft align-middle transition-colors last:border-0 hover:bg-canvas-deep/25">
-                    <td className="px-4 py-3.5">
+                  <tr key={b.id} className="group border-b border-line-soft align-middle transition-colors last:border-0 hover:bg-canvas-deep/25">
+                    <td className="sticky left-0 z-10 border-r border-line-soft bg-canvas px-4 py-3.5 transition-colors group-hover:bg-[#f7f2e8]">
                       <div className="flex items-center gap-3">
                         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-canvas-deep">
                           {b.productImage && (
