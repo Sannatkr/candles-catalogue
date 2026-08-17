@@ -176,7 +176,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <Reveal>
             <p className="eyebrow">Also in {collection?.name}</p>
           </Reveal>
-          <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-3">
             {related.map((item, i) => (
               <Reveal key={item.id} delay={i * 80}>
                 <ProductCard product={item} />

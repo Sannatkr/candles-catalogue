@@ -14,7 +14,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           src={product.images[0]}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 30vw"
           priority={priority}
           className="object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.045]"
         />
@@ -32,16 +32,16 @@ export function ProductCard({ product, priority = false }: { product: Product; p
 
       <div className="mt-4">
         <div className="flex items-baseline justify-between gap-4">
-          <h3 className="font-display text-[1.15rem] leading-snug text-ink transition-colors group-hover:text-ember">
+          <h3 className="font-display text-[0.98rem] leading-snug text-ink transition-colors group-hover:text-ember sm:text-[1.15rem]">
             {product.name}
           </h3>
-          <span className="shrink-0 text-[0.95rem] text-ink">
+          <span className="shrink-0 text-[0.88rem] text-ink sm:text-[0.95rem]">
             {hasSlabs && <span className="text-ink-faint">from </span>}
             {money(from)}
           </span>
         </div>
-        <p className="mt-1 text-[0.875rem] text-ink-soft">{product.tagline}</p>
-        <p className="mt-2.5 text-[0.75rem] tracking-wide text-ink-faint uppercase">
+        <p className="mt-1 line-clamp-2 text-[0.8rem] text-ink-soft sm:text-[0.875rem]">{product.tagline}</p>
+        <p className="mt-2 text-[0.68rem] tracking-wide text-ink-faint uppercase sm:text-[0.75rem]">
           {product.heightCm}×{product.diameterCm} cm · {product.burnTimeHours} hr burn
         </p>
       </div>

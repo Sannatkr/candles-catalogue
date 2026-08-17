@@ -21,11 +21,11 @@ export const metadata: Metadata = {
     template: "%s · Sugandha Candles",
   },
   description:
-    "Hand-poured candles in small batches. Full range with sizes, pricing, minimum quantities and trade terms.",
+    "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.",
   openGraph: {
     title: "Sugandha Candles — Wholesale Catalogue",
     description:
-      "Hand-poured candles in small batches. Full range with sizes, pricing, minimum quantities and trade terms.",
+      "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.",
     type: "website",
   },
 };

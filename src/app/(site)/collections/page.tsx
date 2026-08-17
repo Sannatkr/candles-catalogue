@@ -11,7 +11,7 @@ export default async function CollectionsPage() {
   const [collections, products] = await Promise.all([getCollections(), getProducts()]);
 
   return (
-    <div className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8 lg:pt-20">
+    <div className="mx-auto max-w-[1240px] px-5 pt-10 sm:px-8 sm:pt-16 lg:pt-20">
       <Reveal>
         <p className="eyebrow">Catalogue</p>
         <h1 className="mt-4 max-w-[16ch] font-display text-[clamp(2.3rem,5.5vw,3.7rem)] leading-[1.05] tracking-[-0.02em] text-ink">
@@ -19,7 +19,7 @@ export default async function CollectionsPage() {
         </h1>
         <p className="mt-5 max-w-[54ch] text-[1.02rem] leading-relaxed text-ink-soft">
           Each collection is priced and produced a little differently. Open one to see every design in it
-          with sizes, slabs and minimum quantities.
+          with sizes and price slabs.
         </p>
       </Reveal>
 

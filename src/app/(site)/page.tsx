@@ -49,7 +49,9 @@ export default async function HomePage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 -right-32 h-[520px] w-[520px] rounded-full bg-ember-wash blur-[120px]" />
+        {/* Warm glow behind the hero image. On a phone the column stacks, so it
+            would sit straight on top of the headline — keep it off small screens. */}
+        <div className="pointer-events-none absolute -top-40 -right-32 -z-10 hidden h-[520px] w-[520px] rounded-full bg-ember-wash blur-[120px] lg:block" />
 
         <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:pt-24 lg:pb-28">
           <Reveal>
@@ -189,7 +191,7 @@ export default async function HomePage() {
             </h2>
           </Reveal>
 
-          <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-3">
             {featured.map((product, i) => (
               <Reveal key={product.id} delay={(i % 3) * 80}>
                 <ProductCard product={product} priority={i < 3} />

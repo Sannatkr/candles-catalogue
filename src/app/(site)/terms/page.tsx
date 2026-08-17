@@ -9,7 +9,7 @@ export default async function TermsPage() {
   const settings = await getSettings();
 
   return (
-    <div className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8 lg:pt-20">
+    <div className="mx-auto max-w-[1240px] px-5 pt-10 sm:px-8 sm:pt-16 lg:pt-20">
       <Reveal>
         <p className="eyebrow">Trade terms</p>
         <h1 className="mt-4 max-w-[18ch] font-display text-[clamp(2.3rem,5.5vw,3.7rem)] leading-[1.05] tracking-[-0.02em] text-ink">

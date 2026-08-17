@@ -76,8 +76,8 @@ export function ProductBrowser({ products }: { products: Product[] }) {
 
   return (
     <>
-      <div className="mt-12 flex flex-col gap-5 border-y border-line py-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="-mx-1 flex flex-wrap gap-2 px-1">
+      <div className="mt-8 flex flex-col gap-4 border-y border-line py-5 sm:mt-12 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="-mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
           {[{ label: "Everything", match: [] }, ...chips].map((chip) => {
             const isActive = active === chip.label || (chip.label === "Everything" && active === "all");
             return (
@@ -85,7 +85,7 @@ export function ProductBrowser({ products }: { products: Product[] }) {
                 key={chip.label}
                 type="button"
                 onClick={() => setActive(chip.label === "Everything" ? "all" : chip.label)}
-                className={`rounded-full border px-4 py-2 text-[0.85rem] transition-all duration-200 ${
+                className={`shrink-0 snap-start rounded-full border px-4 py-2 text-[0.85rem] transition-all duration-200 ${
                   isActive
                     ? "border-ink bg-ink text-canvas"
                     : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
@@ -97,8 +97,8 @@ export function ProductBrowser({ products }: { products: Product[] }) {
           })}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="relative flex items-center">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
             <Search size={16} className="pointer-events-none absolute left-3.5 text-ink-faint" />
             <input
               value={query}
@@ -111,7 +111,7 @@ export function ProductBrowser({ products }: { products: Product[] }) {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
-            className="rounded-full border border-line bg-surface px-4 py-2.5 text-[0.875rem] text-ink focus:border-ink/40 focus:outline-none"
+            className="shrink-0 rounded-full border border-line bg-surface px-3.5 py-2.5 text-[0.875rem] text-ink focus:border-ink/40 focus:outline-none"
           >
             {SORTS.map((s) => (
               <option key={s.value} value={s.value}>
@@ -142,7 +142,7 @@ export function ProductBrowser({ products }: { products: Product[] }) {
           </button>
         </div>
       ) : (
-        <div className="mt-6 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-3">
           {visible.map((product, i) => (
             <ProductCard key={product.id} product={product} priority={i < 3} />
           ))}
