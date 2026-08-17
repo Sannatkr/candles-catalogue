@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Loader2, MapPin, X } from "lucide-react";
 import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
@@ -107,6 +107,19 @@ export function BookingDialog({
     .filter((l) => l !== null)
     .join("\n");
 
+  // Instagram gives no way to pre-fill a DM, so the next best thing is having
+  // the details already on the clipboard the moment the order is confirmed.
+  // Browsers may refuse this without a fresh tap; the Copy button covers that.
+  const autoCopied = useRef(false);
+  useEffect(() => {
+    if (done === null || autoCopied.current) return;
+    autoCopied.current = true;
+    navigator.clipboard
+      ?.writeText(summary)
+      .then(() => setCopied(true))
+      .catch(() => {});
+  }, [done, summary]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -138,7 +151,6 @@ export function BookingDialog({
     try {
       await navigator.clipboard.writeText(summary);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
     } catch {
       setError("Could not copy. Select the text above instead.");
     }
@@ -158,7 +170,7 @@ export function BookingDialog({
         {/* Header sits outside the scroll area so nothing ever slides under it. */}
         <div className="flex shrink-0 items-center justify-between border-b border-line px-6 py-4 sm:px-7">
           <p className="font-display text-[1.2rem] text-ink">
-            {done !== null ? "Order noted" : "Book your order"}
+            {done !== null ? "Booked" : "Book your order"}
           </p>
           <button
             type="button"
@@ -171,40 +183,68 @@ export function BookingDialog({
         </div>
 
         {done !== null ? (
-          <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-7">
-            <p className="text-[0.95rem] leading-relaxed text-ink-soft">
-              We have your request{done && done !== "PREVIEW" ? ` (ref ${done})` : ""}. One last step — send
-              it to us on Instagram so we can reply to you there.
-            </p>
+          <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-7">
+            <div className="flex items-start gap-3.5">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e6efe3] text-[#3d5730]">
+                <Check size={18} />
+              </span>
+              <div>
+                <p className="font-display text-[1.35rem] leading-snug text-ink">That&rsquo;s booked.</p>
+                <p className="mt-1.5 text-[0.95rem] leading-relaxed text-ink-soft">
+                  We have it, and we&rsquo;ll get back to you on{" "}
+                  <span className="text-ink">{contact}</span> within a working day.
+                  {done && done !== "PREVIEW" && (
+                    <>
+                      {" "}
+                      Your reference is <span className="text-ink">{done}</span>.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
 
-            <pre className="mt-5 max-h-52 overflow-y-auto rounded-[12px] border border-line bg-surface p-4 text-[0.8rem] leading-relaxed whitespace-pre-wrap text-ink-soft">
+            <p className="mt-7 text-[0.8rem] font-medium text-ink">What you asked for</p>
+            <pre className="mt-2 max-h-44 overflow-y-auto rounded-[12px] border border-line bg-surface p-4 text-[0.8rem] leading-relaxed whitespace-pre-wrap text-ink-soft">
               {summary}
             </pre>
 
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={copySummary}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? "Copied" : "Copy details"}
-              </button>
-              <a
-                href={instagramDmLink(instagramHandle)}
-                target="_blank"
-                rel="noreferrer"
-                onClick={copySummary}
-                className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[0.9rem] text-canvas transition-colors hover:bg-ember"
-              >
-                <InstagramIcon size={17} />
-                Open Instagram &amp; paste
-              </a>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-6 w-full rounded-full bg-ink px-6 py-3.5 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+            >
+              Done
+            </button>
 
-            <p className="mt-4 text-[0.78rem] leading-relaxed text-ink-faint">
-              The link to this candle is in the message, so we see exactly which one you mean.
-            </p>
+            <div className="mt-7 border-t border-line pt-6">
+              <p className="text-[0.85rem] leading-relaxed text-ink-soft">
+                In a hurry? Message us and we&rsquo;ll answer sooner.{" "}
+                {copied
+                  ? "Your order details are already copied — just paste them in."
+                  : "Copy your details first, then paste them into the chat."}
+              </p>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={copySummary}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3 text-[0.875rem] text-ink transition-colors hover:border-ink"
+                >
+                  {copied ? <Check size={15} /> : <Copy size={15} />}
+                  {copied ? "Copied" : "Copy details"}
+                </button>
+                <a
+                  href={instagramDmLink(instagramHandle)}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={copySummary}
+                  className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-full border border-line px-6 py-3 text-[0.875rem] text-ink transition-colors hover:border-ink"
+                >
+                  <InstagramIcon size={16} />
+                  Message on Instagram
+                </a>
+              </div>
+            </div>
           </div>
         ) : (
           <form onSubmit={submit} className="flex-1 overflow-y-auto px-6 py-6 sm:px-7">
