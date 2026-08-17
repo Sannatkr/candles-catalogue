@@ -7,7 +7,7 @@ import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
 import { placeBooking } from "@/lib/bookings";
-import { compactQty, instagramDmLink, instagramProfileLink, isValidInstagramHandle, money, priceFor } from "@/lib/format";
+import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileDevice, priceFor } from "@/lib/format";
 import { lookupPincode } from "@/lib/pincode";
 import type { Product } from "@/lib/types";
 
@@ -51,6 +51,8 @@ export function BookingDialog({
   const unit = useMemo(() => priceFor(product, qty), [product, qty]);
   const total = unit * (Number.isFinite(qty) ? qty : 0);
   const canPickFragrance = qty >= CUSTOMISE_FROM;
+  // The dialog only mounts after a tap, so the device is known by now.
+  const onPhone = onMobileDevice();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -211,7 +213,8 @@ export function BookingDialog({
             <div className="mt-6 rounded-[16px] border border-ember/35 bg-ember-wash/60 px-5 py-6 text-center">
               <p className="font-display text-[1.15rem] text-ink">Now send it to us on Instagram</p>
               <p className="mx-auto mt-2.5 max-w-[34ch] text-[0.925rem] leading-relaxed text-ink-soft">
-                Your order is {copied ? "already copied" : "ready to copy"} — open the chat and{" "}
+                Your order is {copied ? "already copied" : "ready to copy"} —{" "}
+                {onPhone ? "open the chat and" : "open our profile, press Message, then"}{" "}
                 <span className="mx-0.5 inline-block rounded-[6px] bg-ember px-2 py-0.5 font-medium tracking-wide text-canvas uppercase">
                   paste
                 </span>{" "}
@@ -231,14 +234,14 @@ export function BookingDialog({
               </div>
 
               <a
-                href={instagramDmLink(instagramHandle)}
+                href={instagramChatLink(instagramHandle)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={copySummary}
                 className="cta-pulse mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.98rem] font-medium text-canvas transition-colors hover:bg-ember"
               >
                 <InstagramIcon size={17} />
-                Open Instagram &amp; paste
+                {onPhone ? "Open Instagram & paste" : "Open Instagram"}
               </a>
 
               <button
@@ -250,16 +253,6 @@ export function BookingDialog({
                 {copied ? "Details copied" : "Copy details"}
               </button>
 
-              {/* On a desktop the DM deep link often lands on a dead page, so
-                  give the profile as a way through. */}
-              <a
-                href={instagramProfileLink(instagramHandle)}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 block text-[0.78rem] text-ember-deep underline decoration-ember/40 underline-offset-2"
-              >
-                On a computer? Open our profile instead
-              </a>
             </div>
 
             <p className="mt-5 text-[0.8rem] font-medium text-ink">Your order</p>

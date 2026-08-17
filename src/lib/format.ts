@@ -41,13 +41,32 @@ export function isValidInstagramHandle(value: string) {
   return /^[A-Za-z0-9._]{1,30}$/.test(handle(value));
 }
 
-/** Opens straight into a DM thread, on the app if installed and web otherwise. */
+/**
+ * Opens a DM thread in the Instagram app. Verified as useless on desktop web:
+ * ig.me redirects to instagram.com/m/<handle>, which answers "this page isn't
+ * available" even for a real handle on a signed-in session. Use
+ * instagramChatLink so each device gets the one that works.
+ */
 export function instagramDmLink(instagramHandle: string) {
   return `https://ig.me/m/${handle(instagramHandle)}`;
 }
 
 export function instagramProfileLink(instagramHandle: string) {
   return `https://instagram.com/${handle(instagramHandle)}`;
+}
+
+/** True where the Instagram app can pick up a deep link. */
+export function onMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/**
+ * The link that actually reaches a conversation: the app's DM thread on a
+ * phone, the profile (with its Message button) on a computer.
+ */
+export function instagramChatLink(instagramHandle: string) {
+  return onMobileDevice() ? instagramDmLink(instagramHandle) : instagramProfileLink(instagramHandle);
 }
 
 /**

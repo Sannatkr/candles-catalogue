@@ -7,7 +7,7 @@ import { Check, Copy, X } from "lucide-react";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
 import type { AdminBooking } from "@/lib/admin/queries";
-import { compactQty, instagramDmLink, instagramProfileLink, isValidInstagramHandle, money } from "@/lib/format";
+import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileDevice } from "@/lib/format";
 
 /** Matches the advance stated on the Terms page; overridable per order. */
 const DEFAULT_ADVANCE = 65;
@@ -108,6 +108,8 @@ export function BookingMessage({
   const handle = booking.buyerContact?.replace(/^@/, "") ?? "";
   // A handle Instagram cannot possibly resolve would just send him to a dead page.
   const reachable = Boolean(handle) && isValidInstagramHandle(handle);
+  // Only mounted after a click, so reading the device here is safe.
+  const onPhone = onMobileDevice();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -297,30 +299,23 @@ export function BookingMessage({
 
             {reachable && (
               <a
-                href={instagramDmLink(handle)}
+                href={instagramChatLink(handle)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={copy}
                 className="inline-flex flex-1 items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[0.9rem] text-canvas transition-colors hover:bg-ember"
               >
                 <InstagramIcon size={17} />
-                Open chat with @{handle}
+                {onPhone ? `Open chat with @${handle}` : `Open @${handle} on Instagram`}
               </a>
             )}
           </div>
 
           {reachable ? (
             <p className="mt-3 text-[0.75rem] leading-relaxed text-ink-faint">
-              That opens the chat in the Instagram app. On a computer it may not open a chat directly —{" "}
-              <a
-                href={instagramProfileLink(handle)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-ember-deep underline decoration-ember/40 underline-offset-2"
-              >
-                open their profile
-              </a>{" "}
-              and press Message instead.
+              {onPhone
+                ? "Opens the chat in the Instagram app. Long-press the message box and paste."
+                : "Instagram has no way to open a chat by username on a computer, so this opens their profile — press Message there, then paste."}
             </p>
           ) : (
             <p className="mt-3 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
