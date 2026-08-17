@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, Copy, Loader2, MapPin, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Loader2, MapPin, X } from "lucide-react";
 import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
@@ -218,14 +218,24 @@ export function BookingDialog({
                 it in.
               </p>
 
-              <ArrowDown size={22} aria-hidden className="nudge mx-auto mt-5 text-ember" />
+              <div aria-hidden className="mt-5 flex flex-col items-center -space-y-2.5">
+                {[0, 1, 2].map((i) => (
+                  <ChevronDown
+                    key={i}
+                    size={26}
+                    strokeWidth={2.6}
+                    className="chevron-fall text-ember"
+                    style={{ animationDelay: `${i * 0.18}s` }}
+                  />
+                ))}
+              </div>
 
               <a
                 href={instagramDmLink(instagramHandle)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={copySummary}
-                className="mt-3 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+                className="cta-pulse mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-4 text-[0.98rem] font-medium text-canvas transition-colors hover:bg-ember"
               >
                 <InstagramIcon size={17} />
                 Open Instagram &amp; paste

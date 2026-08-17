@@ -74,21 +74,41 @@
   }
 }
 
-/* Arrow that nudges towards the Instagram button on the booking confirmation. */
-@keyframes nudge-down {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.45;
+/* Chevrons falling towards the Instagram button on the booking confirmation.
+   Three of them on a stagger read as motion in one direction, which a single
+   bouncing arrow does not. */
+@keyframes chevron-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-9px);
   }
-  50% {
-    transform: translateY(7px);
+  35% {
     opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(11px);
   }
 }
 
-.nudge {
-  animation: nudge-down 1.5s var(--ease-out-soft) infinite;
+.chevron-fall {
+  animation: chevron-fall 1.5s var(--ease-out-soft) infinite;
+}
+
+/* A warm halo breathing out of the button underneath them. */
+@keyframes cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(180 95 43 / 0.32);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 14px rgb(180 95 43 / 0);
+  }
+}
+
+.cta-pulse {
+  animation: cta-pulse 2.1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Scroll reveal — elements start slightly low and fade up once seen. */
@@ -116,8 +136,12 @@
     transition: none;
   }
 
-  .nudge {
+  .chevron-fall,
+  .cta-pulse {
     animation: none;
+  }
+
+  .chevron-fall {
     opacity: 1;
   }
 }
