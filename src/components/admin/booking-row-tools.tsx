@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquareText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { BookingMessage } from "@/components/admin/booking-message";
 import { BookingRowActions } from "@/components/admin/booking-row-actions";
 import type { AdminBooking } from "@/lib/admin/queries";
@@ -21,11 +21,11 @@ export function BookingRowTools({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Open order for ${booking.productName}`}
-        title="Order details and message"
-        className="rounded-full border border-line p-2 text-ink-soft transition-colors hover:border-ink hover:text-ink"
+        aria-label={`Full details for ${booking.productName}`}
+        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[0.8rem] whitespace-nowrap text-ink transition-colors hover:border-ink"
       >
-        <MessageSquareText size={16} />
+        <FileText size={14} />
+        Details
       </button>
 
       <BookingRowActions

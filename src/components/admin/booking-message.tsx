@@ -1,31 +1,36 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, X } from "lucide-react";
 import { InstagramIcon } from "@/components/instagram-icon";
-import type { AdminBooking } from "@/lib/admin/queries";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
+import type { AdminBooking } from "@/lib/admin/queries";
 import { compactQty, instagramDmLink, money } from "@/lib/format";
 
-/** Matches the advance stated on the Terms page. */
-const ADVANCE_SHARE = 0.65;
+/** Matches the advance stated on the Terms page; overridable per order. */
+const DEFAULT_ADVANCE = 65;
+const PRESETS = [50, 65, 100];
 
 /** Ready-made replies for the three moments an order needs a message. */
-function templates(b: AdminBooking, businessName: string) {
+function templates(b: AdminBooking, businessName: string, advancePct: number) {
   const who = b.buyerName ? b.buyerName.split(" ")[0] : "there";
   const ref = b.id.slice(0, 8).toUpperCase();
   const line = `${b.productName} × ${compactQty(b.quantity)} at ${money(b.unitPrice)} each = ${money(b.totalPrice)}`;
-  const advance = Math.round(b.totalPrice * ADVANCE_SHARE);
-  const balance = b.totalPrice - advance;
-  const pct = Math.round(ADVANCE_SHARE * 100);
 
-  const payment = [
-    `Payment:`,
-    `Advance to start production (${pct}%): ${money(advance)}`,
-    `Balance before dispatch: ${money(balance)}`,
-  ];
+  const pct = Math.min(100, Math.max(1, Math.round(advancePct)));
+  const advance = Math.round((b.totalPrice * pct) / 100);
+  const balance = b.totalPrice - advance;
+
+  const payment =
+    pct >= 100
+      ? [`Payment:`, `Full amount before dispatch: ${money(b.totalPrice)}`]
+      : [
+          `Payment:`,
+          `Advance to start production (${pct}%): ${money(advance)}`,
+          `Balance before dispatch: ${money(balance)}`,
+        ];
 
   return [
     {
@@ -69,7 +74,9 @@ function templates(b: AdminBooking, businessName: string) {
         line,
         `Reference: ${ref}`,
         ``,
-        `Sharing photographs now. The balance is due before dispatch — shall I send the QR?`,
+        pct >= 100
+          ? `Sharing photographs now. Payment is due before dispatch — shall I send the QR?`
+          : `Sharing photographs now. The balance of ${money(balance)} is due before dispatch — shall I send the QR?`,
       ].join("\n"),
     },
   ];
@@ -84,10 +91,19 @@ export function BookingMessage({
   businessName: string;
   onClose: () => void;
 }) {
-  const options = templates(booking, businessName);
-  const [active, setActive] = useState(options[0].key);
-  const [message, setMessage] = useState(options[0].body);
+  const [advancePct, setAdvancePct] = useState(DEFAULT_ADVANCE);
+  const [activeKey, setActiveKey] = useState("confirm");
+  // Null until the message is hand-edited, so changing the split or the
+  // template rebuilds it rather than leaving a stale draft on screen.
+  const [edited, setEdited] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const options = useMemo(
+    () => templates(booking, businessName, advancePct),
+    [booking, businessName, advancePct],
+  );
+  const active = options.find((o) => o.key === activeKey) ?? options[0];
+  const message = edited ?? active.body;
 
   const handle = booking.buyerContact?.replace(/^@/, "") ?? "";
 
@@ -101,12 +117,18 @@ export function BookingMessage({
     };
   }, [onClose]);
 
+  function setPct(next: number) {
+    setAdvancePct(next);
+    setEdited(null);
+    setCopied(false);
+  }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
     } catch {
-      /* the textarea is selectable as a fallback */
+      /* the textarea stays selectable as a fallback */
     }
   }
 
@@ -119,12 +141,20 @@ export function BookingMessage({
     { label: "Buyer", value: booking.buyerName },
     { label: "Instagram", value: handle ? `@${handle}` : null },
     { label: "Phone", value: booking.phone },
-    { label: "Booked", value: new Date(booking.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) },
+    {
+      label: "Booked",
+      value: new Date(booking.createdAt).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    },
     { label: "Came from", value: SOURCE_LABEL[booking.source] ?? booking.source },
     { label: "Status", value: STATUS_LABEL[booking.status as BookingStatus] ?? booking.status },
     { label: "Reference", value: booking.id.slice(0, 8).toUpperCase() },
     { label: "Their note", value: booking.note },
   ].filter((f) => f.value);
+
+  const advanceAmount = Math.round((booking.totalPrice * Math.min(100, Math.max(1, advancePct))) / 100);
 
   const dialog = (
     <div
@@ -171,6 +201,51 @@ export function BookingMessage({
             ))}
           </dl>
 
+          {/* Advance share — drives the numbers in every template below. */}
+          <div className="mt-8 rounded-[12px] border border-line bg-surface px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[0.8rem] font-medium text-ink">Advance for this order</p>
+              <p className="text-[0.85rem] text-ink-soft">
+                <span className="text-ink tabular-nums">{money(advanceAmount)}</span>
+                {advancePct < 100 && (
+                  <>
+                    {" "}
+                    now, {money(booking.totalPrice - advanceAmount)} later
+                  </>
+                )}
+              </p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPct(p)}
+                  className={`rounded-full border px-3.5 py-1.5 text-[0.8rem] transition-colors ${
+                    advancePct === p
+                      ? "border-ink bg-ink text-canvas"
+                      : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
+                  }`}
+                >
+                  {p === 100 ? "Full payment" : `${p}%`}
+                </button>
+              ))}
+              <span className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={advancePct}
+                  onChange={(e) => setPct(Number(e.target.value))}
+                  aria-label="Advance percentage"
+                  className="w-12 bg-transparent text-[0.8rem] text-ink tabular-nums focus:outline-none"
+                />
+                <span className="text-[0.8rem] text-ink-faint">%</span>
+              </span>
+            </div>
+          </div>
+
           <p className="mt-8 text-[0.8rem] font-medium text-ink">Message them</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {options.map((option) => (
@@ -178,12 +253,12 @@ export function BookingMessage({
                 key={option.key}
                 type="button"
                 onClick={() => {
-                  setActive(option.key);
-                  setMessage(option.body);
+                  setActiveKey(option.key);
+                  setEdited(null);
                   setCopied(false);
                 }}
                 className={`rounded-full border px-3.5 py-1.5 text-[0.8rem] transition-colors ${
-                  active === option.key
+                  activeKey === option.key
                     ? "border-ink bg-ink text-canvas"
                     : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
                 }`}
@@ -196,13 +271,17 @@ export function BookingMessage({
           <textarea
             value={message}
             onChange={(e) => {
-              setMessage(e.target.value);
+              setEdited(e.target.value);
               setCopied(false);
             }}
-            rows={9}
+            rows={10}
             className="mt-3 w-full resize-none rounded-[12px] border border-line bg-surface p-4 text-[0.85rem] leading-relaxed text-ink focus:border-ink/40 focus:outline-none"
           />
-          <p className="mt-1.5 text-[0.75rem] text-ink-faint">Edit it however you like before sending.</p>
+          <p className="mt-1.5 text-[0.75rem] text-ink-faint">
+            {edited
+              ? "Edited. Changing the split or the template rewrites it."
+              : "Edit it however you like before sending."}
+          </p>
 
           {handle ? (
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -226,10 +305,20 @@ export function BookingMessage({
               </a>
             </div>
           ) : (
-            <p className="mt-5 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.85rem] text-ember-deep">
-              No Instagram handle on this order, so there is nobody to open a chat with. Copy the message
-              and send it however you have been talking to them.
-            </p>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={copy}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? "Copied" : "Copy message"}
+              </button>
+              <p className="mt-3 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
+                No Instagram handle on this order, so there is no chat to open. Copy the message and send
+                it however you have been talking to them.
+              </p>
+            </div>
           )}
         </div>
       </div>
