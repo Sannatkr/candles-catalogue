@@ -9,16 +9,36 @@ const img = (slug: string, n = 1) => `/products/${slug}/${slug}-${n}.jpg`;
  * four bulk steps. Dummy rates for now — Sannat is replacing them with real
  * ones, and each can be edited per product in the admin.
  */
-/** List price, ~Rs 25 above the selling rate, rounded so it reads naturally. */
-const listPrice = (base: number) => Math.round((base + 25) / 5) * 5;
+/**
+ * Sannat's quoted price is the list price, shown struck through. The rate he
+ * actually sells at is Rs 20-30 below it, kept to the 9-ending house style his
+ * own numbers use.
+ */
+const sellingPrice = (list: number) => {
+  const off = list >= 400 ? 30 : list >= 200 ? 25 : 20;
+  return Math.floor((list - off - 9) / 10) * 10 + 9;
+};
 
-const tiers = (base: number): PriceTier[] => [
-  { minQty: 1, price: base },
-  { minQty: 10, price: Math.round((base * 0.9) / 5) * 5 },
-  { minQty: 25, price: Math.round((base * 0.82) / 5) * 5 },
-  { minQty: 50, price: Math.round((base * 0.73) / 5) * 5 },
-  { minQty: 100, price: Math.round((base * 0.65) / 5) * 5 },
-];
+/**
+ * Slabs come off the selling rate, not the list price. The guard stops rounding
+ * ever making a bigger order cost more than a smaller one.
+ */
+const tiers = (sell: number): PriceTier[] => {
+  const steps: [number, number][] = [
+    [10, 0.9],
+    [25, 0.82],
+    [50, 0.73],
+    [100, 0.65],
+  ];
+
+  const out: PriceTier[] = [{ minQty: 1, price: sell }];
+  for (const [minQty, mult] of steps) {
+    const prev = out[out.length - 1].price;
+    const rounded = Math.round((sell * mult) / 5) * 5;
+    out.push({ minQty, price: rounded < prev ? rounded : prev - 5 });
+  }
+  return out;
+};
 
 export const seedSettings: SiteSettings = {
   businessName: "Sugandha Candles",
@@ -611,9 +631,9 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   heightCm: d.h,
   diameterCm: d.d,
   weightGrams: d.g,
-  basePrice: d.price,
-  mrp: listPrice(d.price),
-  priceTiers: tiers(d.price),
+  basePrice: sellingPrice(d.price),
+  mrp: d.price,
+  priceTiers: tiers(sellingPrice(d.price)),
   packaging: d.packaging,
   inStock: true,
   featured: Boolean(d.featured),
