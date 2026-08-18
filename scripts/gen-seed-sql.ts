@@ -32,7 +32,7 @@ for (const c of seedCollections) {
 const COLUMNS = [
   "slug", "name", "collection_slug", "tagline", "description", "images", "keywords",
   "fragrance", "wax_type", "wick_type", "burn_time_hours", "height_cm", "diameter_cm",
-  "weight_grams", "base_price", "price_tiers", "packaging", "in_stock", "featured", "sort_order",
+  "weight_grams", "base_price", "mrp", "price_tiers", "packaging", "in_stock", "featured", "sort_order",
 ];
 
 out.push(`insert into public.products (${COLUMNS.join(", ")}) values`);
@@ -42,7 +42,7 @@ out.push(
       (p) =>
         `(${q(p.slug)}, ${q(p.name)}, ${q(p.collectionSlug)}, ${q(p.tagline)}, ${q(p.description)}, ` +
         `${arr(p.images)}, ${arr(p.keywords)}, ${q(p.fragrance)}, ${q(p.waxType)}, ${q(p.wickType)}, ` +
-        `${p.burnTimeHours}, ${p.heightCm}, ${p.diameterCm}, ${p.weightGrams}, ${p.basePrice}, ` +
+        `${p.burnTimeHours}, ${p.heightCm}, ${p.diameterCm}, ${p.weightGrams}, ${p.basePrice}, ${p.mrp}, ` +
         `${json(p.priceTiers)}, ${q(p.packaging)}, ${p.inStock}, ${p.featured}, ${p.sortOrder})`,
     )
     .join(",\n"),

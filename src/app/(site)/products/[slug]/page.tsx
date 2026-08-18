@@ -93,7 +93,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mt-9 rounded-[16px] border border-line bg-surface p-6">
             <div className="flex items-baseline justify-between">
               <p className="eyebrow">Price per piece</p>
-              <p className="text-[0.78rem] text-ink-faint">No minimum order</p>
+              {product.mrp > product.basePrice ? (
+                <p className="text-[0.78rem] text-ember-deep">
+                  Save {money(product.mrp - product.basePrice)} on MRP
+                </p>
+              ) : (
+                <p className="text-[0.78rem] text-ink-faint">No minimum order</p>
+              )}
             </div>
 
             {product.priceTiers.length > 0 ? (
@@ -109,6 +115,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                         pcs
                       </td>
                       <td className="py-2.5 text-right font-display text-[1.1rem] text-ink">
+                        {i === 0 && product.mrp > tier.price && (
+                          <span className="mr-2 font-sans text-[0.85rem] font-normal text-ink-faint line-through">
+                            {money(product.mrp)}
+                          </span>
+                        )}
                         {money(tier.price)}
                       </td>
                     </tr>

@@ -18,6 +18,7 @@ export type AdminProduct = {
   diameter_cm: number | null;
   weight_grams: number | null;
   base_price: number | null;
+  mrp: number | null;
   price_tiers: { minQty: number; price: number }[] | null;
   packaging: string | null;
   in_stock: boolean | null;

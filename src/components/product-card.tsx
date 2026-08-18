@@ -35,9 +35,16 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <h3 className="font-display text-[0.98rem] leading-snug text-ink transition-colors group-hover:text-ember sm:text-[1.15rem]">
             {product.name}
           </h3>
-          <span className="shrink-0 text-[0.88rem] text-ink sm:text-[0.95rem]">
-            {hasSlabs && <span className="text-ink-faint">from </span>}
-            {money(from)}
+          <span className="flex shrink-0 items-baseline gap-1.5 text-[0.88rem] text-ink sm:text-[0.95rem]">
+            {product.mrp > from && (
+              <span className="text-[0.78rem] text-ink-faint line-through sm:text-[0.82rem]">
+                {money(product.mrp)}
+              </span>
+            )}
+            <span>
+              {hasSlabs && <span className="text-ink-faint">from </span>}
+              {money(from)}
+            </span>
           </span>
         </div>
         <p className="mt-1 line-clamp-2 text-[0.8rem] text-ink-soft sm:text-[0.875rem]">{product.tagline}</p>

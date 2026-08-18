@@ -73,6 +73,7 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     diameter_cm: num(fd, "diameter_cm"),
     weight_grams: num(fd, "weight_grams"),
     base_price: tiers[0]?.price ?? num(fd, "base_price"),
+    mrp: num(fd, "mrp"),
     price_tiers: tiers,
     packaging: str(fd, "packaging"),
     in_stock: bool(fd, "in_stock"),

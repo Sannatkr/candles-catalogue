@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Copy, Loader2, MapPin, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Loader2, MapPin, Minus, Plus, X } from "lucide-react";
 import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
@@ -11,7 +11,7 @@ import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileD
 import { lookupPincode } from "@/lib/pincode";
 import type { Product } from "@/lib/types";
 
-const QUICK = [10, 25, 50, 100];
+const JUMPS = [10, 25, 50, 100];
 
 const FIELD =
   "w-full rounded-[12px] border border-line bg-surface px-4 py-3 text-[0.95rem] text-ink placeholder:text-ink-faint transition-colors focus:border-ink/50 focus:outline-none";
@@ -29,7 +29,7 @@ export function BookingDialog({
   businessName: string;
   onClose: () => void;
 }) {
-  const [qty, setQty] = useState(10);
+  const [qty, setQty] = useState(1);
   const [fragrance, setFragrance] = useState(product.fragrance || fragrances[0] || "");
   const [pincode, setPincode] = useState("");
   // Keyed by the pincode it belongs to, so a stale result never shows against a
@@ -290,13 +290,50 @@ export function BookingDialog({
             {/* Quantity */}
             <div className="mt-8">
               <p className="text-[0.82rem] font-medium text-ink">How many pieces?</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {QUICK.map((q) => (
+
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex items-center rounded-full border border-line bg-surface">
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                    aria-label="One fewer"
+                    className="flex h-11 w-11 items-center justify-center rounded-l-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <Minus size={16} />
+                  </button>
+
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    value={qty || ""}
+                    onChange={(e) => setQty(Math.min(100000, Math.max(1, Math.floor(Number(e.target.value) || 1))))}
+                    aria-label="Number of pieces"
+                    className="h-11 w-16 [appearance:textfield] border-x border-line bg-transparent text-center text-[1rem] text-ink tabular-nums focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => Math.min(100000, q + 1))}
+                    aria-label="One more"
+                    className="flex h-11 w-11 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                <span className="text-[0.8rem] text-ink-faint">{qty === 1 ? "piece" : "pieces"}</span>
+              </div>
+
+              <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                <span className="text-[0.75rem] text-ink-faint">Bulk rates:</span>
+                {JUMPS.map((q) => (
                   <button
                     key={q}
                     type="button"
                     onClick={() => setQty(q)}
-                    className={`rounded-full border px-4 py-2.5 text-[0.875rem] transition-colors ${
+                    className={`rounded-full border px-3.5 py-1.5 text-[0.825rem] transition-colors ${
                       qty === q
                         ? "border-ink bg-ink text-canvas"
                         : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
@@ -305,15 +342,6 @@ export function BookingDialog({
                     {q}+
                   </button>
                 ))}
-                <input
-                  type="number"
-                  min={1}
-                  max={100000}
-                  value={qty || ""}
-                  onChange={(e) => setQty(Math.max(0, Number(e.target.value)))}
-                  aria-label="Exact quantity"
-                  className="w-24 rounded-full border border-line bg-surface px-4 py-2.5 text-center text-[0.875rem] text-ink focus:border-ink/50 focus:outline-none"
-                />
               </div>
             </div>
 
@@ -321,7 +349,12 @@ export function BookingDialog({
             <div className="mt-5 rounded-[14px] border border-line bg-surface px-5 py-4">
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-[0.875rem] text-ink-soft">Rate at this quantity</span>
-                <span className="font-display text-[1.1rem] text-ink">{money(unit)} each</span>
+                <span className="flex items-baseline gap-2">
+                  {product.mrp > unit && (
+                    <span className="text-[0.85rem] text-ink-faint line-through">{money(product.mrp)}</span>
+                  )}
+                  <span className="font-display text-[1.1rem] text-ink">{money(unit)} each</span>
+                </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-line-soft pt-3">
                 <span className="text-[0.875rem] text-ink-soft">Estimated total</span>

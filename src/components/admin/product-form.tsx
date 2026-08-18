@@ -117,7 +117,16 @@ export function ProductForm({
         title="Pricing"
         hint="There is no minimum order, so start your first slab at 1 piece — that is the single-piece rate."
       >
-        <PriceTiers name="price_tiers" initial={product?.price_tiers ?? []} />
+        <div className="space-y-6">
+          <PriceTiers name="price_tiers" initial={product?.price_tiers ?? []} />
+
+          <Field
+            label="MRP"
+            hint="Shown struck through beside the price. Leave at 0 to show no discount. Only set this to a price you would genuinely sell at."
+          >
+            <Input type="number" name="mrp" min={0} step="1" defaultValue={product?.mrp ?? 0} />
+          </Field>
+        </div>
       </Card>
 
       <Card title="Specification">

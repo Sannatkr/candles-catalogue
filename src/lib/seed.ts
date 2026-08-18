@@ -9,6 +9,9 @@ const img = (slug: string, n = 1) => `/products/${slug}/${slug}-${n}.jpg`;
  * four bulk steps. Dummy rates for now — Sannat is replacing them with real
  * ones, and each can be edited per product in the admin.
  */
+/** List price, ~Rs 25 above the selling rate, rounded so it reads naturally. */
+const listPrice = (base: number) => Math.round((base + 25) / 5) * 5;
+
 const tiers = (base: number): PriceTier[] => [
   { minQty: 1, price: base },
   { minQty: 10, price: Math.round((base * 0.9) / 5) * 5 },
@@ -609,6 +612,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   diameterCm: d.d,
   weightGrams: d.g,
   basePrice: d.price,
+  mrp: listPrice(d.price),
   priceTiers: tiers(d.price),
   packaging: d.packaging,
   inStock: true,

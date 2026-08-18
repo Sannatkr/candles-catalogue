@@ -26,6 +26,8 @@ export type Product = {
   weightGrams: number;
 
   basePrice: number;
+  /** List price shown struck through. 0 hides it. */
+  mrp: number;
   priceTiers: PriceTier[];
   packaging: string;
 
