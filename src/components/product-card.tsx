@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { bestPrice, money } from "@/lib/format";
+import { bestPrice, money, sizeLabel } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
@@ -42,7 +42,9 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         </div>
         <p className="mt-1 line-clamp-2 text-[0.8rem] text-ink-soft sm:text-[0.875rem]">{product.tagline}</p>
         <p className="mt-2 text-[0.68rem] tracking-wide text-ink-faint uppercase sm:text-[0.75rem]">
-          {product.heightCm}×{product.diameterCm} cm · {product.burnTimeHours} hr burn
+          {[sizeLabel(product), product.burnTimeHours ? `${product.burnTimeHours} hr burn` : ""]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
     </Link>

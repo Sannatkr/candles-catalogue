@@ -76,3 +76,21 @@ export function instagramChatLink(instagramHandle: string) {
 export function emailLink(address: string, subject: string, body: string) {
   return `mailto:${address}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
+
+/**
+ * Sizes are quoted to buyers in inches — that is how the trade talks here — but
+ * stored in centimetres so the column names stay honest. A zero means the
+ * measurement was never recorded, and is left out rather than shown as 0.
+ */
+const CM_PER_INCH = 2.54;
+
+export function toInches(cm: number) {
+  return Number((cm / CM_PER_INCH).toFixed(1)).toString();
+}
+
+export function sizeLabel({ diameterCm, heightCm }: { diameterCm: number; heightCm: number }) {
+  const parts = [];
+  if (diameterCm > 0) parts.push(`W ${toInches(diameterCm)}`);
+  if (heightCm > 0) parts.push(`H ${toInches(heightCm)}`);
+  return parts.length ? `${parts.join(" × ")} in` : "";
+}

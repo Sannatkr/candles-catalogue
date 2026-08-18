@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { Reveal } from "@/components/reveal";
 import { getCollection, getProduct, getProducts, getSettings } from "@/lib/data";
-import { compactQty, money } from "@/lib/format";
+import { compactQty, money, toInches } from "@/lib/format";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -42,10 +42,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { label: "Fragrance", value: product.fragrance },
     { label: "Wax", value: product.waxType },
     { label: "Wick", value: product.wickType },
-    { label: "Burn time", value: `${product.burnTimeHours} hours` },
-    { label: "Height", value: `${product.heightCm} cm` },
-    { label: "Diameter", value: `${product.diameterCm} cm` },
-    { label: "Net weight", value: `${product.weightGrams} g` },
+    { label: "Burn time", value: product.burnTimeHours ? `${product.burnTimeHours} hours` : "" },
+    {
+      label: "Width",
+      value: product.diameterCm
+        ? `${toInches(product.diameterCm)} in (${Math.round(product.diameterCm)} cm)`
+        : "",
+    },
+    {
+      label: "Height",
+      value: product.heightCm ? `${toInches(product.heightCm)} in (${Math.round(product.heightCm)} cm)` : "",
+    },
+    { label: "Net weight", value: product.weightGrams ? `${product.weightGrams} g` : "" },
     { label: "Packing", value: product.packaging },
   ].filter((s) => s.value);
 
@@ -85,7 +93,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mt-9 rounded-[16px] border border-line bg-surface p-6">
             <div className="flex items-baseline justify-between">
               <p className="eyebrow">Price per piece</p>
-              <p className="text-[0.78rem] text-ink-faint">per piece</p>
+              <p className="text-[0.78rem] text-ink-faint">No minimum order</p>
             </div>
 
             {product.priceTiers.length > 0 ? (
@@ -112,8 +120,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
 
             <p className="mt-5 border-t border-line pt-4 text-[0.85rem] leading-relaxed text-ink-soft">
-              No minimum order. Buy a single piece, or cross a slab and the lower rate applies on its
-              own.
+              Buy a single piece, or cross a slab and the lower rate applies on its own.
             </p>
           </div>
 
