@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/admin/action-state";
 import { isBookingStatus } from "@/lib/admin/booking-status";
 import { slugify } from "@/lib/slug";
+import { createPaymentLink } from "@/lib/payments/razorpay";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 const str = (fd: FormData, key: string) => (fd.get(key) ?? "").toString().trim();
@@ -256,4 +257,65 @@ export async function createBooking(_prev: ActionState, fd: FormData): Promise<A
   revalidatePath("/admin/revenue");
   revalidatePath("/admin");
   redirect("/admin/bookings?added=1");
+}
+
+/* ------------------------------------------------------- payment links -- */
+
+export type LinkState = { ok: boolean; message: string; url?: string };
+
+/**
+ * Raises a Razorpay payment link for part or all of an order. The amount is
+ * whatever advance share he chose, so it matches the message he is about to
+ * send.
+ */
+export async function createBookingPaymentLink(
+  _prev: LinkState,
+  fd: FormData,
+): Promise<LinkState> {
+  const supabase = await requireAdmin();
+
+  const id = str(fd, "id");
+  const amount = num(fd, "amount");
+  if (!id) return { ok: false, message: "Which order?" };
+  if (amount < 1) return { ok: false, message: "Amount must be at least ₹1." };
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, product_name, quantity, buyer_name, phone")
+    .eq("id", id)
+    .maybeSingle();
+  if (!booking) return { ok: false, message: "That order no longer exists." };
+
+  const reference = id.slice(0, 8).toUpperCase();
+  const result = await createPaymentLink({
+    bookingId: id,
+    reference,
+    description: `${booking.product_name} × ${booking.quantity} — Sugandha Candles (ref ${reference})`,
+    amount,
+    buyerName: booking.buyer_name,
+    buyerPhone: booking.phone,
+    notify: bool(fd, "notify"),
+  });
+
+  if (!result.ok) return { ok: false, message: result.message };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      payment_link_id: result.link.id,
+      payment_link_url: result.link.url,
+      payment_amount: result.link.amount,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return {
+      ok: false,
+      message: "Link created at Razorpay but could not be saved here. Run migration 010.",
+      url: result.link.url,
+    };
+  }
+
+  revalidatePath("/admin/bookings");
+  return { ok: true, message: "Link ready.", url: result.link.url };
 }

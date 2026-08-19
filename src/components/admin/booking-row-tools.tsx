@@ -10,9 +10,11 @@ import type { BookingStatus } from "@/lib/admin/booking-status";
 export function BookingRowTools({
   booking,
   businessName,
+  paymentsReady,
 }: {
   booking: AdminBooking;
   businessName: string;
+  paymentsReady: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -38,6 +40,7 @@ export function BookingRowTools({
         <BookingMessage
           booking={booking}
           businessName={businessName}
+          paymentsReady={paymentsReady}
           onClose={() => setOpen(false)}
         />
       )}

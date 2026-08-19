@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, X } from "lucide-react";
+import { useActionState } from "react";
+import { Check, Copy, ExternalLink, Link2, X } from "lucide-react";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
 import type { AdminBooking } from "@/lib/admin/queries";
+import { createBookingPaymentLink } from "@/lib/admin/actions";
 import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileDevice } from "@/lib/format";
 
 /** Matches the advance stated on the Terms page; overridable per order. */
@@ -23,7 +25,7 @@ function isSettled(status: string) {
  * paid to confirm and await a QR reads badly, so a settled order gets a
  * different set entirely.
  */
-function templates(b: AdminBooking, businessName: string, advancePct: number) {
+function templates(b: AdminBooking, businessName: string, advancePct: number, payLink: string | null) {
   const who = b.buyerName ? b.buyerName.split(" ")[0] : "there";
   const ref = b.id.slice(0, 8).toUpperCase();
   const line = `${b.productName} × ${compactQty(b.quantity)} at ${money(b.unitPrice)} each = ${money(b.totalPrice)}`;
@@ -107,7 +109,9 @@ function templates(b: AdminBooking, businessName: string, advancePct: number) {
         ``,
         ...payment,
         ``,
-        `Shall I confirm this? Once you say yes I will send the payment QR.`,
+        payLink
+          ? `Shall I confirm this? Pay here and it is booked: ${payLink}`
+          : `Shall I confirm this? Once you say yes I will send the payment QR.`,
       ]
         .filter((l) => l !== null)
         .join("\n"),
@@ -122,7 +126,11 @@ function templates(b: AdminBooking, businessName: string, advancePct: number) {
         ``,
         ...payment,
         ``,
-        `Sending the payment QR next. Once it is through we begin pouring, and I will share photographs before dispatch.`,
+        payLink
+          ? `Pay here: ${payLink}`
+          : `Sending the payment QR next.`,
+        ``,
+        `Once it is through we begin pouring, and I will share photographs before dispatch.`,
       ].join("\n"),
     },
     {
@@ -135,9 +143,13 @@ function templates(b: AdminBooking, businessName: string, advancePct: number) {
         `Reference: ${ref}`,
         ``,
         pct >= 100
-          ? `Sharing photographs now. Payment is due before dispatch — shall I send the QR?`
-          : `Sharing photographs now. The balance of ${money(balance)} is due before dispatch — shall I send the QR?`,
-      ].join("\n"),
+          ? `Sharing photographs now. Payment is due before dispatch.`
+          : `Sharing photographs now. The balance of ${money(balance)} is due before dispatch.`,
+        payLink ? `` : null,
+        payLink ? `Pay here: ${payLink}` : null,
+      ]
+        .filter((l) => l !== null)
+        .join("\n"),
     },
   ];
 }
@@ -145,13 +157,21 @@ function templates(b: AdminBooking, businessName: string, advancePct: number) {
 export function BookingMessage({
   booking,
   businessName,
+  paymentsReady,
   onClose,
 }: {
   booking: AdminBooking;
   businessName: string;
+  paymentsReady: boolean;
   onClose: () => void;
 }) {
   const [advancePct, setAdvancePct] = useState(DEFAULT_ADVANCE);
+  const [link, action, creating] = useActionState(createBookingPaymentLink, {
+    ok: true,
+    message: "",
+    url: booking.paymentLinkUrl ?? undefined,
+  });
+  const payLink = link.url ?? null;
   const settled = isSettled(booking.status);
   const [activeKey, setActiveKey] = useState(settled ? "received" : "confirm");
   // Null until the message is hand-edited, so changing the split or the
@@ -160,8 +180,8 @@ export function BookingMessage({
   const [copied, setCopied] = useState(false);
 
   const options = useMemo(
-    () => templates(booking, businessName, advancePct),
-    [booking, businessName, advancePct],
+    () => templates(booking, businessName, advancePct, payLink),
+    [booking, businessName, advancePct, payLink],
   );
   const active = options.find((o) => o.key === activeKey) ?? options[0];
   const message = edited ?? active.body;
@@ -311,6 +331,50 @@ export function BookingMessage({
                 <span className="text-[0.8rem] text-ink-faint">%</span>
               </span>
             </div>
+
+            {/* A live payment link for exactly the advance above, so the
+                message he is about to send carries it and the order marks
+                itself paid the moment money lands. */}
+            {paymentsReady && (
+              <div className="mt-4 border-t border-line pt-4">
+                {payLink ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <a
+                      href={payLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-w-0 items-center gap-1.5 text-[0.8rem] text-ember-deep underline decoration-dotted underline-offset-4"
+                    >
+                      <ExternalLink size={13} className="shrink-0" />
+                      <span className="truncate">{payLink.replace(/^https?:\/\//, "")}</span>
+                    </a>
+                    <span className="text-[0.78rem] text-ink-faint">
+                      In the message below
+                    </span>
+                  </div>
+                ) : (
+                  <form action={action} className="flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="id" value={booking.id} />
+                    <input type="hidden" name="amount" value={advanceAmount} />
+                    <button
+                      type="submit"
+                      disabled={creating}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-4 py-2 text-[0.8rem] text-canvas transition-opacity disabled:opacity-50"
+                    >
+                      <Link2 size={14} />
+                      {creating ? "Making the link…" : `Payment link for ${money(advanceAmount)}`}
+                    </button>
+                    <span className="text-[0.78rem] text-ink-faint">
+                      UPI, card or netbanking. Marks itself paid.
+                    </span>
+                  </form>
+                )}
+
+                {!link.ok && link.message && (
+                  <p className="mt-2.5 text-[0.78rem] text-ember-deep">{link.message}</p>
+                )}
+              </div>
+            )}
           </div>
           )}
 

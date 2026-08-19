@@ -89,6 +89,9 @@ export type AdminBooking = {
   status: string;
   source: string;
   paidAt: string | null;
+  paymentLinkUrl: string | null;
+  paymentAmount: number | null;
+  amountPaid: number;
 };
 
 export async function listBookings(): Promise<AdminBooking[]> {
@@ -118,6 +121,9 @@ export async function listBookings(): Promise<AdminBooking[]> {
     status: row.status ?? "new",
     source: row.source ?? "website",
     paidAt: row.paid_at ?? null,
+    paymentLinkUrl: row.payment_link_url ?? null,
+    paymentAmount: row.payment_amount === null || row.payment_amount === undefined ? null : Number(row.payment_amount),
+    amountPaid: Number(row.amount_paid ?? 0),
   }));
 }
 
@@ -152,5 +158,8 @@ export async function listRevenueBookings(fromISO: string, toISO: string): Promi
     status: row.status ?? "paid",
     source: row.source ?? "website",
     paidAt: row.paid_at ?? null,
+    paymentLinkUrl: row.payment_link_url ?? null,
+    paymentAmount: row.payment_amount === null || row.payment_amount === undefined ? null : Number(row.payment_amount),
+    amountPaid: Number(row.amount_paid ?? 0),
   }));
 }

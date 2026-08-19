@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { BookingFilters } from "@/components/admin/booking-filters";
 import { BookingRowTools } from "@/components/admin/booking-row-tools";
 import { SOURCE_LABEL, STATUS_LABEL, STATUS_STYLE, type BookingStatus } from "@/lib/admin/booking-status";
+import { isRazorpayConfigured } from "@/lib/payments/razorpay";
 import { listBookings } from "@/lib/admin/queries";
 import { getSettings } from "@/lib/data";
 import { compactQty, money } from "@/lib/format";
@@ -15,11 +16,8 @@ export default async function AdminBookingsPage({
 }: {
   searchParams: Promise<{ added?: string; from?: string; status?: string }>;
 }) {
-  const [{ added, from = "all", status: statusFilter = "all" }, all, settings] = await Promise.all([
-    searchParams,
-    listBookings(),
-    getSettings(),
-  ]);
+  const [{ added, from = "all", status: statusFilter = "all" }, all, settings, paymentsReady] =
+    await Promise.all([searchParams, listBookings(), getSettings(), isRazorpayConfigured()]);
 
   const sourceCounts: Record<string, number> = { all: all.length, website: 0, manual: 0 };
   const statusCounts: Record<string, number> = { all: all.length };
@@ -188,7 +186,7 @@ export default async function AdminBookingsPage({
                     </td>
 
                     <td className="px-4 py-3.5 text-right">
-                      <BookingRowTools booking={b} businessName={settings.businessName} />
+                      <BookingRowTools booking={b} businessName={settings.businessName} paymentsReady={paymentsReady} />
                     </td>
                   </tr>
                 );
