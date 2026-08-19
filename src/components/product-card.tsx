@@ -48,11 +48,11 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           </span>
         </div>
         <p className="mt-1 line-clamp-2 text-[0.8rem] text-ink-soft sm:text-[0.875rem]">{product.tagline}</p>
-        <p className="mt-2 text-[0.68rem] tracking-wide text-ink-faint uppercase sm:text-[0.75rem]">
-          {[sizeLabel(product), product.burnTimeHours ? `${product.burnTimeHours} hr burn` : ""]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        {sizeLabel(product) && (
+          <p className="mt-2 text-[0.68rem] tracking-wide text-ink-faint uppercase sm:text-[0.75rem]">
+            {sizeLabel(product)}
+          </p>
+        )}
       </div>
     </Link>
   );

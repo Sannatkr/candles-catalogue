@@ -42,7 +42,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { label: "Fragrance", value: product.fragrance },
     { label: "Wax", value: product.waxType },
     { label: "Wick", value: product.wickType },
-    { label: "Burn time", value: product.burnTimeHours ? `${product.burnTimeHours} hours` : "" },
     {
       label: "Width",
       value: product.diameterCm

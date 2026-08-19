@@ -68,7 +68,6 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     fragrance: str(fd, "fragrance"),
     wax_type: str(fd, "wax_type"),
     wick_type: str(fd, "wick_type"),
-    burn_time_hours: num(fd, "burn_time_hours"),
     height_cm: num(fd, "height_cm"),
     diameter_cm: num(fd, "diameter_cm"),
     base_price: tiers[0]?.price ?? num(fd, "base_price"),

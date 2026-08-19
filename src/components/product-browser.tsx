@@ -6,13 +6,12 @@ import { ProductCard } from "@/components/product-card";
 import { bestPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
-type Sort = "curated" | "price-asc" | "price-desc" | "burn-desc";
+type Sort = "curated" | "price-asc" | "price-desc";
 
 const SORTS: { value: Sort; label: string }[] = [
   { value: "curated", label: "Our order" },
   { value: "price-asc", label: "Price: low first" },
   { value: "price-desc", label: "Price: high first" },
-  { value: "burn-desc", label: "Longest burn" },
 ];
 
 /**
@@ -70,7 +69,6 @@ export function ProductBrowser({ products }: { products: Product[] }) {
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => bestPrice(a) - bestPrice(b));
     if (sort === "price-desc") sorted.sort((a, b) => bestPrice(b) - bestPrice(a));
-    if (sort === "burn-desc") sorted.sort((a, b) => b.burnTimeHours - a.burnTimeHours);
     return sorted;
   }, [products, active, query, sort, haystack]);
 

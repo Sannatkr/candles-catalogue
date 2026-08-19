@@ -140,9 +140,6 @@ export function ProductForm({
           <Field label="Wick">
             <Input name="wick_type" defaultValue={product?.wick_type ?? ""} placeholder="Cotton, single" />
           </Field>
-          <Field label="Burn time (hours)">
-            <Input type="number" name="burn_time_hours" min={0} defaultValue={product?.burn_time_hours ?? 0} />
-          </Field>
           <Field label="Height (cm)">
             <Input type="number" step="0.1" name="height_cm" min={0} defaultValue={product?.height_cm ?? 0} />
           </Field>
