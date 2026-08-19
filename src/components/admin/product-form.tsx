@@ -149,12 +149,6 @@ export function ProductForm({
           <Field label="Diameter (cm)">
             <Input type="number" step="0.1" name="diameter_cm" min={0} defaultValue={product?.diameter_cm ?? 0} />
           </Field>
-          <Field label="Net weight (grams)">
-            <Input type="number" name="weight_grams" min={0} defaultValue={product?.weight_grams ?? 0} />
-          </Field>
-          <Field label="Packing">
-            <Input name="packaging" defaultValue={product?.packaging ?? ""} placeholder="Kraft box, 12 pcs per carton" />
-          </Field>
         </div>
       </Card>
 

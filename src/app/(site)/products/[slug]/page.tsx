@@ -53,8 +53,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       label: "Height",
       value: product.heightCm ? `${toInches(product.heightCm)} in (${Math.round(product.heightCm)} cm)` : "",
     },
-    { label: "Net weight", value: product.weightGrams ? `${product.weightGrams} g` : "" },
-    { label: "Packing", value: product.packaging },
   ].filter((s) => s.value);
 
   return (
