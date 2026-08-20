@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/admin/action-state";
+import { type BookingItem, itemsLabel, itemsTotals, parseItems } from "@/lib/admin/booking-items";
 import { isBookingStatus } from "@/lib/admin/booking-status";
 import { slugify } from "@/lib/slug";
 import { createPaymentLink } from "@/lib/payments/razorpay";
@@ -209,20 +210,38 @@ export async function deleteBooking(fd: FormData) {
 export async function createBooking(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const supabase = await requireAdmin();
 
-  const productSlug = str(fd, "product_slug");
-  if (!productSlug) return { ok: false, message: "Pick which candle this is for." };
+  // One order, one or many candles. The form sends the lines as JSON so the
+  // whole basket arrives in a single save.
+  const lines = json<{ slug: string; qty: number; unitPrice: number }[]>(fd, "items", []).filter(
+    (line) => line.slug && line.qty > 0,
+  );
+  if (lines.length === 0) return { ok: false, message: "Add at least one candle to the order." };
+  if (lines.some((line) => !(line.unitPrice > 0))) {
+    return { ok: false, message: "Every line needs the rate you sold it at." };
+  }
 
-  const quantity = Math.floor(num(fd, "quantity"));
-  if (quantity < 1) return { ok: false, message: "Quantity must be at least 1." };
-
-  const unitPrice = num(fd, "unit_price");
-  if (unitPrice <= 0) return { ok: false, message: "Enter the rate you sold it at." };
-
-  const { data: product } = await supabase
+  const { data: products } = await supabase
     .from("products")
-    .select("name, images")
-    .eq("slug", productSlug)
-    .maybeSingle();
+    .select("slug, name, images")
+    .in("slug", lines.map((line) => line.slug));
+
+  const catalogue = new Map((products ?? []).map((p) => [p.slug as string, p]));
+
+  const items: BookingItem[] = lines.map((line) => {
+    const product = catalogue.get(line.slug);
+    const qty = Math.floor(line.qty);
+    return {
+      slug: line.slug,
+      name: (product?.name as string) ?? line.slug,
+      image: (product?.images as string[] | null)?.[0] ?? null,
+      qty,
+      unitPrice: line.unitPrice,
+      total: Math.round(line.unitPrice * qty),
+    };
+  });
+
+  const { pieces, amount } = itemsTotals(items);
+  const first = items[0];
 
   const status = str(fd, "status");
   if (!isBookingStatus(status)) return { ok: false, message: "Pick a status." };
@@ -233,12 +252,15 @@ export async function createBooking(_prev: ActionState, fd: FormData): Promise<A
       : null;
 
   const { error } = await supabase.from("bookings").insert({
-    product_slug: productSlug,
-    product_name: product?.name ?? productSlug,
-    product_image: (product?.images as string[] | null)?.[0] ?? null,
-    quantity,
-    unit_price: unitPrice,
-    total_price: Math.round(unitPrice * quantity),
+    items,
+    // The single-candle columns stay filled with the first line and the order
+    // totals, so every older screen and query still reads this row correctly.
+    product_slug: first.slug,
+    product_name: itemsLabel(items),
+    product_image: first.image,
+    quantity: pieces,
+    unit_price: items.length === 1 ? first.unitPrice : 0,
+    total_price: amount,
     fragrance: str(fd, "fragrance") || null,
     pincode: str(fd, "pincode") || null,
     state: str(fd, "state") || null,
@@ -281,16 +303,23 @@ export async function createBookingPaymentLink(
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, product_name, quantity, buyer_name, phone")
+    .select("id, product_name, quantity, items, buyer_name, phone")
     .eq("id", id)
     .maybeSingle();
   if (!booking) return { ok: false, message: "That order no longer exists." };
 
+  const lines = parseItems(booking.items);
   const reference = id.slice(0, 8).toUpperCase();
+  // An order with several candles in it says how many pieces in total rather
+  // than pretending it is one line.
+  const what =
+    lines.length > 1
+      ? `${lines.length} candles × ${booking.quantity} pcs`
+      : `${booking.product_name} × ${booking.quantity}`;
   const result = await createPaymentLink({
     bookingId: id,
     reference,
-    description: `${booking.product_name} × ${booking.quantity} — Sugandha Candles (ref ${reference})`,
+    description: `${what} — Sugandha Candles (ref ${reference})`,
     amount,
     buyerName: booking.buyer_name,
     buyerPhone: booking.phone,

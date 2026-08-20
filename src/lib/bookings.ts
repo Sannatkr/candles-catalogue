@@ -59,14 +59,26 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
 
   const supabase = getPublicSupabase();
 
+  const total = Math.round(input.unitPrice * quantity);
+
   const row = {
     id,
+    items: [
+      {
+        slug: input.productSlug,
+        name: input.productName,
+        image: input.productImage,
+        qty: quantity,
+        unitPrice: input.unitPrice,
+        total,
+      },
+    ],
     product_slug: input.productSlug,
     product_name: input.productName,
     product_image: input.productImage,
     quantity,
     unit_price: input.unitPrice,
-    total_price: Math.round(input.unitPrice * quantity),
+    total_price: total,
     fragrance: input.fragrance,
     pincode: pincode || null,
     state: input.state?.slice(0, 120) || null,
@@ -79,12 +91,14 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
   let { error } = await supabase.from("bookings").insert(row);
 
   // PGRST204 is PostgREST rejecting an unknown column from its schema cache;
-  // 42703 is Postgres saying the same thing. The state and phone columns arrive
-  // with later migrations, so until those are run the order still goes through.
+  // 42703 is Postgres saying the same thing. The state, phone and items columns
+  // arrive with later migrations, so until those are run the order still goes
+  // through.
   if (error?.code === "PGRST204" || error?.code === "42703") {
     const trimmed: Partial<typeof row> = { ...row };
     delete trimmed.state;
     delete trimmed.phone;
+    delete trimmed.items;
     ({ error } = await supabase.from("bookings").insert(trimmed));
   }
 

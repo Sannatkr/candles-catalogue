@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { BookingFilters } from "@/components/admin/booking-filters";
 import { BookingRowTools } from "@/components/admin/booking-row-tools";
+import { itemsLabel, itemsOf } from "@/lib/admin/booking-items";
 import { SOURCE_LABEL, STATUS_LABEL, STATUS_STYLE, type BookingStatus } from "@/lib/admin/booking-status";
 import { isRazorpayConfigured } from "@/lib/payments/razorpay";
 import { listBookings } from "@/lib/admin/queries";
@@ -116,17 +117,27 @@ export default async function AdminBookingsPage({
             <tbody>
               {bookings.map((b) => {
                 const status = b.status as BookingStatus;
+                const items = itemsOf(b);
+                const first = items[0];
                 return (
                   <tr key={b.id} className="group border-b border-line-soft align-middle transition-colors last:border-0 hover:bg-canvas-deep/25">
                     <td className="sticky left-0 z-10 border-r border-line-soft bg-canvas px-4 py-3.5 transition-colors group-hover:bg-[#f7f2e8]">
                       <div className="flex items-center gap-3">
                         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-canvas-deep">
-                          {b.productImage && (
-                            <Image src={b.productImage} alt="" fill sizes="44px" className="object-cover" />
+                          {(first?.image ?? b.productImage) && (
+                            <Image
+                              src={first?.image ?? b.productImage!}
+                              alt=""
+                              fill
+                              sizes="44px"
+                              className="object-cover"
+                            />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[0.9rem] text-ink">{b.productName}</p>
+                          <p className="truncate text-[0.9rem] text-ink" title={items.map((i) => i.name).join(", ")}>
+                            {itemsLabel(items)}
+                          </p>
                           <p className="text-[0.75rem] text-ink-faint">
                             {new Date(b.createdAt).toLocaleDateString("en-IN", {
                               day: "numeric",
@@ -142,7 +153,7 @@ export default async function AdminBookingsPage({
                       {compactQty(b.quantity)}
                     </td>
                     <td className="px-4 py-3.5 text-right text-[0.9rem] whitespace-nowrap text-ink-soft tabular-nums">
-                      {money(b.unitPrice)}
+                      {items.length > 1 ? "Mixed" : money(b.unitPrice)}
                     </td>
                     <td className="px-4 py-3.5 text-right text-[0.9rem] font-medium whitespace-nowrap text-ink tabular-nums">
                       {money(b.totalPrice)}

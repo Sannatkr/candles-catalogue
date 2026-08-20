@@ -1,5 +1,6 @@
 import { type Bucket, RevenueColumns, SourceSplit, TopProducts } from "@/components/admin/charts";
 import { RangePicker } from "@/components/admin/range-picker";
+import { itemsOf } from "@/lib/admin/booking-items";
 import { listRevenueBookings } from "@/lib/admin/queries";
 import { compactQty, money } from "@/lib/format";
 
@@ -87,12 +88,14 @@ export default async function RevenuePage({
   const average = rows.length ? Math.round(revenue / rows.length) : 0;
 
   const byProduct = new Map<string, { name: string; value: number; qty: number }>();
-  rows.forEach((r) => {
-    const entry = byProduct.get(r.productSlug) ?? { name: r.productName, value: 0, qty: 0 };
-    entry.value += r.totalPrice;
-    entry.qty += r.quantity;
-    byProduct.set(r.productSlug, entry);
-  });
+  rows.forEach((r) =>
+    itemsOf(r).forEach((item) => {
+      const entry = byProduct.get(item.slug) ?? { name: item.name, value: 0, qty: 0 };
+      entry.value += item.total;
+      entry.qty += item.qty;
+      byProduct.set(item.slug, entry);
+    }),
+  );
   const top = [...byProduct.values()].sort((a, b) => b.value - a.value).slice(0, 6);
 
   const website = rows.filter((r) => r.source !== "manual").reduce((s, r) => s + r.totalPrice, 0);

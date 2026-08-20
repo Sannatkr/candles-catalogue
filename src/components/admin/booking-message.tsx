@@ -7,6 +7,7 @@ import { useActionState } from "react";
 import { Check, Copy, ExternalLink, Link2, X } from "lucide-react";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { SOURCE_LABEL, STATUS_LABEL, type BookingStatus } from "@/lib/admin/booking-status";
+import { itemsLabel, itemsOf } from "@/lib/admin/booking-items";
 import type { AdminBooking } from "@/lib/admin/queries";
 import { createBookingPaymentLink } from "@/lib/admin/actions";
 import { compactQty, instagramChatLink, isValidInstagramHandle, money, onMobileDevice } from "@/lib/format";
@@ -28,7 +29,17 @@ function isSettled(status: string) {
 function templates(b: AdminBooking, businessName: string, advancePct: number, payLink: string | null) {
   const who = b.buyerName ? b.buyerName.split(" ")[0] : "there";
   const ref = b.id.slice(0, 8).toUpperCase();
-  const line = `${b.productName} × ${compactQty(b.quantity)} at ${money(b.unitPrice)} each = ${money(b.totalPrice)}`;
+  const items = itemsOf(b);
+  // Every candle on its own row, the way a quotation reads, with a total under
+  // it once there is more than one.
+  const line = [
+    ...items.map(
+      (item) => `${item.name} — ${compactQty(item.qty)} × ${money(item.unitPrice)} = ${money(item.total)}`,
+    ),
+    items.length > 1 ? `Total: ${money(b.totalPrice)}` : null,
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
   const where = [b.pincode, b.state].filter(Boolean).join(", ");
 
   if (isSettled(b.status)) {
@@ -217,9 +228,12 @@ export function BookingMessage({
     }
   }
 
+  const lines = itemsOf(booking);
   const facts = [
     { label: "Quantity", value: `${compactQty(booking.quantity)} pcs` },
-    { label: "Rate", value: `${money(booking.unitPrice)} each` },
+    lines.length > 1
+      ? { label: "Candles", value: `${lines.length} lines` }
+      : { label: "Rate", value: `${money(booking.unitPrice)} each` },
     { label: "Total", value: money(booking.totalPrice) },
     { label: "Fragrance", value: booking.fragrance },
     { label: "Delivery", value: [booking.pincode, booking.state].filter(Boolean).join(" · ") },
@@ -249,7 +263,7 @@ export function BookingMessage({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Order for ${booking.productName}`}
+        aria-label={`Order for ${itemsLabel(itemsOf(booking))}`}
         className="flex max-h-[92dvh] w-full max-w-[620px] flex-col overflow-hidden rounded-t-[20px] bg-canvas sm:rounded-[20px]"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-line px-6 py-4">
@@ -265,14 +279,22 @@ export function BookingMessage({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-canvas-deep">
-              {booking.productImage && (
-                <Image src={booking.productImage} alt="" fill sizes="56px" className="object-cover" />
-              )}
-            </div>
-            <p className="font-display text-[1.15rem] text-ink">{booking.productName}</p>
-          </div>
+          <ul className="space-y-3">
+            {lines.map((item, i) => (
+              <li key={`${item.slug}-${i}`} className="flex items-center gap-4">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-canvas-deep">
+                  {item.image && <Image src={item.image} alt="" fill sizes="56px" className="object-cover" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-[1.05rem] text-ink">{item.name}</p>
+                  <p className="text-[0.78rem] text-ink-faint tabular-nums">
+                    {compactQty(item.qty)} × {money(item.unitPrice)}
+                  </p>
+                </div>
+                <p className="shrink-0 text-[0.9rem] text-ink tabular-nums">{money(item.total)}</p>
+              </li>
+            ))}
+          </ul>
 
           <dl className="mt-6 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
             {facts.map((fact) => (

@@ -1,3 +1,4 @@
+import { type BookingItem, parseItems } from "@/lib/admin/booking-items";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export type AdminProduct = {
@@ -73,10 +74,14 @@ export async function getAdminSettings() {
 export type AdminBooking = {
   id: string;
   createdAt: string;
+  /** The lines on the order. One entry for a single-candle booking. */
+  items: BookingItem[];
   productSlug: string;
   productName: string;
   productImage: string | null;
+  /** Pieces across the whole order. */
   quantity: number;
+  /** Zero on an order with several rates in it — read the lines instead. */
   unitPrice: number;
   totalPrice: number;
   fragrance: string | null;
@@ -94,6 +99,38 @@ export type AdminBooking = {
   amountPaid: number;
 };
 
+type BookingRow = Record<string, unknown>;
+
+function toAdminBooking(row: BookingRow): AdminBooking {
+  const number = (value: unknown) => Number(value ?? 0);
+  const text = (value: unknown) => (value === null || value === undefined ? null : String(value));
+
+  return {
+    id: String(row.id),
+    createdAt: String(row.created_at),
+    items: parseItems(row.items),
+    productSlug: String(row.product_slug ?? ""),
+    productName: String(row.product_name ?? ""),
+    productImage: text(row.product_image),
+    quantity: number(row.quantity),
+    unitPrice: number(row.unit_price),
+    totalPrice: number(row.total_price),
+    fragrance: text(row.fragrance),
+    pincode: text(row.pincode),
+    state: text(row.state),
+    buyerName: String(row.buyer_name ?? ""),
+    buyerContact: text(row.buyer_contact),
+    phone: text(row.phone),
+    note: text(row.note),
+    status: String(row.status ?? "new"),
+    source: String(row.source ?? "website"),
+    paidAt: text(row.paid_at),
+    paymentLinkUrl: text(row.payment_link_url),
+    paymentAmount: row.payment_amount === null || row.payment_amount === undefined ? null : number(row.payment_amount),
+    amountPaid: number(row.amount_paid),
+  };
+}
+
 export async function listBookings(): Promise<AdminBooking[]> {
   const supabase = await getServerSupabase();
   const { data } = await supabase
@@ -102,29 +139,7 @@ export async function listBookings(): Promise<AdminBooking[]> {
     .order("created_at", { ascending: false })
     .limit(300);
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    productSlug: row.product_slug,
-    productName: row.product_name,
-    productImage: row.product_image,
-    quantity: row.quantity ?? 0,
-    unitPrice: Number(row.unit_price ?? 0),
-    totalPrice: Number(row.total_price ?? 0),
-    fragrance: row.fragrance,
-    pincode: row.pincode,
-    state: row.state,
-    buyerName: row.buyer_name,
-    buyerContact: row.buyer_contact,
-    phone: row.phone ?? null,
-    note: row.note,
-    status: row.status ?? "new",
-    source: row.source ?? "website",
-    paidAt: row.paid_at ?? null,
-    paymentLinkUrl: row.payment_link_url ?? null,
-    paymentAmount: row.payment_amount === null || row.payment_amount === undefined ? null : Number(row.payment_amount),
-    amountPaid: Number(row.amount_paid ?? 0),
-  }));
+  return (data ?? []).map(toAdminBooking);
 }
 
 /** Paid and fulfilled orders in a window, keyed on when the money landed. */
@@ -139,27 +154,5 @@ export async function listRevenueBookings(fromISO: string, toISO: string): Promi
     .order("paid_at", { ascending: true })
     .limit(5000);
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    productSlug: row.product_slug,
-    productName: row.product_name,
-    productImage: row.product_image,
-    quantity: row.quantity ?? 0,
-    unitPrice: Number(row.unit_price ?? 0),
-    totalPrice: Number(row.total_price ?? 0),
-    fragrance: row.fragrance,
-    pincode: row.pincode,
-    state: row.state,
-    buyerName: row.buyer_name,
-    buyerContact: row.buyer_contact,
-    phone: row.phone ?? null,
-    note: row.note,
-    status: row.status ?? "paid",
-    source: row.source ?? "website",
-    paidAt: row.paid_at ?? null,
-    paymentLinkUrl: row.payment_link_url ?? null,
-    paymentAmount: row.payment_amount === null || row.payment_amount === undefined ? null : Number(row.payment_amount),
-    amountPaid: Number(row.amount_paid ?? 0),
-  }));
+  return (data ?? []).map(toAdminBooking);
 }
