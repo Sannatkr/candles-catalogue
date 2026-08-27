@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { bestPrice } from "@/lib/format";
+import { singlePrice } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
 
 type Sort = "curated" | "price-asc" | "price-desc";
@@ -67,8 +67,8 @@ export function ProductBrowser({ products }: { products: Product[] }) {
     });
 
     const sorted = [...filtered];
-    if (sort === "price-asc") sorted.sort((a, b) => bestPrice(a) - bestPrice(b));
-    if (sort === "price-desc") sorted.sort((a, b) => bestPrice(b) - bestPrice(a));
+    if (sort === "price-asc") sorted.sort((a, b) => singlePrice(a) - singlePrice(b));
+    if (sort === "price-desc") sorted.sort((a, b) => singlePrice(b) - singlePrice(a));
     return sorted;
   }, [products, active, query, sort, haystack]);
 

@@ -1,3 +1,4 @@
+import { DEFAULT_SHIPPING } from "./shipping";
 import type { Collection, PriceTier, Product, SiteSettings } from "./types";
 
 const COLLECTION = "festive-candles";
@@ -49,6 +50,7 @@ export const seedSettings: SiteSettings = {
   email: "sugandha.workspace@gmail.com",
   addressLines: ["Sugandha Candles", "Gaur City, Greater Noida", "Uttar Pradesh 201009, India"],
   currency: "INR",
+  shipping: DEFAULT_SHIPPING,
   fragrances: [
     "Rose",
     "British Rose",
@@ -631,6 +633,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   heightCm: d.h,
   diameterCm: d.d,
   weightGrams: d.g,
+  packWeightGrams: 0,
   basePrice: sellingPrice(d.price),
   mrp: d.price,
   priceTiers: tiers(sellingPrice(d.price)),

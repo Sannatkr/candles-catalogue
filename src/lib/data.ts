@@ -30,6 +30,7 @@ type ProductRow = {
   height_cm: number | null;
   diameter_cm: number | null;
   weight_grams: number | null;
+  pack_weight_grams: number | null;
   base_price: number | null;
   mrp: number | null;
   price_tiers: { minQty: number; price: number }[] | null;
@@ -71,6 +72,7 @@ function toProduct(row: ProductRow): Product {
     heightCm: row.height_cm ?? 0,
     diameterCm: row.diameter_cm ?? 0,
     weightGrams: row.weight_grams ?? 0,
+    packWeightGrams: row.pack_weight_grams ?? 0,
     basePrice: row.base_price ?? 0,
     mrp: Number(row.mrp ?? 0),
     priceTiers: row.price_tiers ?? [],
@@ -139,5 +141,11 @@ export async function getSettings(): Promise<SiteSettings> {
     .maybeSingle();
 
   if (error || !data?.data) return seedSettings;
-  return { ...seedSettings, ...(data.data as Partial<SiteSettings>) };
+  const stored = data.data as Partial<SiteSettings>;
+  return {
+    ...seedSettings,
+    ...stored,
+    // Deep-merge shipping so a partly-filled config still has every rate.
+    shipping: { ...seedSettings.shipping, ...(stored.shipping ?? {}) },
+  };
 }

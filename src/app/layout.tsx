@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fraunces, Inter } from "next/font/google";
+import { AnalyticsProvider } from "@/lib/analytics";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -33,7 +35,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
-      <body className="grain antialiased">{children}</body>
+      <body className="grain antialiased">
+        {/* useSearchParams needs a boundary, and analytics must never be the
+            reason a page falls back to client-side rendering. */}
+        <Suspense fallback={null}>
+          <AnalyticsProvider />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

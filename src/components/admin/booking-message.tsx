@@ -237,6 +237,7 @@ export function BookingMessage({
     { label: "Total", value: money(booking.totalPrice) },
     { label: "Fragrance", value: booking.fragrance },
     { label: "Delivery", value: [booking.pincode, booking.state].filter(Boolean).join(" · ") },
+    { label: "Address", value: booking.address },
     { label: "Buyer", value: booking.buyerName },
     { label: "Instagram", value: handle ? `@${handle}` : null },
     { label: "Phone", value: booking.phone },
@@ -250,6 +251,7 @@ export function BookingMessage({
     { label: "Came from", value: SOURCE_LABEL[booking.source] ?? booking.source },
     { label: "Status", value: STATUS_LABEL[booking.status as BookingStatus] ?? booking.status },
     { label: "Reference", value: booking.id.slice(0, 8).toUpperCase() },
+    { label: "Shipment", value: booking.rapidshypOrderId },
     { label: "Their note", value: booking.note },
   ].filter((f) => f.value);
 

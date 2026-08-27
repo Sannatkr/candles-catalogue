@@ -1,7 +1,7 @@
 import { type Bucket, RevenueColumns, SourceSplit, TopProducts } from "@/components/admin/charts";
 import { RangePicker } from "@/components/admin/range-picker";
 import { itemsOf } from "@/lib/admin/booking-items";
-import { listRevenueBookings } from "@/lib/admin/queries";
+import { listRevenueBookings, listRevenueOrders } from "@/lib/admin/queries";
 import { compactQty, money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -81,30 +81,41 @@ export default async function RevenuePage({
   const endOfDay = new Date(end);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const rows = await listRevenueBookings(start.toISOString(), endOfDay.toISOString());
+  const [bookings, orders] = await Promise.all([
+    listRevenueBookings(start.toISOString(), endOfDay.toISOString()),
+    listRevenueOrders(start.toISOString(), endOfDay.toISOString()),
+  ]);
 
-  const revenue = rows.reduce((sum, r) => sum + r.totalPrice, 0);
-  const pieces = rows.reduce((sum, r) => sum + r.quantity, 0);
-  const average = rows.length ? Math.round(revenue / rows.length) : 0;
+  const enquiriesRevenue = bookings.reduce((sum, r) => sum + r.totalPrice, 0);
+  const ordersRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const revenue = enquiriesRevenue + ordersRevenue;
 
+  const pieces =
+    bookings.reduce((sum, r) => sum + r.quantity, 0) +
+    orders.reduce((sum, o) => sum + o.items.reduce((a, i) => a + i.qty, 0), 0);
+
+  // Both sources, keyed on the date the money came in, for the timeline.
+  const timeRows = [
+    ...bookings.map((r) => ({ paidAt: r.paidAt, totalPrice: r.totalPrice })),
+    ...orders.map((o) => ({ paidAt: o.paidAt, totalPrice: o.total })),
+  ];
+
+  // Best sellers combine enquiry lines and order lines.
   const byProduct = new Map<string, { name: string; value: number; qty: number }>();
-  rows.forEach((r) =>
-    itemsOf(r).forEach((item) => {
-      const entry = byProduct.get(item.slug) ?? { name: item.name, value: 0, qty: 0 };
-      entry.value += item.total;
-      entry.qty += item.qty;
-      byProduct.set(item.slug, entry);
-    }),
-  );
+  const addItem = (slug: string, name: string, value: number, qty: number) => {
+    const entry = byProduct.get(slug) ?? { name, value: 0, qty: 0 };
+    entry.value += value;
+    entry.qty += qty;
+    byProduct.set(slug, entry);
+  };
+  bookings.forEach((r) => itemsOf(r).forEach((i) => addItem(i.slug, i.name, i.total, i.qty)));
+  orders.forEach((o) => o.items.forEach((i) => addItem(i.slug, i.name, i.total, i.qty)));
   const top = [...byProduct.values()].sort((a, b) => b.value - a.value).slice(0, 6);
 
-  const website = rows.filter((r) => r.source !== "manual").reduce((s, r) => s + r.totalPrice, 0);
-  const manual = rows.filter((r) => r.source === "manual").reduce((s, r) => s + r.totalPrice, 0);
-
   const stats = [
-    { label: "Orders paid", value: String(rows.length) },
+    { label: "Orders revenue", value: money(ordersRevenue) },
+    { label: "Enquiries revenue", value: money(enquiriesRevenue) },
     { label: "Pieces sold", value: compactQty(pieces) },
-    { label: "Average order", value: money(average) },
   ];
 
   return (
@@ -114,7 +125,7 @@ export default async function RevenuePage({
         Revenue
       </h1>
       <p className="mt-2.5 text-[0.925rem] text-ink-soft">
-        Counts every order marked Paid or Fulfilled, on the date the payment came in.
+        Paid website orders and paid/fulfilled enquiries together, on the date the money came in.
       </p>
 
       <div className="mt-7">
@@ -143,7 +154,7 @@ export default async function RevenuePage({
 
       <section className="mt-4 rounded-[16px] border border-line bg-canvas p-6 sm:p-7">
         <h2 className="font-display text-[1.15rem] text-ink">Revenue over time</h2>
-        <RevenueColumns buckets={bucketise(start, end, rows)} />
+        <RevenueColumns buckets={bucketise(start, end, timeRows)} />
       </section>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -154,11 +165,16 @@ export default async function RevenuePage({
         </section>
 
         <section className="rounded-[16px] border border-line bg-canvas p-6 sm:p-7">
-          <h2 className="font-display text-[1.15rem] text-ink">Where orders came from</h2>
+          <h2 className="font-display text-[1.15rem] text-ink">Orders vs Enquiries</h2>
           <p className="mt-1 mb-6 text-[0.8rem] text-ink-faint">
-            Site bookings against the ones you entered yourself.
+            Paid checkouts on the site against paid enquiries.
           </p>
-          <SourceSplit website={website} manual={manual} />
+          <SourceSplit
+            website={ordersRevenue}
+            manual={enquiriesRevenue}
+            labelA="Orders"
+            labelB="Enquiries"
+          />
         </section>
       </div>
     </>

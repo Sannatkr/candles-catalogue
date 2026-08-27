@@ -30,14 +30,26 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
     .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
     .replace(/^@/, "")
     .replace(/\/.*$/, "");
-  if (!handle) {
-    return { ok: false, message: "Add your Instagram username so we can reply." };
-  }
-  if (!isValidInstagramHandle(handle)) {
+  if (handle && !isValidInstagramHandle(handle)) {
     return {
       ok: false,
       message: "That does not look like an Instagram username — letters, numbers, dots and underscores only.",
     };
+  }
+
+  // Ten digits however it was typed: +91, spaces, dashes all survive this.
+  const phone = input.phone.replace(/\D/g, "").slice(-10);
+  if (input.phone.trim() && phone.length !== 10) {
+    return { ok: false, message: "That needs to be a 10-digit mobile number." };
+  }
+
+  // Either channel answers an enquiry, so only insist on having one of them.
+  if (!handle && !phone) {
+    return { ok: false, message: "Leave a phone number or an Instagram username so we can reply." };
+  }
+
+  if (!input.buyerName.trim()) {
+    return { ok: false, message: "Add your name." };
   }
 
   const pincode = input.pincode.trim();
@@ -84,7 +96,7 @@ export async function placeBooking(input: Input): Promise<BookingResult> {
     state: input.state?.slice(0, 120) || null,
     buyer_name: input.buyerName.trim().slice(0, 120),
     buyer_contact: handle.slice(0, 120),
-    phone: input.phone.trim().slice(0, 40) || null,
+    phone: phone || null,
     note: input.note?.trim().slice(0, 500) || null,
   };
 

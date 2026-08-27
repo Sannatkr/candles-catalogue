@@ -68,7 +68,7 @@ export function BookingFilters({
   );
 
   return (
-    <div className="mt-8 space-y-3 rounded-[14px] border border-line bg-canvas px-4 py-4">
+    <div className="space-y-3 rounded-[14px] border border-line bg-canvas px-4 py-4">
       {row(sourceChips, source, "from", "From")}
       {statusChips.length > 1 && row(statusChips, status, "status", "Status")}
     </div>

@@ -63,6 +63,29 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
         <Textarea name="fragrances" defaultValue={settings.fragrances.join("\n")} className="min-h-[220px]" />
       </Card>
 
+      <Card
+        title="Delivery"
+        hint="A flat fee, free over a subtotal — but only while the parcel stays light, so heavy orders (like a stack of urlis) never ship free."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Flat delivery fee (₹)">
+            <Input type="number" name="ship_flat" min={0} step="1" defaultValue={settings.shipping.flatFee} />
+          </Field>
+          <Field label="Free delivery over (₹)" hint="0 turns free delivery off.">
+            <Input type="number" name="ship_free_over" min={0} step="1" defaultValue={settings.shipping.freeOverSubtotal} />
+          </Field>
+          <Field label="…but only under (kg)" hint="So a heavy order never ships free. 0 = no weight limit.">
+            <Input
+              type="number"
+              name="ship_free_under_kg"
+              min={0}
+              step="0.5"
+              defaultValue={settings.shipping.freeUnderGrams / 1000}
+            />
+          </Field>
+        </div>
+      </Card>
+
       <Card title="Terms & payment" hint="This is the page you stop re-explaining in every DM.">
         <input type="hidden" name="termsSections" value={JSON.stringify(sections)} readOnly />
 

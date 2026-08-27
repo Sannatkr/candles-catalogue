@@ -146,6 +146,18 @@ export function ProductForm({
           <Field label="Diameter (cm)">
             <Input type="number" step="0.1" name="diameter_cm" min={0} defaultValue={product?.diameter_cm ?? 0} />
           </Field>
+          <Field
+            label="Pack weight (g)"
+            hint="What a courier bills for one piece once it is boxed — usually well above the wax weight (a big urli can be 1500–2500 g). Leave 0 to auto-estimate from the size. This sets the shipping cost."
+          >
+            <Input
+              type="number"
+              step="1"
+              name="pack_weight_grams"
+              min={0}
+              defaultValue={product?.pack_weight_grams ?? 0}
+            />
+          </Field>
         </div>
       </Card>
 

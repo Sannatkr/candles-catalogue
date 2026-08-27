@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, User, X } from "lucide-react";
+import { CartButton } from "@/components/cart-button";
 import { InstagramIcon } from "@/components/instagram-icon";
 
 const NAV = [
@@ -73,17 +74,32 @@ export function SiteHeader({
             <InstagramIcon size={15} />
             Enquire
           </a>
+          {/* Unconditional on purpose: reading the session up here would
+              make every catalogue page render per request. /account sends
+              anyone who is not signed in to the login page. */}
+          <Link
+            href="/account"
+            aria-label="Your orders"
+            title="Your orders"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-canvas-deep"
+          >
+            <User size={19} />
+          </Link>
+          <CartButton className="-mr-2" />
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="-mr-2 p-2 text-ink md:hidden"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-0.5 md:hidden">
+          <CartButton />
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="-mr-2 p-2 text-ink"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -99,6 +115,14 @@ export function SiteHeader({
                 {item.label}
               </Link>
             ))}
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 border-b border-line-soft py-4 font-display text-xl text-ink"
+            >
+              <User size={19} />
+              Your orders
+            </Link>
             <a
               href={instagramHref}
               target="_blank"

@@ -25,6 +25,13 @@ export type Product = {
   diameterCm: number;
   weightGrams: number;
 
+  /**
+   * Chargeable shipping weight of one piece, in grams — what the courier bills
+   * for once the protective box is on it, which is far more than the wax weighs.
+   * 0 means "estimate it from the size".
+   */
+  packWeightGrams: number;
+
   basePrice: number;
   /** List price shown struck through. 0 hides it. */
   mrp: number;
@@ -51,6 +58,19 @@ export type TermsSection = {
   body: string[];
 };
 
+/**
+ * How delivery is charged: a flat fee, free over a subtotal — but only while the
+ * parcel stays under a weight, so a heavy order never ships free.
+ */
+export type ShippingConfig = {
+  /** Flat delivery fee charged when the order is not free. */
+  flatFee: number;
+  /** Free delivery once the subtotal reaches this — 0 turns free shipping off. */
+  freeOverSubtotal: number;
+  /** …but only if the parcel stays under this weight, so a heavy order never rides free. */
+  freeUnderGrams: number;
+};
+
 export type SiteSettings = {
   businessName: string;
   tagline: string;
@@ -62,6 +82,7 @@ export type SiteSettings = {
   currency: string;
   /** Offered on the booking form once an order gets large enough to customise. */
   fragrances: string[];
+  shipping: ShippingConfig;
   termsIntro: string;
   termsSections: TermsSection[];
 };

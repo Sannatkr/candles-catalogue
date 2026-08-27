@@ -2,12 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { ProductActions } from "@/components/product-actions";
+import { ProductPurchase } from "@/components/product-purchase";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { Reveal } from "@/components/reveal";
 import { getCollection, getProduct, getProducts, getSettings } from "@/lib/data";
-import { compactQty, money, toInches } from "@/lib/format";
+import { toInches } from "@/lib/format";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -86,53 +86,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
           <p className="mt-7 max-w-[54ch] leading-relaxed text-ink-soft">{product.description}</p>
 
-          {/* Pricing */}
-          <div className="mt-9 rounded-[16px] border border-line bg-surface p-6">
-            <div className="flex items-baseline justify-between">
-              <p className="eyebrow">Price per piece</p>
-              {product.mrp > product.basePrice ? (
-                <p className="text-[0.78rem] text-ember-deep">
-                  Save {money(product.mrp - product.basePrice)} on MRP
-                </p>
-              ) : (
-                <p className="text-[0.78rem] text-ink-faint">No minimum order</p>
-              )}
-            </div>
-
-            {product.priceTiers.length > 0 ? (
-              <table className="mt-4 w-full text-[0.925rem]">
-                <tbody>
-                  {product.priceTiers.map((tier, i) => (
-                    <tr key={tier.minQty} className="border-b border-line-soft last:border-0">
-                      <td className="py-2.5 text-ink-soft">
-                        {compactQty(tier.minQty)}
-                        {product.priceTiers[i + 1]
-                          ? ` – ${compactQty(product.priceTiers[i + 1].minQty - 1)}`
-                          : "+"}{" "}
-                        pcs
-                      </td>
-                      <td className="py-2.5 text-right font-display text-[1.1rem] text-ink">
-                        {i === 0 && product.mrp > tier.price && (
-                          <span className="mr-2 font-sans text-[0.85rem] font-normal text-ink-faint line-through">
-                            {money(product.mrp)}
-                          </span>
-                        )}
-                        {money(tier.price)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="mt-3 font-display text-[1.6rem] text-ink">{money(product.basePrice)}</p>
-            )}
-
-            <p className="mt-5 border-t border-line pt-4 text-[0.85rem] leading-relaxed text-ink-soft">
-              Buy a single piece, or cross a slab and the lower rate applies on its own.
-            </p>
-          </div>
-
-          <ProductActions
+          <ProductPurchase
             product={product}
             fragrances={settings.fragrances}
             instagramHandle={settings.instagramHandle}

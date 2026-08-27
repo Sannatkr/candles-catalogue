@@ -1,11 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { bestPrice, money, sizeLabel } from "@/lib/format";
+import { money, sizeLabel } from "@/lib/format";
+import { singlePrice } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
 
+/**
+ * One card, one price. No "from", no slab hint, no quantity — a shopper
+ * browsing a grid is deciding whether they like the candle, and a range in that
+ * moment only reads as "you are not the customer we mean".
+ *
+ * The name and the price sit on their own lines rather than at two ends of a
+ * flex row. Long names used to run straight into the price on a narrow phone.
+ */
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
-  const from = bestPrice(product);
-  const hasSlabs = product.priceTiers.length > 1;
+  const price = singlePrice(product);
 
   return (
     <Link href={`/products/${product.slug}`} className="group block">
@@ -31,23 +39,23 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       </div>
 
       <div className="mt-4">
-        <div className="flex items-baseline justify-between gap-4">
-          <h3 className="font-display text-[0.98rem] leading-snug text-ink transition-colors group-hover:text-ember sm:text-[1.15rem]">
-            {product.name}
-          </h3>
-          <span className="flex shrink-0 items-baseline gap-1.5 text-[0.88rem] text-ink sm:text-[0.95rem]">
-            {product.mrp > from && (
-              <span className="text-[0.78rem] text-ink-faint line-through sm:text-[0.82rem]">
-                {money(product.mrp)}
-              </span>
-            )}
-            <span>
-              {hasSlabs && <span className="text-ink-faint">from </span>}
-              {money(from)}
+        <h3 className="font-display text-[0.98rem] leading-snug text-ink transition-colors group-hover:text-ember sm:text-[1.15rem]">
+          {product.name}
+        </h3>
+
+        <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[0.95rem] text-ink tabular-nums sm:text-[1rem]">{money(price)}</span>
+          {product.mrp > price && (
+            <span className="text-[0.78rem] text-ink-faint line-through tabular-nums sm:text-[0.82rem]">
+              {money(product.mrp)}
             </span>
-          </span>
-        </div>
-        <p className="mt-1 line-clamp-2 text-[0.8rem] text-ink-soft sm:text-[0.875rem]">{product.tagline}</p>
+          )}
+        </p>
+
+        <p className="mt-1.5 line-clamp-2 text-[0.8rem] leading-relaxed text-ink-soft sm:text-[0.875rem]">
+          {product.tagline}
+        </p>
+
         {sizeLabel(product) && (
           <p className="mt-2 text-[0.68rem] tracking-wide text-ink-faint uppercase sm:text-[0.75rem]">
             {sizeLabel(product)}

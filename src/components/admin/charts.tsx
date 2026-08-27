@@ -156,15 +156,25 @@ export function TopProducts({ rows }: { rows: { name: string; value: number; qty
 
 /* ------------------------------------------------------- source split ----- */
 
-export function SourceSplit({ website, manual }: { website: number; manual: number }) {
+export function SourceSplit({
+  website,
+  manual,
+  labelA = "Website",
+  labelB = "Added by you",
+}: {
+  website: number;
+  manual: number;
+  labelA?: string;
+  labelB?: string;
+}) {
   const total = website + manual;
   if (total === 0) {
     return <p className="py-10 text-center text-[0.9rem] text-ink-faint">No paid orders yet.</p>;
   }
 
   const series = [
-    { label: "Website", value: website, color: EMBER },
-    { label: "Added by you", value: manual, color: INDIGO },
+    { label: labelA, value: website, color: EMBER },
+    { label: labelB, value: manual, color: INDIGO },
   ];
 
   return (

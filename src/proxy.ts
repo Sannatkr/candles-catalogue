@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { checkIsAdmin } from "@/lib/admin/is-admin";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
@@ -27,18 +28,33 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  if (!user && pathname !== "/admin/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/admin/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    url.search = "";
-    return NextResponse.redirect(url);
+  if (user) {
+    // Having a login is not the same as being an admin. Once customers can sign
+    // up, most people holding a session have no business here at all.
+    const isAdmin = await checkIsAdmin(supabase);
+
+    if (!isAdmin) {
+      // Back to the shop, including from /admin/login — bouncing them to the
+      // login page they are already signed into would just loop.
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === "/admin/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

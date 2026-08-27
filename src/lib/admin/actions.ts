@@ -5,8 +5,13 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/admin/action-state";
 import { type BookingItem, itemsLabel, itemsTotals, parseItems } from "@/lib/admin/booking-items";
 import { isBookingStatus } from "@/lib/admin/booking-status";
+import { checkIsAdmin } from "@/lib/admin/is-admin";
+import { isOrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
 import { slugify } from "@/lib/slug";
+import { getProducts } from "@/lib/data";
 import { createPaymentLink } from "@/lib/payments/razorpay";
+import { createRapidshypShipment, isRapidshypConfigured } from "@/lib/rapidshyp";
+import { packGramsOf } from "@/lib/shipping";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 const str = (fd: FormData, key: string) => (fd.get(key) ?? "").toString().trim();
@@ -24,12 +29,23 @@ const json = <T,>(fd: FormData, key: string, fallback: T): T => {
   }
 };
 
+/**
+ * The middleware turns non-admins away at the door, but a server action is its
+ * own entry point — anyone who can post a request reaches it directly, with no
+ * page load and no middleware in between. So it gets checked again here.
+ *
+ * The row-level rules in 014 are the real backstop; this is what makes the
+ * refusal land as a redirect instead of a silent no-op.
+ */
 async function requireAdmin() {
   const supabase = await getServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/admin/login");
+
+  if (!(await checkIsAdmin(supabase))) redirect("/");
+
   return supabase;
 }
 
@@ -72,6 +88,7 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     wick_type: str(fd, "wick_type"),
     height_cm: num(fd, "height_cm"),
     diameter_cm: num(fd, "diameter_cm"),
+    pack_weight_grams: num(fd, "pack_weight_grams"),
     base_price: tiers[0]?.price ?? num(fd, "base_price"),
     mrp: num(fd, "mrp"),
     price_tiers: tiers,
@@ -159,6 +176,11 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
       .map((l) => l.trim())
       .filter(Boolean),
     currency: "INR",
+    shipping: {
+      flatFee: num(fd, "ship_flat"),
+      freeOverSubtotal: num(fd, "ship_free_over"),
+      freeUnderGrams: Math.round(num(fd, "ship_free_under_kg") * 1000),
+    },
     termsIntro: str(fd, "termsIntro"),
     termsSections: json<{ heading: string; body: string[] }[]>(fd, "termsSections", []).filter(
       (s) => s.heading.trim(),
@@ -347,4 +369,240 @@ export async function createBookingPaymentLink(
 
   revalidatePath("/admin/bookings");
   return { ok: true, message: "Link ready.", url: result.link.url };
+}
+
+// --------------------------------------------------------------- orders ----
+
+export async function setOrderStatus(fd: FormData) {
+  const supabase = await requireAdmin();
+  const status = str(fd, "status");
+  if (!isOrderStatus(status)) return;
+
+  const patch: Record<string, unknown> = { status };
+  // A payment recorded by hand still needs a timestamp, or the order sorts and
+  // reports as if the money never arrived.
+  if (PAID_STATUSES.includes(status)) patch.paid_at = new Date().toISOString();
+
+  await supabase.from("orders").update(patch).eq("id", str(fd, "id"));
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+}
+
+export async function saveOrderTracking(fd: FormData) {
+  const supabase = await requireAdmin();
+  const trackingNumber = str(fd, "trackingNumber");
+
+  await supabase
+    .from("orders")
+    .update({
+      carrier: str(fd, "carrier") || null,
+      tracking_number: trackingNumber || null,
+      tracking_url: str(fd, "trackingUrl") || null,
+      // Handing a parcel to a courier is what "shipped" means, so filling this
+      // in moves the order along rather than making it a second click.
+      ...(trackingNumber ? { status: "shipped" } : {}),
+    })
+    .eq("id", str(fd, "id"));
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+}
+
+export async function deleteOrder(fd: FormData) {
+  const supabase = await requireAdmin();
+  await supabase.from("orders").delete().eq("id", str(fd, "id"));
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+}
+
+/**
+ * Edits the where-it-goes half of an order — who it is for and where it ships.
+ * Deliberately does not touch the items, prices or the amount paid: those were
+ * fixed at checkout, and changing them here would put the money and the parcel
+ * out of step. A change to the order itself is a refund and a fresh order.
+ */
+export async function updateOrderDetails(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const supabase = await requireAdmin();
+
+  const id = str(fd, "id");
+  if (!id) return { ok: false, message: "Which order?" };
+
+  const buyerName = str(fd, "buyer_name");
+  if (!buyerName) return { ok: false, message: "The buyer needs a name." };
+
+  const phone = str(fd, "phone").replace(/\D/g, "").slice(-10);
+  if (phone.length !== 10) return { ok: false, message: "The phone must be a 10-digit number." };
+
+  const email = str(fd, "email");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, message: "That email address does not look right." };
+  }
+
+  const pincode = str(fd, "pincode");
+  if (!/^\d{6}$/.test(pincode)) return { ok: false, message: "A pincode is 6 digits." };
+
+  const addressLine1 = str(fd, "address_line1");
+  if (addressLine1.length < 4) return { ok: false, message: "Add the house or flat number and the street." };
+
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      buyer_name: buyerName.slice(0, 120),
+      phone,
+      email: email.slice(0, 160) || null,
+      pincode,
+      state: str(fd, "state").slice(0, 120) || null,
+      city: str(fd, "city").slice(0, 120) || null,
+      address_line1: addressLine1.slice(0, 240),
+      address_line2: str(fd, "address_line2").slice(0, 240) || null,
+      note: str(fd, "note").slice(0, 500) || null,
+    })
+    .eq("id", id);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  return { ok: true, message: "Saved." };
+}
+
+/**
+ * Edits the details on an enquiry — buyer, delivery and note. Like an order, the
+ * lines and rates are left alone; use the booking form to rebuild an order whose
+ * contents changed.
+ */
+export async function updateBooking(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const supabase = await requireAdmin();
+
+  const id = str(fd, "id");
+  if (!id) return { ok: false, message: "Which order?" };
+
+  const patch: Record<string, unknown> = {
+    buyer_name: str(fd, "buyer_name") || null,
+    buyer_contact: str(fd, "buyer_contact").replace(/^@/, "") || null,
+    phone: str(fd, "phone") || null,
+    pincode: str(fd, "pincode") || null,
+    state: str(fd, "state") || null,
+    address: str(fd, "address") || null,
+    fragrance: str(fd, "fragrance") || null,
+    note: str(fd, "note") || null,
+  };
+
+  // Rebuild the lines when the editor sends them. A custom ("unknown") candle
+  // has no catalogue slug, so one is made from its name — an empty slug would be
+  // silently dropped when the items are read back.
+  const raw = json<{ slug?: string; name?: string; image?: string | null; qty?: number; unitPrice?: number }[]>(
+    fd,
+    "items",
+    [],
+  );
+  const items: BookingItem[] = raw
+    .map((line, i) => {
+      const name = String(line.name ?? "").trim();
+      const qty = Math.max(0, Math.floor(Number(line.qty) || 0));
+      const unitPrice = Math.max(0, Number(line.unitPrice) || 0);
+      const slug = (line.slug || slugify(name) || `line-${i + 1}`).trim() || `line-${i + 1}`;
+      return {
+        slug,
+        name: name || slug,
+        image: typeof line.image === "string" ? line.image : null,
+        qty,
+        unitPrice,
+        total: Math.round(unitPrice * qty),
+      };
+    })
+    .filter((l) => l.qty > 0);
+
+  if (items.length) {
+    const { pieces, amount } = itemsTotals(items);
+    // The agreed price after any discount. Blank or 0 falls back to the line sum.
+    const finalTotal = num(fd, "final_total");
+    const first = items[0];
+    patch.items = items;
+    patch.product_slug = first.slug;
+    patch.product_name = itemsLabel(items);
+    patch.product_image = first.image;
+    patch.quantity = pieces;
+    patch.unit_price = items.length === 1 ? first.unitPrice : 0;
+    patch.total_price = finalTotal > 0 ? Math.round(finalTotal) : amount;
+  }
+
+  const { error } = await supabase.from("bookings").update(patch).eq("id", id);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/revenue");
+  revalidatePath("/admin");
+  return { ok: true, message: "Saved." };
+}
+
+/**
+ * Hands an enquiry to RapidShyp as a shipment, by hand. Unlike a paid order (auto
+ * on payment), an enquiry has no address until you fill one in — so this checks
+ * for it first. Idempotent: refuses to make a second shipment for the same row.
+ */
+export async function createBookingShipment(id: string): Promise<ActionState> {
+  const supabase = await requireAdmin();
+  if (!id) return { ok: false, message: "Which enquiry?" };
+
+  if (!isRapidshypConfigured()) {
+    return { ok: false, message: "RapidShyp is not set up yet (needs the API key and pickup name)." };
+  }
+
+  const { data: b } = await supabase.from("bookings").select("*").eq("id", id).maybeSingle();
+  if (!b) return { ok: false, message: "That enquiry no longer exists." };
+  if (b.rapidshyp_order_id) {
+    return { ok: true, message: `Shipment already made: ${b.rapidshyp_order_id}` };
+  }
+
+  const address = String(b.address ?? "").trim();
+  const phone = String(b.phone ?? "").replace(/\D/g, "").slice(-10);
+  const pincode = String(b.pincode ?? "").trim();
+  if (address.length < 3) return { ok: false, message: "Add a delivery address first (Edit → Address)." };
+  if (!/^\d{6}$/.test(pincode)) return { ok: false, message: "Add a 6-digit pincode first (Edit)." };
+  if (phone.length !== 10) return { ok: false, message: "Add a 10-digit phone number first (Edit)." };
+
+  const parsed = parseItems(b.items);
+  const items = parsed.length
+    ? parsed
+    : [
+        {
+          slug: String(b.product_slug ?? "item"),
+          name: String(b.product_name ?? "Candle"),
+          image: null,
+          qty: Number(b.quantity) || 1,
+          unitPrice: Number(b.unit_price) || Number(b.total_price) || 1,
+          total: Number(b.total_price) || 0,
+        },
+      ];
+
+  const catalogue = await getProducts();
+  const grams = items.reduce((sum, i) => {
+    const product = catalogue.find((p) => p.slug === i.slug);
+    // Custom ("unknown") candles have no catalogue weight — assume 400 g/piece;
+    // the box is refined by hand in RapidShyp anyway.
+    return sum + (product ? packGramsOf(product) : 400) * (i.qty || 1);
+  }, 0);
+
+  const shipment = await createRapidshypShipment({
+    reference: `ENQ-${String(b.id).slice(0, 8).toUpperCase()}`,
+    buyerName: String(b.buyer_name || b.buyer_contact || "Customer"),
+    phone,
+    email: null,
+    pincode,
+    addressLine1: address,
+    addressLine2: null,
+    city: b.state ?? null,
+    state: b.state ?? null,
+    shipping: 0,
+    items: items.map((i) => ({ slug: i.slug, name: i.name, qty: i.qty, unitPrice: i.unitPrice })),
+    grams,
+  });
+
+  if (!shipment.ok) return { ok: false, message: shipment.message };
+
+  await supabase.from("bookings").update({ rapidshyp_order_id: shipment.id }).eq("id", id);
+  revalidatePath("/admin/bookings");
+  return { ok: true, message: `Shipment created: ${shipment.id}` };
 }
