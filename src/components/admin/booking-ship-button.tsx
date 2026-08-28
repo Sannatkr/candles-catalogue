@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Truck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Truck, X } from "lucide-react";
 import { createBookingShipment } from "@/lib/admin/actions";
 import type { AdminBooking } from "@/lib/admin/queries";
 
 /**
  * Creates a RapidShyp shipment for an enquiry, by hand. Two-step (Create →
  * Confirm) because it hits the live courier — one careless click should not book
- * a real pickup.
+ * a real pickup. On success it pops a confirmation dialog and refreshes the list.
  */
 export function BookingShipButton({ booking }: { booking: AdminBooking }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [confirming, setConfirming] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [popup, setPopup] = useState<{ ok: boolean; text: string } | null>(null);
 
   if (booking.rapidshypOrderId) {
     return (
@@ -31,8 +33,15 @@ export function BookingShipButton({ booking }: { booking: AdminBooking }) {
     setConfirming(false);
     start(async () => {
       const res = await createBookingShipment(booking.id);
-      setMsg({ ok: res.ok, text: res.message });
+      setPopup({ ok: res.ok, text: res.message });
     });
+  }
+
+  function closePopup() {
+    const wasOk = popup?.ok;
+    setPopup(null);
+    // A made shipment flips the row to the "Shipment made" pill on refresh.
+    if (wasOk) router.refresh();
   }
 
   return (
@@ -59,7 +68,7 @@ export function BookingShipButton({ booking }: { booking: AdminBooking }) {
         <button
           type="button"
           onClick={() => {
-            setMsg(null);
+            setPopup(null);
             setConfirming(true);
           }}
           className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[0.8rem] whitespace-nowrap text-ink transition-colors hover:border-ink"
@@ -68,10 +77,38 @@ export function BookingShipButton({ booking }: { booking: AdminBooking }) {
           Create shipment
         </button>
       )}
-      {msg && (
-        <span className={`max-w-[200px] truncate text-[0.72rem] ${msg.ok ? "text-[#3d5730]" : "text-ember-deep"}`}>
-          {msg.text}
-        </span>
+
+      {popup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closePopup}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-canvas p-6 text-center shadow-xl"
+          >
+            <div
+              className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
+                popup.ok ? "bg-[#eef3ea] text-[#3d5730]" : "bg-[#fbecea] text-ember-deep"
+              }`}
+            >
+              {popup.ok ? <Check size={22} /> : <X size={22} />}
+            </div>
+            <h3 className="mt-4 text-[1.05rem] font-semibold text-ink">
+              {popup.ok ? "Shipment created" : "Couldn't create shipment"}
+            </h3>
+            <p className="mt-1.5 text-[0.85rem] leading-relaxed text-ink-soft">{popup.text}</p>
+            <button
+              type="button"
+              onClick={closePopup}
+              className="mt-5 w-full rounded-full bg-ink px-4 py-2.5 text-[0.85rem] text-canvas"
+            >
+              Done
+            </button>
+          </div>
+        </div>
       )}
     </span>
   );

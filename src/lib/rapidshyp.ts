@@ -9,6 +9,32 @@
  */
 
 const CREATE_ORDER_URL = "https://api.rapidshyp.com/rapidshyp/apis/v1/create_order";
+const APPROVE_ORDER_URL = "https://api.rapidshyp.com/rapidshyp/apis/v1/approve_orders";
+const STORE_NAME = "DEFAULT";
+
+/**
+ * Approves an order so it leaves "Approval Pending" and becomes a real,
+ * ready-to-ship shipment (RapidShyp only assigns a shipment/AWB after approval).
+ * Best-effort: returns true only when RapidShyp confirms the approval.
+ */
+async function approveRapidshypOrder(token: string, reference: string): Promise<boolean> {
+  try {
+    const res = await fetch(APPROVE_ORDER_URL, {
+      method: "POST",
+      headers: { "rapidshyp-token": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: [reference], store_name: STORE_NAME }),
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      success_count?: number;
+    };
+    // Approve replies with a lowercase status ("success") — unlike create's "SUCCESS".
+    return res.ok && ((json.status ?? "").toLowerCase() === "success" || (json.success_count ?? 0) > 0);
+  } catch {
+    return false;
+  }
+}
 
 export function isRapidshypConfigured() {
   return Boolean(process.env.RAPIDSHYP_API_KEY && process.env.RAPIDSHYP_PICKUP_NAME);
@@ -54,7 +80,7 @@ export async function createRapidshypShipment(order: ShipmentOrder): Promise<Shi
     orderId: order.reference,
     orderDate: todayIso(),
     pickupAddressName: pickup,
-    storeName: "DEFAULT",
+    storeName: STORE_NAME,
     billingIsShipping: true,
     paymentMethod: "PREPAID",
     shippingAddress: {
@@ -95,10 +121,17 @@ export async function createRapidshypShipment(order: ShipmentOrder): Promise<Shi
       message?: string;
       order_id?: string;
     };
-    if (!res.ok || json.status !== "SUCCESS") {
-      return { ok: false, message: json.remarks || json.message || `RapidShyp error ${res.status}` };
-    }
-    return { ok: true, id: String(json.order_id ?? order.reference) };
+    const createOk = res.ok && json.status === "SUCCESS";
+    const id = String(json.order_id ?? order.reference);
+
+    // Auto-approve so the order doesn't sit in "Approval Pending" (where it has no
+    // shipment/AWB and stays hidden from the main portal list). This also recovers a
+    // re-submission: if create reported a duplicate, approving the already-created
+    // order still moves it to ready-to-ship.
+    const approved = await approveRapidshypOrder(token, id);
+
+    if (createOk || approved) return { ok: true, id };
+    return { ok: false, message: json.remarks || json.message || `RapidShyp error ${res.status}` };
   } catch {
     return { ok: false, message: "Could not reach RapidShyp." };
   }

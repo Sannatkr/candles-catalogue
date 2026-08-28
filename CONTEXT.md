@@ -3,7 +3,7 @@
 > Working context for whoever (human or AI) picks this up next.
 > **Keep this file current. Update the Changelog at the bottom on every change, big or small.**
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28 · **LIVE in production** (see Status section below)
 
 ---
 
@@ -234,29 +234,32 @@ Local `.env.local` this session: Supabase (URL + publishable + service-role), Ra
 
 ---
 
-## Outstanding work (picked up next session)
+## STATUS: LIVE IN PRODUCTION (as of 2026-08-28)
 
-1. **Pricing dry-run** (requested, not started): recompute all products' bulk tiers to
-   **gentle ~15%** steps (no sudden drops) + **+₹50** on heavy candles (pack weight >1.5 kg).
-   Plan agreed: write a script that reads products → dry-run before/after table → confirm →
-   apply to the live catalogue. Live-data change, so show before applying.
-2. **Run migrations 016, 017, 018** in Supabase.
-3. **Set `RAPIDSHYP_PICKUP_NAME=Gaur City`** in `.env.local` (and Vercel later).
-4. **Manual "Create shipment" button** on the order modal — offered, not built (for orders
-   marked paid by hand, which skip the online-payment path).
+Deployed on Vercel at **candles-catalogue.vercel.app**, taking **real payments** (live
+Razorpay keys in Vercel; local `.env.local` still has TEST keys). Repo:
+`github.com/Sannatkr/candles-catalogue`, branch `main` (Vercel auto-deploys on push).
 
-## Before pushing / going live — checklist
+**Done & verified live:**
+- All migrations **013–019 applied**; repricing v2 applied (gentle 10/25, ~25% at 50/100,
+  charm-priced to ₹…9, MRPs above price).
+- Razorpay **live keys** + **webhook** enabled (3 events; endpoint verified returning 401 on
+  bad signature = configured correctly). Stuck-pending safety net active.
+- **RapidShyp** configured (`RAPIDSHYP_PICKUP_NAME=Gaur City`); auto-shipment on paid orders.
+- **Email/OTP working** via Brevo SMTP (login `b6f9f9001@smtp-brevo.com`; "Confirm email"
+  turned OFF so OTP sends the code). Lands in inbox.
+- A real **₹79 live test order** went through (SC-2NEJH6, Paid).
 
-- [ ] Do the pricing dry-run (#1 above).
-- [ ] Run migrations **013 → 014 → 015** then **016, 017, 018** on production Supabase.
-- [ ] Set all env vars in Vercel: Razorpay **live** keys, service-role key, webhook secret,
-      `RAPIDSHYP_API_KEY`, `RAPIDSHYP_PICKUP_NAME`.
-- [ ] Configure the Razorpay **webhook URL** to `/api/razorpay/webhook` + set its secret.
-- [ ] Switch Razorpay to **live keys** — this is also what turns on RapidShyp auto-shipment.
-- [ ] Verify the first live order creates a RapidShyp shipment (check the order modal for the id).
-- [ ] Decide on order-confirmation emails (wire Resend, or drop it from `.env.example`).
-- [ ] Update `README.md` — it still describes the catalogue-only site.
-- [ ] Commit + push + deploy.
+**Open / nice-to-have (not blocking):**
+- **Order-confirmation email** to the buyer after paying — offered, not built (Brevo SMTP is
+  ready for it). This is the main next feature the user was weighing.
+- **Verify the live order created a RapidShyp shipment** — check its order-detail modal for a
+  RapidShyp id (was the one un-run live path).
+- **Delete the ₹79 test order** + refund it (Razorpay) + cancel its shipment (RapidShyp).
+- **Custom domain** (`sugandhacandles.com`) → better email deliverability (DKIM) + branding.
+- `README.md` still describes the old catalogue — rewrite eventually.
+- Marketing: user is weighing Google Ads (advised against for low-AOV; Instagram/Meta Ads +
+  Shopping feed + bundles instead). No conversion tag (Google/Meta pixel) on the site yet.
 
 ## What was built this session (see Changelog for detail)
 
@@ -282,6 +285,9 @@ Nothing pushed yet — still all uncommitted on `main`.
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
 
+- 2026-08-29 — **RapidShyp shipments now auto-approve (fixes "not showing in portal").** Diagnosed via the read-only `get_orders_info` API that every shipment we create landed in **`APPROVAL_PENDING`** (no shipment line, no AWB, hidden from the main portal list) — RapidShyp needs a separate **approve** step after create. Added `approveRapidshypOrder()` in `rapidshyp.ts` (`POST …/approve_orders`, body `{order_id:[ref], store_name:"DEFAULT"}`, note its reply status is lowercase `success` unlike create's `SUCCESS`) and call it right after create inside `createRapidshypShipment`; also doubles as recovery — if create reports a duplicate, approving the already-created order still moves it to ready-to-ship. Now returns ok when create **or** approve succeeded. Added a **confirmation popup** (modal) to `booking-ship-button.tsx` on create ("Shipment created" / error), refreshing the list on success so the row flips to the "Shipment made" pill. Fixed the 2 stuck live orders: **Rajni** `ENQ-17A14343` approved via API (now PROCESSING, shipment `S2608728981`); **Nithya** `ENQ-23D04E40` left pending and its `bookings.rapidshyp_order_id` **cleared** so the owner can re-create it and see the new flow. (Retail auto-shipment is still live-mode only; this approve step rides inside the shared `createRapidshypShipment`, so paid orders get it too.) tsc + eslint clean. **Not yet pushed/deployed** — deploy for the fix to take effect on candles-catalogue.vercel.app.
+
+- 2026-08-28 — **Customers = all buyers (incl. phone-only guests); nav loaders; 30s resend.** Rebuilt `/admin/customers` to aggregate paid buyers from **orders keyed by phone** (so guests with no email/account show up, e.g. Ram), merged with registered accounts (Account vs Guest badge, order count + spend). Added `loading.tsx` for `(site)` and `admin/(dash)` so navigation shows a spinner instead of freezing. OTP resend cooldown 60→30s (matches Supabase's per-user interval). Also: SMTP finally working via **Brevo** (login was `b6f9f9001@smtp-brevo.com`, not the Gmail) + turned OFF "Confirm email" in Supabase so OTP sends the code template, not a confirm-signup link. Deployed (commit 2fe80c3).
 - 2026-08-27 — **Fixed privacy bug: `/account` showed the admin ALL orders.** `getMyOrders` relied on RLS to scope, but the owner is an admin and the "orders admin read" policy grants every row — so the owner saw guest orders (e.g. Ram's phone-only order) on their personal account page. Added an explicit `.eq("user_id", user.id)` filter. Not a leak to real customers (non-admins are scoped by RLS own-read), just the admin over-seeing. Deployed (commit ba390d5). Also clarified: guest checkout (no email/login) creates NO account, so such buyers appear in Admin→Orders but not Admin→Customers.
 - 2026-08-27 — **Added Customers admin page** (`/admin/customers`, nav item). Lists `auth.users` via the service-role `auth.admin.listUsers()` — email, joined, last seen, paid-order count + total spent (matched by checkout email). Clarified for the owner that guest orders attach to an account by the **email used at checkout** (claim_my_orders + RLS `user_id = auth.uid()`), so it's private, not a leak — a customer only sees orders placed with their own email. Deployed (commit 5594550).
 - 2026-08-27 — **DEPLOYED to production** (Vercel, `candles-catalogue.vercel.app`, live Razorpay keys, webhook enabled with 3 events). Then **fixed a product-pricing sync bug**: price came from a separately-clicked band, so 2 pieces could get the 10+ rate and clicking a band didn't set the quantity. Rewrote `product-purchase.tsx` so **quantity is the source of truth** — `unitPrice = priceAtQty(qty)`, bands are quantity shortcuts, active band derived from qty. (Server `startCheckout` already re-priced by qty, so the charge was always right; this fixed the display mismatch.) Pushed (commit 2332648).
