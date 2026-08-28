@@ -116,6 +116,14 @@ export async function getMyOrders(): Promise<AccountOrder[]> {
   // guest after signing up still finds its way home.
   await supabase.rpc("claim_my_orders");
 
+  // Whose page this is. The filter below is scoped to this id explicitly rather
+  // than leaning on row-level security — the owner is also an admin, and the
+  // admin read policy would otherwise hand them every order on this page.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   /**
    * Only things that actually became orders.
    *
@@ -131,6 +139,7 @@ export async function getMyOrders(): Promise<AccountOrder[]> {
     .select(
       "id, reference, created_at, status, total, items, city, state, carrier, tracking_number, tracking_url",
     )
+    .eq("user_id", user.id)
     .not("status", "in", "(pending,failed)")
     .order("created_at", { ascending: false })
     .limit(100);
