@@ -12,6 +12,7 @@ import {
   Package,
   Receipt,
   Settings,
+  Users,
 } from "lucide-react";
 import { signOut } from "@/lib/admin/actions";
 
@@ -20,6 +21,7 @@ const LINKS = [
   { href: "/admin/bookings", label: "Enquiries", icon: ClipboardList },
   { href: "/admin/revenue", label: "Revenue", icon: IndianRupee },
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
+  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/collections", label: "Collections", icon: LayoutGrid },
   { href: "/admin/settings", label: "Settings", icon: Settings },
