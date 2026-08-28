@@ -21,11 +21,11 @@ const CODE_MAX = 10;
 
 /**
  * Must not be shorter than "Minimum interval per user" in
- * Supabase → Authentication → Emails → SMTP Settings, which is 60 seconds by
- * default. Offering a resend button before the server will honour it just earns
+ * Supabase → Authentication → Emails → SMTP Settings (set to 30s for this
+ * project). Offering a resend button before the server will honour it just earns
  * the buyer a rate-limit error for doing what we told them to do.
  */
-const RESEND_AFTER = 60;
+const RESEND_AFTER = 30;
 
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
