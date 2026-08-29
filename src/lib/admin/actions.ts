@@ -7,6 +7,7 @@ import { type BookingItem, itemsLabel, itemsTotals, parseItems } from "@/lib/adm
 import { isBookingStatus } from "@/lib/admin/booking-status";
 import { checkIsAdmin } from "@/lib/admin/is-admin";
 import { isOrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
+import { countWords, estimateDuration, isScriptStatus } from "@/lib/admin/script-status";
 import { slugify } from "@/lib/slug";
 import { getProducts } from "@/lib/data";
 import { createPaymentLink } from "@/lib/payments/razorpay";
@@ -605,4 +606,95 @@ export async function createBookingShipment(id: string): Promise<ActionState> {
   await supabase.from("bookings").update({ rapidshyp_order_id: shipment.id }).eq("id", id);
   revalidatePath("/admin/bookings");
   return { ok: true, message: `Shipment created: ${shipment.id}` };
+}
+
+/* ---------------------------------------------------------- reel scripts -- */
+
+/** "" → null, so an empty metric box stays "not measured yet", not zero. */
+const intOrNull = (fd: FormData, key: string) => {
+  const raw = str(fd, key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.round(n) : null;
+};
+
+/**
+ * A datetime-local field hands over wall-clock text with no zone ("2026-08-31T19:30").
+ * The shop, the phone typing it and the audience are all in IST, so it is read
+ * as IST rather than as the server's zone — otherwise a reel scheduled for
+ * 7:30 pm lands at 1 am on a UTC host.
+ */
+const IST_OFFSET = "+05:30";
+const localToISO = (value: string) => (value ? new Date(`${value}${IST_OFFSET}`).toISOString() : null);
+
+export async function saveScript(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const supabase = await requireAdmin();
+
+  const title = str(fd, "title");
+  if (!title) return { ok: false, message: "Give the script a title." };
+
+  const body = str(fd, "body");
+  const status = str(fd, "status");
+  const words = countWords(body);
+
+  const row = {
+    title,
+    hook: str(fd, "hook"),
+    body,
+    on_screen_text: str(fd, "on_screen_text"),
+    notes: str(fd, "notes"),
+    cta: str(fd, "cta"),
+    status: isScriptStatus(status) ? status : "draft",
+    scheduled_at: localToISO(str(fd, "scheduled_at")),
+    posted_at: localToISO(str(fd, "posted_at")),
+    permalink: str(fd, "permalink") || null,
+    word_count: words,
+    // Trust a hand-typed timing; fall back to reading speed when it is blank.
+    duration_sec: num(fd, "duration_sec") || estimateDuration(words),
+    views: intOrNull(fd, "views"),
+    likes: intOrNull(fd, "likes"),
+    comments: intOrNull(fd, "comments"),
+    shares: intOrNull(fd, "shares"),
+    saves: intOrNull(fd, "saves"),
+    reach: intOrNull(fd, "reach"),
+    follows: intOrNull(fd, "follows"),
+  };
+
+  const id = str(fd, "id");
+  const { error } = id
+    ? await supabase.from("reel_scripts").update(row).eq("id", id)
+    : await supabase.from("reel_scripts").insert(row);
+
+  if (error) {
+    if (error.code === "42P01" || error.code === "PGRST205") {
+      return { ok: false, message: "Run migration 020-scripts.sql in Supabase first." };
+    }
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin/scripts");
+  redirect("/admin/scripts?saved=1");
+}
+
+/**
+ * The one-click "Posted" on a row. Stamps the time it actually went out, which
+ * is what the engagement numbers get read against later.
+ */
+export async function markScriptPosted(fd: FormData) {
+  const supabase = await requireAdmin();
+  const id = str(fd, "id");
+  if (id) {
+    await supabase
+      .from("reel_scripts")
+      .update({ status: "posted", posted_at: new Date().toISOString() })
+      .eq("id", id);
+  }
+  revalidatePath("/admin/scripts");
+}
+
+export async function deleteScript(fd: FormData) {
+  const supabase = await requireAdmin();
+  await supabase.from("reel_scripts").delete().eq("id", str(fd, "id"));
+  revalidatePath("/admin/scripts");
+  redirect("/admin/scripts?deleted=1");
 }

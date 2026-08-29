@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Clapperboard,
   ClipboardList,
   ShoppingBag,
   ExternalLink,
@@ -22,6 +23,7 @@ const LINKS = [
   { href: "/admin/revenue", label: "Revenue", icon: IndianRupee },
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/scripts", label: "Scripts", icon: Clapperboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/collections", label: "Collections", icon: LayoutGrid },
   { href: "/admin/settings", label: "Settings", icon: Settings },

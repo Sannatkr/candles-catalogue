@@ -286,3 +286,87 @@ export async function listOrders(): Promise<AdminOrder[] | null> {
   if (error) return error.code === "42P01" || error.code === "PGRST205" ? null : [];
   return (data ?? []).map(toAdminOrder);
 }
+
+/* ---------------------------------------------------------- reel scripts -- */
+
+export type AdminScript = {
+  id: string;
+  title: string;
+  hook: string;
+  body: string;
+  onScreenText: string;
+  notes: string;
+  cta: string;
+  status: string;
+  scheduledAt: string | null;
+  postedAt: string | null;
+  permalink: string | null;
+  durationSec: number;
+  wordCount: number;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  reach: number | null;
+  follows: number | null;
+  source: string;
+  createdAt: string;
+};
+
+const int = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+function toAdminScript(row: Record<string, unknown>): AdminScript {
+  return {
+    id: String(row.id),
+    title: String(row.title ?? ""),
+    hook: String(row.hook ?? ""),
+    body: String(row.body ?? ""),
+    onScreenText: String(row.on_screen_text ?? ""),
+    notes: String(row.notes ?? ""),
+    cta: String(row.cta ?? ""),
+    status: String(row.status ?? "draft"),
+    scheduledAt: (row.scheduled_at as string) ?? null,
+    postedAt: (row.posted_at as string) ?? null,
+    permalink: (row.permalink as string) ?? null,
+    durationSec: Number(row.duration_sec) || 0,
+    wordCount: Number(row.word_count) || 0,
+    views: int(row.views),
+    likes: int(row.likes),
+    comments: int(row.comments),
+    shares: int(row.shares),
+    saves: int(row.saves),
+    reach: int(row.reach),
+    follows: int(row.follows),
+    source: String(row.source ?? "manual"),
+    createdAt: String(row.created_at ?? ""),
+  };
+}
+
+/**
+ * Null — not an empty list — when migration 020 has not been run yet, so the
+ * page can say "run the migration" instead of pretending there are no scripts.
+ * Unscheduled drafts sort last, otherwise it reads as a calendar.
+ */
+export async function listScripts(): Promise<AdminScript[] | null> {
+  const supabase = await getServerSupabase();
+  const { data, error } = await supabase
+    .from("reel_scripts")
+    .select("*")
+    .order("scheduled_at", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) return error.code === "42P01" || error.code === "PGRST205" ? null : [];
+  return (data ?? []).map(toAdminScript);
+}
+
+export async function getScript(id: string): Promise<AdminScript | null> {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase.from("reel_scripts").select("*").eq("id", id).maybeSingle();
+  return data ? toAdminScript(data as Record<string, unknown>) : null;
+}
