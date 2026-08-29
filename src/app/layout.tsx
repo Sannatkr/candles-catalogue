@@ -17,18 +17,34 @@ const inter = Inter({
   display: "swap",
 });
 
+const SITE_URL = "https://www.sugandhacandles.com";
+const TITLE = "Sugandha Candles — Wholesale Catalogue";
+const DESCRIPTION =
+  "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.";
+
 export const metadata: Metadata = {
+  // Without this, every relative link and image in a preview card resolves
+  // against localhost in dev and against the deployment URL in production —
+  // so WhatsApp and Google would quote a vercel.app address, not the brand.
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Sugandha Candles — Wholesale Catalogue",
+    default: TITLE,
     template: "%s · Sugandha Candles",
   },
-  description:
-    "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.",
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Sugandha Candles — Wholesale Catalogue",
-    description:
-      "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Sugandha Candles",
+    locale: "en_IN",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
   },
 };
 
