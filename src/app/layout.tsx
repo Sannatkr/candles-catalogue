@@ -18,9 +18,9 @@ const inter = Inter({
 });
 
 const SITE_URL = "https://www.sugandhacandles.com";
-const TITLE = "Sugandha Candles — Wholesale Catalogue";
+const TITLE = "Sugandha Candles";
 const DESCRIPTION =
-  "100% natural soy wax, smokeless burn, imported fragrance. The full range with sizes, price slabs and trade terms.";
+  "Handcrafted soy wax candles, urli platters and gift hampers — poured in small batches, finished in gold. Beautiful enough to keep long after the occasion.";
 
 export const metadata: Metadata = {
   // Without this, every relative link and image in a preview card resolves
