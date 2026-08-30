@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { EnquiryDialog } from "@/components/enquiry-dialog";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
 import { GiftProgress } from "@/components/gift-progress";
-import { celebrateGift } from "@/lib/celebrate";
+import { celebrateGift, celebrateUnlock } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
 import { Gift } from "lucide-react";
@@ -53,6 +53,8 @@ export function ProductPurchase({
 
   const cart = useCart();
   const giftConfig = useGiftConfig();
+  const couldClaimBefore = useRef(false);
+  const sawGiftState = useRef(false);
 
   // Offered here only when it can actually be taken: the bag has earned a gift,
   // this candle is one of the giftable ones, and none has been claimed yet.
@@ -114,6 +116,20 @@ export function ProductPurchase({
     setEnquiry(true);
     track("bulk_quote_opened", { product: product.slug, qty, unit_price: unitPrice });
   }
+
+  /**
+   * Crossing the threshold on a giftable candle swaps the progress line out for
+   * the claim banner — so the line unmounts on the very render that earns the
+   * gift and never gets to celebrate. The banner takes that job here instead,
+   * which keeps exactly one celebration per crossing.
+   */
+  useEffect(() => {
+    if (!cart.ready) return;
+    const crossedJustNow = sawGiftState.current && canClaimFree && !couldClaimBefore.current;
+    couldClaimBefore.current = canClaimFree;
+    sawGiftState.current = true;
+    if (crossedJustNow) celebrateUnlock();
+  }, [canClaimFree, cart.ready]);
 
   return (
     <>

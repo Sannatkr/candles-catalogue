@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Gift } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { celebrateUnlock, originOf } from "@/lib/celebrate";
 import { money } from "@/lib/format";
 import { amountToGift, giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
@@ -26,18 +28,46 @@ import { useGiftConfig } from "@/lib/gift-context";
 export function GiftProgress({ variant = "inline" }: { variant?: "inline" | "compact" }) {
   const { subtotal, giftSlug, ready } = useCart();
   const config = useGiftConfig();
-
-  if (!config.enabled || config.threshold <= 0) return null;
+  const box = useRef<HTMLElement>(null);
+  const wasUnlocked = useRef(false);
+  const seenFirst = useRef(false);
+  const [justUnlocked, setJustUnlocked] = useState(false);
 
   const unlocked = giftUnlocked(config, subtotal);
   const missing = amountToGift(config, subtotal);
-  const pct = Math.min(100, (subtotal / config.threshold) * 100);
+  const pct = Math.min(100, (subtotal / Math.max(1, config.threshold)) * 100);
+
+  /**
+   * The threshold is usually crossed here, not in the bag — someone taps "Add to
+   * bag" on a product page and that is the moment they earn it. Celebrating only
+   * in the cart means the good news arrives late, on a screen they may not open
+   * for another ten minutes. As in the bag, the first read of localStorage is
+   * ignored so arriving with a full bag is not mistaken for crossing the line.
+   */
+  useEffect(() => {
+    if (!ready || !config.enabled) return;
+    const crossedJustNow = seenFirst.current && unlocked && !wasUnlocked.current;
+    // Recorded before the early return, or a second pass would celebrate again.
+    wasUnlocked.current = unlocked;
+    seenFirst.current = true;
+    if (!crossedJustNow) return;
+
+    celebrateUnlock(originOf(box.current));
+    setJustUnlocked(true);
+    const t = window.setTimeout(() => setJustUnlocked(false), 950);
+    return () => window.clearTimeout(t);
+  }, [unlocked, ready, config.enabled]);
+
+  if (!config.enabled || config.threshold <= 0) return null;
 
   // Under Add to Cart: one honest line, no box, no colour block. This is the
   // single highest-value place to say it — the buyer has to look here to buy.
   if (variant === "compact") {
     return (
-      <p className="mt-3 flex items-start gap-2 text-[0.82rem] leading-relaxed text-ink-soft">
+      <p
+        ref={box as React.RefObject<HTMLParagraphElement>}
+        className={`mt-3 flex items-start gap-2 px-1.5 py-1 text-[0.82rem] leading-relaxed text-ink-soft ${justUnlocked ? "gift-unlocked" : ""}`}
+      >
         <Gift size={14} className="mt-0.5 shrink-0 text-[#b8860b]" />
         <span>
           {!ready || subtotal === 0 ? (
@@ -72,7 +102,10 @@ export function GiftProgress({ variant = "inline" }: { variant?: "inline" | "com
 
   // On a listing page: a quiet line above the grid with a thin progress rule.
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-line-soft py-3.5">
+    <div
+      ref={box as React.RefObject<HTMLDivElement>}
+      className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-line-soft px-1.5 py-3.5 ${justUnlocked ? "gift-unlocked" : ""}`}
+    >
       <Gift size={15} className="shrink-0 text-[#b8860b]" />
 
       <p className="min-w-0 flex-1 text-[0.875rem] leading-snug text-ink">

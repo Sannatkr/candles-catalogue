@@ -194,3 +194,24 @@
     display: none;
   }
 }
+
+/* A single, short acknowledgement when the goal is reached on a listing or
+   product page. Celebration is brand, not conversion, so this runs once, is
+   over inside a second, and animates only colour — nothing that could shift
+   layout under the reader's thumb. */
+@keyframes gift-unlocked-flash {
+  0%   { background-color: transparent; }
+  25%  { background-color: rgb(229 192 123 / 0.34); }
+  100% { background-color: transparent; }
+}
+
+.gift-unlocked {
+  animation: gift-unlocked-flash 900ms ease-out;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-unlocked {
+    animation: none;
+  }
+}
