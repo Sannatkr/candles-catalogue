@@ -1,5 +1,6 @@
 "use client";
 
+import { GiftBar } from "@/components/gift-bar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -135,6 +136,7 @@ export function SiteHeader({
           </nav>
         </div>
       )}
+      <GiftBar />
     </header>
   );
 }
