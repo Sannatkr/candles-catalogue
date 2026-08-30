@@ -32,6 +32,7 @@ export function SurpriseGift({ label, threshold }: { label: string; threshold: s
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-label={`${label} — what is it?`}
         className="mt-3 flex w-full items-center gap-3 rounded-[13px] border border-[#c9a227]/35 bg-canvas/70 px-3.5 py-3 text-left transition-colors hover:border-[#c9a227]/70 active:bg-canvas"
       >
         <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f7e6bd,#e5c07b)] text-[#7a5b12]">

@@ -31,6 +31,11 @@ export function GiftBanner({
   const [picking, setPicking] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const wasUnlocked = useRef(false);
+  // The cart is read from localStorage after mount, so the first truthful look
+  // at it arrives as a change. Without this the banner would treat "arrived on
+  // the page with a full bag" as "just earned a gift" and throw confetti on
+  // every single visit — which is how a nice moment becomes an irritation.
+  const seenFirst = useRef(false);
 
   const unlocked = giftUnlocked(config, subtotal);
   const gift = resolveGift(config, products, subtotal, giftSlug);
@@ -41,10 +46,10 @@ export function GiftBanner({
   // paper. The first pass only records where we started.
   useEffect(() => {
     if (!ready) return;
-    if (unlocked && !wasUnlocked.current && !readOnly) {
-      celebrateUnlock(originOf(box.current));
-    }
+    const crossedJustNow = seenFirst.current && unlocked && !wasUnlocked.current;
+    if (crossedJustNow && !readOnly) celebrateUnlock(originOf(box.current));
     wasUnlocked.current = unlocked;
+    seenFirst.current = true;
   }, [unlocked, ready, readOnly]);
 
   if (!ready || !config.enabled || products.length === 0) return null;
