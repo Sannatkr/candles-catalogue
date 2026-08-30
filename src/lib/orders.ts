@@ -3,7 +3,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { getProducts, getSettings } from "@/lib/data";
-import { resolveGift } from "@/lib/gift";
+import { resolveGift, SURPRISE_SLUG, surpriseIncluded } from "@/lib/gift";
 import { priceAtQty, RETAIL_MAX } from "@/lib/pricing";
 import { shipOrderRow } from "@/lib/fulfillment";
 import { packGramsOf, shippingCost } from "@/lib/shipping";
@@ -109,7 +109,15 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   // Rebuild every line from the catalogue. Unknown slugs are dropped rather
   // than failing the whole order — a candle can be retired mid-session.
   const catalogue = await getProducts();
-  const items = input.lines.flatMap((line) => {
+  type OrderItemRow = {
+    slug: string;
+    name: string;
+    image: string | null;
+    qty: number;
+    unitPrice: number;
+    total: number;
+  };
+  const items: OrderItemRow[] = input.lines.flatMap((line): OrderItemRow[] => {
     const product = catalogue.find((p) => p.slug === line.slug);
     if (!product || !product.inStock) return [];
     const qty = Math.min(RETAIL_MAX, Math.max(1, Math.floor(Number(line.qty) || 0)));
@@ -153,6 +161,20 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
       slug: gift.slug,
       name: gift.name,
       image: gift.images[0] ?? null,
+      qty: 1,
+      unitPrice: 0,
+      total: 0,
+    });
+  }
+
+  // The surprise rides on the same threshold. It is not a catalogue product —
+  // it is whatever is packed that week — so it goes on as a named ₹0 line,
+  // which is all the packing list needs and all the buyer was promised.
+  if (surpriseIncluded(giftConfig, subtotal)) {
+    items.push({
+      slug: SURPRISE_SLUG,
+      name: giftConfig.surpriseLabel || "A surprise gift",
+      image: null,
       qty: 1,
       unitPrice: 0,
       total: 0,

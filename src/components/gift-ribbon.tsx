@@ -2,6 +2,7 @@
 
 import { Gift } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { celebrateGift } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
 import type { Product } from "@/lib/types";
@@ -33,6 +34,7 @@ export function GiftRibbon({ product }: { product: Product }) {
         e.preventDefault();
         e.stopPropagation();
         setGift(product.slug);
+        celebrateGift();
       }}
       className="gift-shine absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-ember px-3 py-1.5 text-[0.7rem] font-medium tracking-wide text-canvas shadow-sm transition-transform hover:scale-105"
     >

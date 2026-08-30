@@ -100,6 +100,15 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
           <Field label="Bag must reach (₹)" hint="Counts only what is being paid for — the gift never unlocks itself.">
             <Input type="number" name="gift_threshold" min={0} step="1" defaultValue={settings.gift.threshold} />
           </Field>
+          <Toggle
+            name="gift_surprise_enabled"
+            label="Add a surprise gift too"
+            hint="A second freebie they do not choose — whatever you decide to pack that week. Appears on your packing list so you never forget it."
+            defaultChecked={settings.gift.surpriseEnabled}
+          />
+          <Field label="What to call it" hint="Keep it vague — the surprise is the point.">
+            <Input name="gift_surprise_label" defaultValue={settings.gift.surpriseLabel} placeholder="A surprise gift" />
+          </Field>
         </div>
       </Card>
 

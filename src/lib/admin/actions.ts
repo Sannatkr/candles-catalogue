@@ -186,6 +186,8 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
     gift: {
       enabled: bool(fd, "gift_enabled"),
       threshold: num(fd, "gift_threshold"),
+      surpriseEnabled: bool(fd, "gift_surprise_enabled"),
+      surpriseLabel: str(fd, "gift_surprise_label") || "A surprise gift",
     },
     termsIntro: str(fd, "termsIntro"),
     termsSections: json<{ heading: string; body: string[] }[]>(fd, "termsSections", []).filter(

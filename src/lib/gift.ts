@@ -13,7 +13,21 @@ import type { GiftConfig, Product } from "./types";
  * candle to it.
  */
 
-export const DEFAULT_GIFT: GiftConfig = { enabled: true, threshold: 2000 };
+export const DEFAULT_GIFT: GiftConfig = {
+  enabled: true,
+  threshold: 2000,
+  surpriseEnabled: true,
+  surpriseLabel: "A surprise gift",
+};
+
+/** The slug the surprise rides on. Not a catalogue product — it is whatever is
+ *  packed on the day, so it only ever needs a name on the packing list. */
+export const SURPRISE_SLUG = "surprise-gift";
+
+/** Is the unchosen extra riding along on this bag? */
+export function surpriseIncluded(config: GiftConfig, paidSubtotal: number): boolean {
+  return config.surpriseEnabled && giftUnlocked(config, paidSubtotal);
+}
 
 /** The candles a buyer is allowed to choose from, in the order they browse them. */
 export function eligibleGifts(products: Product[]): Product[] {

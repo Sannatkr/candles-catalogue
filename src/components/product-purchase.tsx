@@ -7,6 +7,7 @@ import { EnquiryDialog } from "@/components/enquiry-dialog";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
+import { celebrateGift } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
 import { Gift } from "lucide-react";
@@ -118,7 +119,10 @@ export function ProductPurchase({
       {canClaimFree && (
         <button
           type="button"
-          onClick={() => cart.setGift(product.slug)}
+          onClick={() => {
+            cart.setGift(product.slug);
+            celebrateGift();
+          }}
           className="gift-shine relative mt-9 flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-ember/40 bg-ember-wash px-5 py-4 text-left transition-colors hover:border-ember"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canvas text-ember-deep">

@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+// The bag and the checkout must reflect the catalogue as it is right now — a
+// page cached from before a candle became giftable would quietly hide the offer.
+export const dynamic = "force-dynamic";
+
 export default async function CheckoutPage() {
   const [settings, configured, products] = await Promise.all([
     getSettings(),

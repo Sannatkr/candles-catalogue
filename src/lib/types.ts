@@ -82,6 +82,10 @@ export type GiftConfig = {
   enabled: boolean;
   /** Paid subtotal (the gift itself excluded) that unlocks the free candle. */
   threshold: number;
+  /** A second, unchosen gift thrown in at the same threshold. */
+  surpriseEnabled: boolean;
+  /** What the buyer is told they are getting, without giving the surprise away. */
+  surpriseLabel: string;
 };
 
 export type SiteSettings = {

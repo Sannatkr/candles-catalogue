@@ -9,7 +9,7 @@ import { Loader2, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
-import { resolveGift } from "@/lib/gift";
+import { resolveGift, surpriseIncluded } from "@/lib/gift";
 import { instagramChatLink, money } from "@/lib/format";
 import { abandonOrder, confirmPayment, startCheckout } from "@/lib/orders";
 import { lookupPincode } from "@/lib/pincode";
@@ -90,6 +90,7 @@ export function CheckoutForm({
 
   // Flat delivery, free over a subtotal but only while the parcel stays light.
   const gift = resolveGift(giftConfig, giftProducts, cart.subtotal, cart.giftSlug);
+  const surprise = surpriseIncluded(giftConfig, cart.subtotal) && giftProducts.length > 0;
   const shipping = shippingCost(shippingConfig, { grams: cart.weightGrams, subtotal: cart.subtotal });
   const total = cart.subtotal + shipping;
 
@@ -454,6 +455,14 @@ export function CheckoutForm({
                     <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
                     <b className="font-semibold text-[#3d5730]">FREE</b>
                   </dd>
+                </div>
+              )}
+              {surprise && (
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="truncate text-ink-soft">
+                    {giftConfig.surpriseLabel} <span className="text-ink-faint">(gift)</span>
+                  </dt>
+                  <dd className="shrink-0 font-semibold text-[#3d5730]">FREE</dd>
                 </div>
               )}
               <div className="flex items-baseline justify-between gap-4">

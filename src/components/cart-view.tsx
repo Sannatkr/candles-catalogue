@@ -6,7 +6,7 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
-import { resolveGift } from "@/lib/gift";
+import { resolveGift, surpriseIncluded } from "@/lib/gift";
 import { RETAIL_MAX, singlePrice } from "@/lib/pricing";
 import { shippingCost } from "@/lib/shipping";
 import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
@@ -49,6 +49,7 @@ export function CartView({
   // The gift is excluded from both the subtotal and the weight above, so it can
   // neither unlock itself nor tip the parcel past the free-delivery limit.
   const gift = resolveGift(giftConfig, giftProducts, subtotal, giftSlug);
+  const surprise = surpriseIncluded(giftConfig, subtotal) && giftProducts.length > 0;
   const shipping = shippingCost(shippingConfig, { grams: weightGrams, subtotal });
   const total = subtotal + shipping;
   const canGoFree =
@@ -155,6 +156,14 @@ export function CartView({
                   <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
                   <b className="font-semibold text-[#3d5730]">FREE</b>
                 </dd>
+              </div>
+            )}
+{surprise && (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="truncate text-ink-soft">
+                  {giftConfig.surpriseLabel} <span className="text-ink-faint">(gift)</span>
+                </dt>
+                <dd className="shrink-0 font-semibold text-[#3d5730]">FREE</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-4">
