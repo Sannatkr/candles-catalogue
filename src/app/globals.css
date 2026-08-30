@@ -239,24 +239,34 @@
   inherits: false;
 }
 
-/* Entrances: a short rise with a decelerating curve. Children are staggered so
-   the card assembles rather than appearing as one flat block. */
-@keyframes gift-rise {
-  from {
+/* Entrances: a short rise with a decelerating curve, staggered so the card
+   assembles rather than appearing as one flat block.
+   
+   Written as a transition out of @starting-style, NOT as a keyframe animation
+   that fades in from opacity 0. The difference matters: an animation with
+   fill-mode `both` holds its first frame until it runs, so anything that stops
+   it running — an element mounted inside a display:none subtree, a browser
+   that throttles animations in a background tab — leaves the content
+   permanently invisible. Content must never depend on an animation firing to
+   be readable. Here the resting state IS the visible state; @starting-style
+   only supplies a hidden first frame to move away from, and where it is not
+   supported the card simply appears. */
+.gift-card-in > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 460ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gift-card-in > *:nth-child(2) { transition-delay: 60ms; }
+.gift-card-in > *:nth-child(3) { transition-delay: 120ms; }
+
+@starting-style {
+  .gift-card-in > * {
     opacity: 0;
     transform: translate3d(0, 8px, 0);
   }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
-
-.gift-card-in > * {
-  animation: gift-rise 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.gift-card-in > *:nth-child(2) { animation-delay: 60ms; }
-.gift-card-in > *:nth-child(3) { animation-delay: 120ms; }
 
 /* The sheen. A single soft band travelling across the gold, slowly, at low
    contrast — a sheen reads as material, a bright fast stripe reads as a banner
@@ -313,7 +323,6 @@
    stop moving. A celebration that vanishes entirely tells a motion-sensitive
    buyer less than everyone else gets. */
 @media (prefers-reduced-motion: reduce) {
-  .gift-card-in > *,
   .gift-sheen-surface::after,
   .gift-reward,
   .gift-pulse {
@@ -321,8 +330,7 @@
   }
 
   .gift-card-in > * {
-    opacity: 1;
-    transform: none;
+    transition: none;
   }
 
   .gift-sheen-surface::after {
