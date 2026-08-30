@@ -54,12 +54,16 @@ export default async function HomePage() {
     collections[0]?.coverImage ??
     featured[0]?.images[0] ??
     "/placeholders/candle-01.svg";
+  // The whole catalogue is the fallback pool, not just the featured six — the
+  // lead collection's cover is usually also a featured product's photo, and
+  // de-duplicating those left the grid a tile short.
   const mosaic = Array.from(
     new Set(
       [
         hero,
         ...featured.map((p) => p.images[0]),
         ...collections.map((c) => c.coverImage),
+        ...allProducts.map((p) => p.images[0]),
       ].filter(Boolean),
     ),
   ).slice(0, 4);
