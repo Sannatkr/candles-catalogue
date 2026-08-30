@@ -27,12 +27,15 @@ export const metadata: Metadata = {
   // against localhost in dev and against the deployment URL in production —
   // so WhatsApp and Google would quote a vercel.app address, not the brand.
   metadataBase: new URL(SITE_URL),
+  // No canonical here on purpose. `alternates.canonical` set on the root layout
+  // is INHERITED by every page, so a value of "/" told Google that the whole
+  // catalogue was a duplicate of the home page — which is an instruction not to
+  // index any of it. Each route declares its own instead.
   title: {
     default: TITLE,
     template: "%s · Sugandha Candles",
   },
   description: DESCRIPTION,
-  alternates: { canonical: "/" },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
@@ -48,7 +51,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="grain antialiased">

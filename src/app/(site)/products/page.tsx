@@ -3,7 +3,10 @@ import { ProductBrowser } from "@/components/product-browser";
 import { Reveal } from "@/components/reveal";
 import { getProducts } from "@/lib/data";
 
-export const metadata = { title: "All Products" };
+export const metadata = {
+  title: "All Products",
+  alternates: { canonical: "/products" },
+};
 
 export default async function ProductsPage() {
   const products = await getProducts();

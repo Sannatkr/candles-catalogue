@@ -6,7 +6,12 @@ import { ProductPurchase } from "@/components/product-purchase";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { Reveal } from "@/components/reveal";
-import { getCollection, getProduct, getProducts, getSettings } from "@/lib/data";
+import {
+  getCollection,
+  getProduct,
+  getProducts,
+  getSettings,
+} from "@/lib/data";
 import { toInches } from "@/lib/format";
 
 export async function generateStaticParams() {
@@ -14,16 +19,25 @@ export async function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const product = await getProduct(slug);
   return {
     title: product?.name ?? "Product",
     description: product?.tagline,
+    alternates: { canonical: `/products/${slug}` },
   };
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
@@ -35,7 +49,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   ]);
 
   const related = allProducts
-    .filter((p) => p.collectionSlug === product.collectionSlug && p.id !== product.id)
+    .filter(
+      (p) => p.collectionSlug === product.collectionSlug && p.id !== product.id,
+    )
     .slice(0, 3);
 
   const specs = [
@@ -50,7 +66,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
     {
       label: "Height",
-      value: product.heightCm ? `${toInches(product.heightCm)} in (${Math.round(product.heightCm)} cm)` : "",
+      value: product.heightCm
+        ? `${toInches(product.heightCm)} in (${Math.round(product.heightCm)} cm)`
+        : "",
     },
   ].filter((s) => s.value);
 
@@ -61,7 +79,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           href={collection ? `/collections/${collection.slug}` : "/products"}
           className="group inline-flex items-center gap-2 text-[0.85rem] text-ink-soft transition-colors hover:text-ember"
         >
-          <ArrowLeft size={15} className="transition-transform duration-300 group-hover:-translate-x-1" />
+          <ArrowLeft
+            size={15}
+            className="transition-transform duration-300 group-hover:-translate-x-1"
+          />
           {collection ? collection.name : "All products"}
         </Link>
       </div>
@@ -84,7 +105,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </span>
           )}
 
-          <p className="mt-7 max-w-[54ch] leading-relaxed text-ink-soft">{product.description}</p>
+          <p className="mt-7 max-w-[54ch] leading-relaxed text-ink-soft">
+            {product.description}
+          </p>
 
           <ProductPurchase
             product={product}
@@ -102,8 +125,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   key={spec.label}
                   className="flex items-baseline justify-between gap-4 border-b border-line-soft py-3"
                 >
-                  <dt className="text-[0.875rem] text-ink-faint">{spec.label}</dt>
-                  <dd className="text-right text-[0.925rem] text-ink">{spec.value}</dd>
+                  <dt className="text-[0.875rem] text-ink-faint">
+                    {spec.label}
+                  </dt>
+                  <dd className="text-right text-[0.925rem] text-ink">
+                    {spec.value}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -120,8 +147,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               Size guide
             </h2>
             <p className="mt-3 max-w-[52ch] text-[0.95rem] leading-relaxed text-ink-soft">
-              Measurements are of the finished candle. Vessel dimensions may vary by ±2 mm between
-              batches.
+              Measurements are of the finished candle. Vessel dimensions may
+              vary by ±2 mm between batches.
             </p>
           </Reveal>
 

@@ -38,6 +38,8 @@ const STEPS = [
   },
 ];
 
+export const metadata = { alternates: { canonical: "/" } };
+
 export default async function HomePage() {
   const [settings, collections, featured, allProducts] = await Promise.all([
     getSettings(),
