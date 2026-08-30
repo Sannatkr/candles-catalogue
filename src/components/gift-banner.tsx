@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Gift, PartyPopper, Sparkles } from "lucide-react";
 import { GiftPicker } from "@/components/gift-picker";
+import { SurpriseGift } from "@/components/surprise-gift";
 import { useCart } from "@/lib/cart";
 import { celebrateGift, celebrateUnlock, originOf } from "@/lib/celebrate";
 import { money } from "@/lib/format";
@@ -78,40 +79,41 @@ export function GiftBanner({
           {gift ? (
             <>
               <div className="flex items-center gap-3.5">
-                <span className="relative h-14 w-12 shrink-0 overflow-hidden rounded-[10px] bg-canvas-deep ring-2 ring-[#c9a227]/40">
-                  <Image src={gift.images[0]} alt="" fill sizes="48px" className="object-cover" />
+                <span className="relative h-16 w-14 shrink-0 overflow-hidden rounded-[10px] bg-canvas-deep ring-2 ring-[#c9a227]/40">
+                  <Image src={gift.images[0]} alt="" fill sizes="56px" className="object-cover" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[0.72rem] font-semibold tracking-[0.09em] text-[#8a6a1f] uppercase">
-                    <PartyPopper size={13} /> Your free candle
+                  <p className="flex items-center gap-1.5 text-[0.7rem] font-semibold tracking-[0.09em] text-[#8a6a1f] uppercase">
+                    <PartyPopper size={13} className="shrink-0" /> Your free candle
                   </p>
-                  <p className="mt-1 truncate font-display text-[1.05rem] text-ink">{gift.name}</p>
-                  <p className="mt-0.5 text-[0.8rem] tabular-nums">
+                  <p className="mt-1 font-display text-[1.05rem] leading-snug text-ink">{gift.name}</p>
+                  <p className="mt-0.5 text-[0.82rem] tabular-nums">
                     <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
                     <b className="font-semibold text-[#3d5730]">FREE</b>
                   </p>
                 </div>
-                {!readOnly && (
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setPicking(true)}
-                      className="rounded-full border border-[#c9a227]/50 bg-canvas px-3.5 py-1.5 text-[0.78rem] text-ink transition-colors hover:border-ink"
-                    >
-                      Change
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGift(null)}
-                      className="px-1 text-[0.72rem] text-ink-faint transition-colors hover:text-ember-deep"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {surprise && <SurpriseRow label={config.surpriseLabel} />}
+              {!readOnly && (
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPicking(true)}
+                    className="flex-1 rounded-full border border-[#c9a227]/50 bg-canvas px-4 py-2.5 text-[0.82rem] text-ink transition-colors hover:border-ink"
+                  >
+                    Change candle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGift(null)}
+                    className="rounded-full px-4 py-2.5 text-[0.82rem] text-ink-faint transition-colors hover:text-ember-deep"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
+              {surprise && <SurpriseGift label={config.surpriseLabel} threshold={money(config.threshold)} />}
             </>
           ) : losing ? (
             /* --- chosen, but the bag dropped back under the line --- */
@@ -146,7 +148,7 @@ export function GiftBanner({
                 {readOnly ? (
                   <a
                     href="/cart"
-                    className="shrink-0 rounded-full bg-ink px-5 py-2.5 text-[0.85rem] text-canvas transition-colors hover:bg-ember"
+                    className="w-full shrink-0 rounded-full bg-ink px-5 py-3 text-center text-[0.88rem] text-canvas transition-colors hover:bg-ember sm:w-auto sm:py-2.5"
                   >
                     Pick it in your bag
                   </a>
@@ -154,14 +156,14 @@ export function GiftBanner({
                   <button
                     type="button"
                     onClick={() => setPicking(true)}
-                    className="shrink-0 rounded-full bg-ink px-5 py-2.5 text-[0.85rem] text-canvas shadow-sm transition-transform hover:scale-[1.03] hover:bg-ember"
+                    className="w-full shrink-0 rounded-full bg-ink px-5 py-3 text-[0.88rem] text-canvas shadow-sm transition-transform hover:scale-[1.02] hover:bg-ember sm:w-auto sm:py-2.5"
                   >
                     Pick my candle
                   </button>
                 )}
               </div>
 
-              {surprise && <SurpriseRow label={config.surpriseLabel} />}
+              {surprise && <SurpriseGift label={config.surpriseLabel} threshold={money(config.threshold)} />}
             </>
           ) : (
             /* --- not there yet: the nudge --- */
@@ -209,13 +211,3 @@ export function GiftBanner({
   );
 }
 
-/** The second freebie, the one they do not choose. */
-function SurpriseRow({ label }: { label: string }) {
-  return (
-    <p className="mt-3 flex items-center gap-2 border-t border-[#c9a227]/25 pt-3 text-[0.82rem] text-ink-soft">
-      <Gift size={14} className="shrink-0 text-[#b8860b]" />
-      <span className="min-w-0 flex-1 truncate">{label} is in the box too</span>
-      <b className="shrink-0 font-semibold text-[#3d5730]">FREE</b>
-    </p>
-  );
-}
