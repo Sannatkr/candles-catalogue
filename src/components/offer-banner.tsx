@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { LotusMotif } from "@/components/lotus-motif";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
 import { amountToGift, giftUnlocked } from "@/lib/gift";
@@ -21,12 +22,17 @@ import type { Product } from "@/lib/types";
  * would otherwise be asked to do, and it reads as the brand rather than as an
  * advert bolted onto it.
  *
- * The photograph is the shop's most beautiful piece, not a giftable one. That
- * is a deliberate line to walk: the image sells the range, the words name the
- * offer, and nothing implies the pictured candle is the free one — promoting
- * one thing and supplying another is "bait and switch", a notified dark
- * pattern under India's CCPA rules. Hence "choose yours from a selection"
- * stated plainly, right where the promise is made.
+ * The ground is drawn, not photographed. A darkened, blurred photo reads as a
+ * photo someone has hidden; engraved gold linework reads as something made,
+ * which is the claim the whole shop rests on — and it costs a few hundred bytes
+ * instead of a hero JPEG.
+ *
+ * The candles beside the text are the shop's most beautiful pieces, not the
+ * giftable ones. That is a line worth walking carefully: the photographs sell
+ * the range, the words name the offer, and nothing implies the pictured candle
+ * is the free one — promoting one thing and supplying another is "bait and
+ * switch", a notified dark pattern under India's CCPA rules. Hence "choose
+ * yours from a selection" stated plainly, right where the promise is made.
  */
 export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const { subtotal, giftSlug, ready } = useCart();
@@ -38,29 +44,24 @@ export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const missing = amountToGift(config, subtotal);
   const started = ready && subtotal > 0;
   const claimed = unlocked && Boolean(giftSlug);
-  const hero = showcase[0];
 
   return (
     <section className="relative isolate overflow-hidden bg-ink">
-      {/* The candle, held back far enough that gold type stays legible over it. */}
-      {hero && (
-        <Image
-          src={hero.images[0]}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center opacity-[0.38]"
-        />
-      )}
+      {/* Depth first: a warm rise from the lower left, so the ground is lit
+          rather than flat black. */}
       <span
         aria-hidden
-        className="absolute inset-0 bg-[linear-gradient(100deg,rgba(20,17,13,0.94)_0%,rgba(20,17,13,0.72)_46%,rgba(20,17,13,0.35)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_140%_at_8%_110%,rgba(180,95,43,0.30)_0%,transparent_58%)]"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute -top-32 -left-24 h-72 w-72 rounded-full bg-[#e5c07b]/20 blur-3xl"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_120%_at_88%_-10%,rgba(229,192,123,0.20)_0%,transparent_60%)]"
       />
+
+      {/* The rosette, sized off the banner height so it never crops oddly, and
+          bled off the right edge the way an engraved border would be. */}
+      <LotusMotif className="pointer-events-none absolute top-1/2 right-[-9rem] hidden h-[150%] -translate-y-1/2 text-[#e5c07b]/30 sm:right-[-6rem] sm:block lg:right-[26%]" />
+      <LotusMotif className="pointer-events-none absolute -top-16 -right-24 h-[22rem] text-[#e5c07b]/20 sm:hidden" />
 
       <div className="relative mx-auto flex max-w-[1240px] flex-col gap-8 px-5 py-11 sm:px-8 sm:py-14 lg:flex-row lg:items-center lg:justify-between lg:gap-14 lg:py-16">
         <div className="min-w-0 max-w-[46rem] flex-1">

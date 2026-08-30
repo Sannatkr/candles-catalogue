@@ -47,15 +47,22 @@ export default async function HomePage() {
   ]);
   const showcase = showcaseProducts(allProducts);
 
-  // Hero is the lead collection; the inset is the next best seller behind it.
+  // Four distinct photographs for the hero mosaic: the lead collection cover,
+  // then the best sellers behind it, de-duplicated so the same candle never
+  // appears twice in one grid.
   const hero =
     collections[0]?.coverImage ??
     featured[0]?.images[0] ??
     "/placeholders/candle-01.svg";
-  const heroAlt =
-    featured.find((p) => p.images[0] && p.images[0] !== hero)?.images[0] ??
-    collections[1]?.coverImage ??
-    "/placeholders/candle-05.svg";
+  const mosaic = Array.from(
+    new Set(
+      [
+        hero,
+        ...featured.map((p) => p.images[0]),
+        ...collections.map((c) => c.coverImage),
+      ].filter(Boolean),
+    ),
+  ).slice(0, 4);
 
   return (
     <>
@@ -101,25 +108,40 @@ export default async function HomePage() {
             </div>
           </Reveal>
 
-          <Reveal delay={120} className="relative">
-            <div className="relative aspect-4/5 overflow-hidden rounded-[20px] bg-canvas-deep sm:aspect-3/4">
-              <Image
-                src={hero}
-                alt="Sugandha Candles"
-                fill
-                priority
-                sizes="(max-width: 1024px) 92vw, 46vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-8 -left-4 hidden aspect-square w-[42%] overflow-hidden rounded-[16px] border-[6px] border-canvas bg-canvas-deep sm:block">
-              <Image
-                src={heroAlt}
-                alt=""
-                fill
-                sizes="24vw"
-                className="object-cover"
-              />
+          <Reveal delay={120}>
+            {/* A mosaic, not one photograph. The range is the argument — four
+                pieces say "there is a lot here to choose from" in a way a single
+                hero shot cannot. Same grid at every width, so a phone gets the
+                whole set rather than the desktop layout with the good bits
+                switched off. */}
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="relative aspect-16/11 overflow-hidden rounded-[20px] bg-canvas-deep">
+                <Image
+                  src={mosaic[0]}
+                  alt="Sugandha Candles"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 92vw, 46vw"
+                  className="object-cover"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {mosaic.slice(1, 4).map((src, i) => (
+                  <div
+                    key={src + i}
+                    className="group relative aspect-square overflow-hidden rounded-[14px] bg-canvas-deep"
+                  >
+                    <Image
+                      src={src}
+                      alt=""
+                      fill
+                      sizes="(max-width: 1024px) 30vw, 15vw"
+                      className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06]"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </Reveal>
         </div>
