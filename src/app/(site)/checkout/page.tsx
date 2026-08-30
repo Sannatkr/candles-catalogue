@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout-form";
-import { getSettings } from "@/lib/data";
+import { getProducts, getSettings } from "@/lib/data";
+import { eligibleGifts } from "@/lib/gift";
 import { isCheckoutConfigured } from "@/lib/orders";
 
 export const metadata: Metadata = {
@@ -9,7 +10,11 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage() {
-  const [settings, configured] = await Promise.all([getSettings(), isCheckoutConfigured()]);
+  const [settings, configured, products] = await Promise.all([
+    getSettings(),
+    isCheckoutConfigured(),
+    getProducts(),
+  ]);
 
   return (
     <div className="mx-auto max-w-[1240px] px-5 pt-10 pb-24 sm:px-8">
@@ -24,6 +29,8 @@ export default async function CheckoutPage() {
         configured={configured}
         instagramHandle={settings.instagramHandle}
         shippingConfig={settings.shipping}
+        giftConfig={settings.gift}
+        giftProducts={eligibleGifts(products)}
       />
     </div>
   );

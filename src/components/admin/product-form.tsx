@@ -175,6 +175,12 @@ export function ProductForm({
             hint="Pick your best sellers."
             defaultChecked={product?.featured ?? false}
           />
+          <Toggle
+            name="gift_eligible"
+            label="Can be given free"
+            hint="Buyers may choose this as their free candle once their bag is big enough. Keep it to your smaller pieces."
+            defaultChecked={product?.gift_eligible ?? false}
+          />
           <Field label="Position in list" hint="Lower number shows first." className="sm:col-span-2">
             <Input type="number" name="sort_order" defaultValue={product?.sort_order ?? 0} />
           </Field>

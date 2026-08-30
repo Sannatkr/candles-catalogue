@@ -26,6 +26,7 @@ export type AdminProduct = {
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
+  gift_eligible: boolean | null;
 };
 
 export type AdminCollection = {

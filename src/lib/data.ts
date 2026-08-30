@@ -38,6 +38,7 @@ type ProductRow = {
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
+  gift_eligible: boolean | null;
 };
 
 const FALLBACK_IMAGE = "/placeholders/candle-01.svg";
@@ -80,6 +81,7 @@ function toProduct(row: ProductRow): Product {
     inStock: row.in_stock ?? true,
     featured: row.featured ?? false,
     sortOrder: row.sort_order ?? 0,
+    giftEligible: row.gift_eligible ?? false,
   };
 }
 
@@ -147,5 +149,6 @@ export async function getSettings(): Promise<SiteSettings> {
     ...stored,
     // Deep-merge shipping so a partly-filled config still has every rate.
     shipping: { ...seedSettings.shipping, ...(stored.shipping ?? {}) },
+    gift: { ...seedSettings.gift, ...(stored.gift ?? {}) },
   };
 }

@@ -29,6 +29,13 @@ export type CartLine = {
 };
 
 const KEY = "sugandha.cart.v1";
+/**
+ * The chosen free candle is kept in its own key rather than as a cart line.
+ * A line would have to carry a price of 0, and every total, weight and
+ * quantity sum would then need to remember to skip it. A slug on the side
+ * cannot be accidentally charged for, and it leaves v1 carts readable.
+ */
+const GIFT_KEY = "sugandha.gift.v1";
 
 /** Stable identity for the server and for the first hydration pass. */
 const EMPTY: CartLine[] = [];
@@ -41,6 +48,7 @@ const listeners = new Set<() => void>();
  * localStorage on every read would loop forever.
  */
 let snapshot: CartLine[] | null = null;
+let giftSnapshot: string | null | undefined;
 
 function parse(raw: string | null): CartLine[] {
   if (!raw) return EMPTY;
@@ -77,11 +85,29 @@ function getSnapshot(): CartLine[] {
 
 const getServerSnapshot = () => EMPTY;
 
+function getGiftSnapshot(): string | null {
+  if (giftSnapshot === undefined) {
+    try {
+      giftSnapshot = window.localStorage.getItem(GIFT_KEY);
+    } catch {
+      giftSnapshot = null;
+    }
+  }
+  return giftSnapshot ?? null;
+}
+
+const getServerGiftSnapshot = () => null;
+
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== KEY) return;
-    snapshot = parse(event.newValue);
+    if (event.key === GIFT_KEY) {
+      giftSnapshot = event.newValue;
+    } else if (event.key === KEY) {
+      snapshot = parse(event.newValue);
+    } else {
+      return;
+    }
     listeners.forEach((listener) => listener());
   };
   window.addEventListener("storage", onStorage);
@@ -101,6 +127,17 @@ function commit(next: CartLine[]) {
   listeners.forEach((listener) => listener());
 }
 
+function commitGift(slug: string | null) {
+  giftSnapshot = slug;
+  try {
+    if (slug) window.localStorage.setItem(GIFT_KEY, slug);
+    else window.localStorage.removeItem(GIFT_KEY);
+  } catch {
+    // Session-only is fine.
+  }
+  listeners.forEach((listener) => listener());
+}
+
 export function useCart() {
   const lines = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   // False during the server render and the hydration pass, true from the first
@@ -110,6 +147,7 @@ export function useCart() {
     () => true,
     () => false,
   );
+  const giftSlug = useSyncExternalStore(subscribe, getGiftSnapshot, getServerGiftSnapshot);
 
   /**
    * Returns how many pieces actually went in. Less than asked for means a
@@ -151,7 +189,13 @@ export function useCart() {
     commit(getSnapshot().filter((l) => l.slug !== slug));
   }, []);
 
-  const clear = useCallback(() => commit(EMPTY), []);
+  /** Claim, swap or drop the free candle. Null clears it. */
+  const setGift = useCallback((slug: string | null) => commitGift(slug), []);
+
+  const clear = useCallback(() => {
+    commitGift(null);
+    commit(EMPTY);
+  }, []);
 
   return useMemo(() => {
     const count = lines.reduce((sum, l) => sum + l.qty, 0);
@@ -164,12 +208,17 @@ export function useCart() {
       lines,
       ready,
       count,
+      // Everything below counts only what is being paid for. The free candle is
+      // deliberately absent: it must never help unlock itself, and it must never
+      // add weight that could cancel the buyer's free delivery.
       subtotal,
       weightGrams,
+      giftSlug,
       add,
       setQty,
       remove,
+      setGift,
       clear,
     };
-  }, [lines, ready, add, setQty, remove, clear]);
+  }, [lines, ready, giftSlug, add, setQty, remove, setGift, clear]);
 }

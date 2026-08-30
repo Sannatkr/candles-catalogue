@@ -41,6 +41,9 @@ export type Product = {
   inStock: boolean;
   featured: boolean;
   sortOrder: number;
+
+  /** May this candle be chosen as the free gift? Decided in the admin. */
+  giftEligible: boolean;
 };
 
 export type Collection = {
@@ -71,6 +74,16 @@ export type ShippingConfig = {
   freeUnderGrams: number;
 };
 
+/**
+ * The free-candle offer: one giftable candle, chosen by the buyer, once the
+ * paid subtotal reaches the threshold.
+ */
+export type GiftConfig = {
+  enabled: boolean;
+  /** Paid subtotal (the gift itself excluded) that unlocks the free candle. */
+  threshold: number;
+};
+
 export type SiteSettings = {
   businessName: string;
   tagline: string;
@@ -83,6 +96,7 @@ export type SiteSettings = {
   /** Offered on the booking form once an order gets large enough to customise. */
   fragrances: string[];
   shipping: ShippingConfig;
+  gift: GiftConfig;
   termsIntro: string;
   termsSections: TermsSection[];
 };

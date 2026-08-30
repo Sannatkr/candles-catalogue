@@ -3,6 +3,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { getProducts, getSettings } from "@/lib/data";
+import { resolveGift } from "@/lib/gift";
 import { priceAtQty, RETAIL_MAX } from "@/lib/pricing";
 import { shipOrderRow } from "@/lib/fulfillment";
 import { packGramsOf, shippingCost } from "@/lib/shipping";
@@ -21,6 +22,8 @@ export type CheckoutLine = { slug: string; qty: number };
 
 export type CheckoutInput = {
   lines: CheckoutLine[];
+  /** The free candle the buyer chose. Re-checked here; never trusted as sent. */
+  giftSlug?: string | null;
   buyerName: string;
   phone: string;
   email: string;
@@ -138,7 +141,28 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     const product = catalogue.find((p) => p.slug === i.slug);
     return sum + (product ? packGramsOf(product) : 0) * i.qty;
   }, 0);
-  const { shipping: shippingConfig } = await getSettings();
+  const { shipping: shippingConfig, gift: giftConfig } = await getSettings();
+
+  // The free candle, re-decided from scratch. The browser only names a slug;
+  // whether it is giftable, in stock, and actually earned is settled here
+  // against `subtotal`, which contains only paid lines. A cart that claims a
+  // ₹699 urli for free simply resolves to null and is dropped.
+  const gift = resolveGift(giftConfig, catalogue, subtotal, input.giftSlug ?? null);
+  if (gift) {
+    items.push({
+      slug: gift.slug,
+      name: gift.name,
+      image: gift.images[0] ?? null,
+      qty: 1,
+      unitPrice: 0,
+      total: 0,
+    });
+  }
+
+  // Note what is NOT added: the gift contributes nothing to `subtotal` (so it
+  // cannot unlock itself) and nothing to `grams` (so a heavy gift never cancels
+  // the free delivery the buyer already earned). It still physically ships, and
+  // the courier's weight is recomputed from the saved items at fulfilment.
   const shipping = shippingCost(shippingConfig, { grams, subtotal });
   const total = subtotal + shipping;
   const paise = Math.round(total * 100);

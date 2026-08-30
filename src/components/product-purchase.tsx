@@ -7,6 +7,9 @@ import { EnquiryDialog } from "@/components/enquiry-dialog";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
+import { giftUnlocked } from "@/lib/gift";
+import { useGiftConfig } from "@/lib/gift-context";
+import { Gift } from "lucide-react";
 import { money } from "@/lib/format";
 import { bandsFor, priceAtQty, RETAIL_MAX } from "@/lib/pricing";
 import { packGramsOf } from "@/lib/shipping";
@@ -47,6 +50,17 @@ export function ProductPurchase({
   const [shortfall, setShortfall] = useState(0);
 
   const cart = useCart();
+  const giftConfig = useGiftConfig();
+
+  // Offered here only when it can actually be taken: the bag has earned a gift,
+  // this candle is one of the giftable ones, and none has been claimed yet.
+  const canClaimFree =
+    cart.ready &&
+    giftConfig.enabled &&
+    product.giftEligible &&
+    product.inStock &&
+    !cart.giftSlug &&
+    giftUnlocked(giftConfig, cart.subtotal);
 
   // Everything below is derived from the quantity.
   const unitPrice = priceAtQty(product, qty);
@@ -101,6 +115,26 @@ export function ProductPurchase({
 
   return (
     <>
+      {canClaimFree && (
+        <button
+          type="button"
+          onClick={() => cart.setGift(product.slug)}
+          className="gift-shine relative mt-9 flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-ember/40 bg-ember-wash px-5 py-4 text-left transition-colors hover:border-ember"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canvas text-ember-deep">
+            <Gift size={17} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[1.02rem] leading-snug text-ink">
+              Have this one free
+            </span>
+            <span className="mt-0.5 block text-[0.82rem] text-ink-soft">
+              Your bag has earned a free candle — tap to claim this one.
+            </span>
+          </span>
+        </button>
+      )}
+
       <div className="mt-9 rounded-[16px] border border-line bg-surface p-5 sm:p-6">
         {/* The price, on its own line so nothing can crowd it on a phone. */}
         <p className="eyebrow">Price per piece</p>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { GiftRibbon } from "@/components/gift-ribbon";
 import { money, sizeLabel } from "@/lib/format";
 import { singlePrice } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
@@ -26,6 +27,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           priority={priority}
           className="object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.045]"
         />
+
+        <GiftRibbon product={product} />
 
         {!product.inStock && (
           <span className="absolute top-3 left-3 rounded-full bg-ink/85 px-3 py-1 text-[0.7rem] tracking-wide text-canvas backdrop-blur-sm">

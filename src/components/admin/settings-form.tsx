@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { Card, Field, Input, Notice, SubmitButton, Textarea } from "@/components/admin/ui";
+import { Card, Field, Input, Notice, SubmitButton, Textarea, Toggle } from "@/components/admin/ui";
 import { IDLE } from "@/lib/admin/action-state";
 import { saveSettings } from "@/lib/admin/actions";
 import type { SiteSettings, TermsSection } from "@/lib/types";
@@ -82,6 +82,23 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
               step="0.5"
               defaultValue={settings.shipping.freeUnderGrams / 1000}
             />
+          </Field>
+        </div>
+      </Card>
+
+      <Card
+        title="Free candle"
+        hint="One free candle, chosen by the buyer, once their bag reaches the amount below. Which candles they may choose from is set per candle, on the product page — tick “Can be given free”."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Toggle
+            name="gift_enabled"
+            label="Offer a free candle"
+            hint="Turn off to end the offer without unticking every candle."
+            defaultChecked={settings.gift.enabled}
+          />
+          <Field label="Bag must reach (₹)" hint="Counts only what is being paid for — the gift never unlocks itself.">
+            <Input type="number" name="gift_threshold" min={0} step="1" defaultValue={settings.gift.threshold} />
           </Field>
         </div>
       </Card>

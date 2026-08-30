@@ -1,3 +1,4 @@
+import { DEFAULT_GIFT } from "./gift";
 import { DEFAULT_SHIPPING } from "./shipping";
 import type { Collection, PriceTier, Product, SiteSettings } from "./types";
 
@@ -51,6 +52,7 @@ export const seedSettings: SiteSettings = {
   addressLines: ["Sugandha Candles", "Gaur City, Greater Noida", "Uttar Pradesh 201009, India"],
   currency: "INR",
   shipping: DEFAULT_SHIPPING,
+  gift: DEFAULT_GIFT,
   fragrances: [
     "Rose",
     "British Rose",
@@ -641,4 +643,5 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   inStock: true,
   featured: Boolean(d.featured),
   sortOrder: i + 1,
+  giftEligible: false,
 }));

@@ -95,6 +95,7 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     price_tiers: tiers,
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),
+    gift_eligible: bool(fd, "gift_eligible"),
     sort_order: num(fd, "sort_order"),
   };
 
@@ -181,6 +182,10 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
       flatFee: num(fd, "ship_flat"),
       freeOverSubtotal: num(fd, "ship_free_over"),
       freeUnderGrams: Math.round(num(fd, "ship_free_under_kg") * 1000),
+    },
+    gift: {
+      enabled: bool(fd, "gift_enabled"),
+      threshold: num(fd, "gift_threshold"),
     },
     termsIntro: str(fd, "termsIntro"),
     termsSections: json<{ heading: string; body: string[] }[]>(fd, "termsSections", []).filter(

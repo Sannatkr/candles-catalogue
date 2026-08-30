@@ -7,12 +7,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
+import { resolveGift } from "@/lib/gift";
 import { instagramChatLink, money } from "@/lib/format";
 import { abandonOrder, confirmPayment, startCheckout } from "@/lib/orders";
 import { lookupPincode } from "@/lib/pincode";
 import { shippingCost } from "@/lib/shipping";
-import type { ShippingConfig } from "@/lib/types";
+import { singlePrice } from "@/lib/pricing";
+import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
 
 /**
  * Address, then payment. Razorpay's own sheet handles the card details — this
@@ -53,10 +56,14 @@ export function CheckoutForm({
   configured,
   instagramHandle,
   shippingConfig,
+  giftConfig,
+  giftProducts,
 }: {
   configured: boolean;
   instagramHandle: string;
   shippingConfig: ShippingConfig;
+  giftConfig: GiftConfig;
+  giftProducts: Product[];
 }) {
   const router = useRouter();
   const cart = useCart();
@@ -82,6 +89,7 @@ export function CheckoutForm({
   const lookingUp = pincodeOk && !resolved;
 
   // Flat delivery, free over a subtotal but only while the parcel stays light.
+  const gift = resolveGift(giftConfig, giftProducts, cart.subtotal, cart.giftSlug);
   const shipping = shippingCost(shippingConfig, { grams: cart.weightGrams, subtotal: cart.subtotal });
   const total = cart.subtotal + shipping;
 
@@ -144,6 +152,7 @@ export function CheckoutForm({
 
     const started = await startCheckout({
       lines: cart.lines.map((l) => ({ slug: l.slug, qty: l.qty })),
+      giftSlug: cart.giftSlug,
       buyerName: name,
       phone,
       email,
@@ -427,11 +436,26 @@ export function CheckoutForm({
               ))}
             </ul>
 
+            <div className="mt-5">
+              <GiftBanner config={giftConfig} products={giftProducts} readOnly />
+            </div>
+
             <dl className="mt-5 space-y-3 border-t border-line pt-4 text-[0.925rem]">
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-ink-soft">Subtotal</dt>
                 <dd className="text-ink tabular-nums">{money(cart.subtotal)}</dd>
               </div>
+              {gift && (
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="truncate text-ink-soft">
+                    {gift.name} <span className="text-ink-faint">(gift)</span>
+                  </dt>
+                  <dd className="shrink-0 tabular-nums">
+                    <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
+                    <b className="font-semibold text-[#3d5730]">FREE</b>
+                  </dd>
+                </div>
+              )}
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-ink-soft">Delivery</dt>
                 <dd className="text-ink tabular-nums">

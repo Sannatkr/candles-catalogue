@@ -3,14 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
-import { RETAIL_MAX } from "@/lib/pricing";
+import { resolveGift } from "@/lib/gift";
+import { RETAIL_MAX, singlePrice } from "@/lib/pricing";
 import { shippingCost } from "@/lib/shipping";
-import type { ShippingConfig } from "@/lib/types";
+import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
 
-export function CartView({ shippingConfig }: { shippingConfig: ShippingConfig }) {
-  const { lines, ready, count, subtotal, weightGrams, setQty, remove } = useCart();
+export function CartView({
+  shippingConfig,
+  giftConfig,
+  giftProducts,
+}: {
+  shippingConfig: ShippingConfig;
+  giftConfig: GiftConfig;
+  giftProducts: Product[];
+}) {
+  const { lines, ready, count, subtotal, weightGrams, giftSlug, setQty, remove } = useCart();
 
   // Nothing renders until localStorage has been read, or an empty bag flashes
   // for a frame on every visit.
@@ -36,6 +46,9 @@ export function CartView({ shippingConfig }: { shippingConfig: ShippingConfig })
     );
   }
 
+  // The gift is excluded from both the subtotal and the weight above, so it can
+  // neither unlock itself nor tip the parcel past the free-delivery limit.
+  const gift = resolveGift(giftConfig, giftProducts, subtotal, giftSlug);
   const shipping = shippingCost(shippingConfig, { grams: weightGrams, subtotal });
   const total = subtotal + shipping;
   const canGoFree =
@@ -119,6 +132,10 @@ export function CartView({ shippingConfig }: { shippingConfig: ShippingConfig })
       </ul>
 
       <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className="mb-4">
+          <GiftBanner config={giftConfig} products={giftProducts} />
+        </div>
+
         <div className="rounded-[18px] border border-line bg-surface p-5 sm:p-6">
           <p className="eyebrow">Summary</p>
 
@@ -129,6 +146,17 @@ export function CartView({ shippingConfig }: { shippingConfig: ShippingConfig })
               </dt>
               <dd className="text-ink tabular-nums">{money(subtotal)}</dd>
             </div>
+            {gift && (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="truncate text-ink-soft">
+                  {gift.name} <span className="text-ink-faint">(gift)</span>
+                </dt>
+                <dd className="shrink-0 tabular-nums">
+                  <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
+                  <b className="font-semibold text-[#3d5730]">FREE</b>
+                </dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-4">
               <dt className="text-ink-soft">Delivery</dt>
               <dd className="text-ink tabular-nums">
