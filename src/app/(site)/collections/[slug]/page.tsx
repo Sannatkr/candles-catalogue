@@ -2,10 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { GiftProgress } from "@/components/gift-progress";
+import { OfferBanner } from "@/components/offer-banner";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
-import { getCollection, getCollections, getProductsByCollection } from "@/lib/data";
+import { getCollection, getCollections, getProducts, getProductsByCollection } from "@/lib/data";
+import { eligibleGifts } from "@/lib/gift";
 
 export async function generateStaticParams() {
   const collections = await getCollections();
@@ -23,7 +24,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
   const collection = await getCollection(slug);
   if (!collection) notFound();
 
-  const products = await getProductsByCollection(slug);
+  const [products, all] = await Promise.all([getProductsByCollection(slug), getProducts()]);
 
   return (
     <>
@@ -65,8 +66,8 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
           {products.length} {products.length === 1 ? "design" : "designs"}
         </p>
 
-        <div className="mt-6">
-          <GiftProgress />
+        <div className="mt-7">
+          <OfferBanner products={eligibleGifts(all)} />
         </div>
 
         {products.length === 0 ? (

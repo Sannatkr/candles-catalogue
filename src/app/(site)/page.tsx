@@ -4,8 +4,9 @@ import { ArrowRight } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
-import { GiftProgress } from "@/components/gift-progress";
-import { getCollections, getFeaturedProducts, getSettings } from "@/lib/data";
+import { OfferBanner } from "@/components/offer-banner";
+import { getCollections, getFeaturedProducts, getProducts, getSettings } from "@/lib/data";
+import { eligibleGifts } from "@/lib/gift";
 
 const FACTS = [
   { label: "Wax", value: "100% natural soy" },
@@ -33,11 +34,13 @@ const STEPS = [
 ];
 
 export default async function HomePage() {
-  const [settings, collections, featured] = await Promise.all([
+  const [settings, collections, featured, allProducts] = await Promise.all([
     getSettings(),
     getCollections(),
     getFeaturedProducts(6),
+    getProducts(),
   ]);
+  const giftProducts = eligibleGifts(allProducts);
 
   // Hero is the lead collection; the inset is the next best seller behind it.
   const hero = collections[0]?.coverImage ?? featured[0]?.images[0] ?? "/placeholders/candle-01.svg";
@@ -131,9 +134,9 @@ export default async function HomePage() {
       {/* The offer, straight after the hero. Not pinned to the top of the window:
           70% of mobile visitors scroll the whole homepage, and a strip above the
           masthead is the one place shoppers have trained themselves to ignore. */}
-      <section className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8">
+      <section className="mx-auto max-w-[1240px] px-5 pt-20 sm:px-8">
         <Reveal>
-          <GiftProgress />
+          <OfferBanner products={giftProducts} />
         </Reveal>
       </section>
 

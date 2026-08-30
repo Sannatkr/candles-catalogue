@@ -1,8 +1,9 @@
 import { EmptyState } from "@/components/empty-state";
-import { GiftProgress } from "@/components/gift-progress";
+import { OfferBanner } from "@/components/offer-banner";
 import { ProductBrowser } from "@/components/product-browser";
 import { Reveal } from "@/components/reveal";
 import { getProducts } from "@/lib/data";
+import { eligibleGifts } from "@/lib/gift";
 
 export const metadata = { title: "All Products" };
 
@@ -30,8 +31,8 @@ export default async function ProductsPage() {
         </div>
       ) : (
         <>
-          <div className="mt-10">
-            <GiftProgress />
+          <div className="mt-12">
+            <OfferBanner products={eligibleGifts(products)} />
           </div>
           <ProductBrowser products={products} />
         </>
