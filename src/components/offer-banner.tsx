@@ -123,7 +123,10 @@ export function OfferBanner({ products }: { products: Product[] }) {
                     className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.07]"
                   />
                 </span>
-                <span className="mt-2 block truncate text-[0.72rem] leading-snug text-ink-soft sm:text-[0.78rem]">
+                {/* Two lines rather than an ellipsis: "Designer Lot…" tells a
+                    shopper nothing, and these names are the whole point of
+                    showing real candles instead of a gift icon. */}
+                <span className="mt-2 line-clamp-2 block text-[0.72rem] leading-snug text-ink-soft sm:text-[0.78rem]">
                   {product.name}
                 </span>
               </Link>
