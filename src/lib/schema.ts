@@ -60,9 +60,12 @@ export function productSchema(
       // Undated availability is treated as stale; a year out is the usual
       // convention for a shop that restocks continuously.
       priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
+      // OutOfStock, not PreOrder: "made to order" here means the shop pours it
+      // when asked, not that a buyer reserves a future release. Misstating
+      // availability breaches structured-data policy outright.
       availability: product.inStock
         ? "https://schema.org/InStock"
-        : "https://schema.org/PreOrder",
+        : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
       seller: { "@type": "Organization", name: "Sugandha Candles" },
     },

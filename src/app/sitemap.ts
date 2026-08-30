@@ -6,6 +6,13 @@ const SITE_URL = "https://www.sugandhacandles.com";
 /**
  * Built from the live catalogue rather than hand-listed, so a candle added in
  * the admin is discoverable without anyone remembering to edit this file.
+ *
+ * No `priority` or `changeFrequency`: Google's own sitemap documentation says
+ * it ignores both, so they are noise pretending to be instruction. No
+ * `lastModified` either — Google uses it only when it is "consistently and
+ * verifiably accurate", and stamping every URL with today's date on every
+ * rebuild is the fastest way to teach it that ours means nothing. It goes back
+ * in when the catalogue carries a real updated_at.
  */
 export const revalidate = 3600;
 
@@ -14,44 +21,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getProducts(),
     getCollections(),
   ]);
-  const now = new Date();
 
   return [
     {
       url: SITE_URL,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1,
     },
     {
       url: `${SITE_URL}/products`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.9,
     },
     {
       url: `${SITE_URL}/collections`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
     },
     {
       url: `${SITE_URL}/terms`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
     },
     ...collections.map((c) => ({
       url: `${SITE_URL}/collections/${c.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
     })),
     ...products.map((p) => ({
       url: `${SITE_URL}/products/${p.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
     })),
   ];
 }

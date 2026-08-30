@@ -29,7 +29,13 @@ export async function generateMetadata({
   const product = await getProduct(slug);
   return {
     title: product?.name ?? "Product",
-    description: product?.tagline,
+    // The real description, not the tagline. "Our best seller, and it shows" is
+    // lovely and contains not one word anybody types into Google; the
+    // description names the shape, the occasion and the fragrance.
+    description: (product?.description || product?.tagline || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 155),
     alternates: { canonical: `/products/${slug}` },
   };
 }
