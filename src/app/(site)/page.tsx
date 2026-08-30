@@ -1,3 +1,4 @@
+import { jsonLd, organizationSchema } from "@/lib/schema";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -72,6 +73,13 @@ export default async function HomePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(organizationSchema(settings.instagramHandle)),
+        }}
+      />
+
       {/* Hero */}
       {/* Before the hero. An offer people have to scroll to find is an offer
           most people never find. */}

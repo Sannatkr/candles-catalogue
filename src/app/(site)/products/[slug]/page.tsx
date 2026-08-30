@@ -1,3 +1,4 @@
+import { breadcrumbSchema, jsonLd, productSchema } from "@/lib/schema";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -74,6 +75,37 @@ export default async function ProductPage({
 
   return (
     <>
+      {/* Everything marked up here is visible on this page — price, stock,
+          images, name. Marking up anything a shopper cannot see is a policy
+          violation, and there is deliberately no rating: the shop has no
+          reviews yet, and inventing stars would be both a Google violation and
+          a misleading advertisement under Indian consumer law. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(productSchema(product, collection)),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbSchema([
+              { name: "Home", path: "/" },
+              ...(collection
+                ? [
+                    {
+                      name: collection.name,
+                      path: `/collections/${collection.slug}`,
+                    },
+                  ]
+                : [{ name: "All Products", path: "/products" }]),
+              { name: product.name, path: `/products/${product.slug}` },
+            ]),
+          ),
+        }}
+      />
+
       <div className="mx-auto max-w-[1240px] px-5 pt-8 sm:px-8">
         <Link
           href={collection ? `/collections/${collection.slug}` : "/products"}
