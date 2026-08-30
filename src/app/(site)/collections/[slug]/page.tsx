@@ -2,16 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { OfferBanner } from "@/components/offer-banner";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import {
   getCollection,
   getCollections,
-  getProducts,
   getProductsByCollection,
 } from "@/lib/data";
-import { showcaseProducts } from "@/lib/gift";
 
 export async function generateStaticParams() {
   const collections = await getCollections();
@@ -37,10 +34,7 @@ export default async function CollectionPage({
   const collection = await getCollection(slug);
   if (!collection) notFound();
 
-  const [products, all] = await Promise.all([
-    getProductsByCollection(slug),
-    getProducts(),
-  ]);
+  const products = await getProductsByCollection(slug);
 
   return (
     <>
@@ -79,8 +73,6 @@ export default async function CollectionPage({
           </div>
         </div>
       </div>
-
-      <OfferBanner showcase={showcaseProducts(all)} />
 
       <section className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8">
         <p className="eyebrow">
