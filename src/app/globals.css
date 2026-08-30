@@ -215,3 +215,121 @@
     animation: none;
   }
 }
+
+/* ===== The free-candle card ============================================
+   Built in CSS rather than with an animation library. `motion` v13 is ~683 kB
+   unpacked; for one banner on a shop whose buyers are mostly on mid-range
+   Android in India, that is a poor trade — and everything below is either a
+   compositor-only property (transform / opacity) or an @property custom
+   property, which has been Baseline since mid-2024.
+
+   The discipline throughout: nothing animates layout, entrances decelerate
+   (fast out of the gate, gentle landing), and the reward is the only moment
+   allowed to overshoot. ==================================================== */
+
+@property --gift-sheen {
+  syntax: "<percentage>";
+  initial-value: -40%;
+  inherits: false;
+}
+
+@property --gift-glow {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: false;
+}
+
+/* Entrances: a short rise with a decelerating curve. Children are staggered so
+   the card assembles rather than appearing as one flat block. */
+@keyframes gift-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gift-card-in > * {
+  animation: gift-rise 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.gift-card-in > *:nth-child(2) { animation-delay: 60ms; }
+.gift-card-in > *:nth-child(3) { animation-delay: 120ms; }
+
+/* The sheen. A single soft band travelling across the gold, slowly, at low
+   contrast — a sheen reads as material, a bright fast stripe reads as a banner
+   ad. Long pause between passes so it never nags. */
+@keyframes gift-sheen-sweep {
+  0%        { --gift-sheen: -40%; }
+  55%, 100% { --gift-sheen: 140%; }
+}
+
+.gift-sheen-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.gift-sheen-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent calc(var(--gift-sheen) - 18%),
+    rgb(255 255 255 / 0.5) var(--gift-sheen),
+    transparent calc(var(--gift-sheen) + 18%)
+  );
+  animation: gift-sheen-sweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* The reward. One overshoot, and only here — anticipation is what makes a
+   moment feel earned, and it stops being special if everything does it. */
+@keyframes gift-reward {
+  0%   { transform: scale(1); }
+  38%  { transform: scale(1.022); }
+  100% { transform: scale(1); }
+}
+
+.gift-reward {
+  animation: gift-reward 620ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* The marker riding the end of the progress bar. */
+@keyframes gift-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.35); }
+}
+
+.gift-pulse {
+  animation: gift-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Reduce, don't remove: the states still change and still read, they simply
+   stop moving. A celebration that vanishes entirely tells a motion-sensitive
+   buyer less than everyone else gets. */
+@media (prefers-reduced-motion: reduce) {
+  .gift-card-in > *,
+  .gift-sheen-surface::after,
+  .gift-reward,
+  .gift-pulse {
+    animation: none;
+  }
+
+  .gift-card-in > * {
+    opacity: 1;
+    transform: none;
+  }
+
+  .gift-sheen-surface::after {
+    display: none;
+  }
+
+  .gift-pulse {
+    opacity: 1;
+  }
+}
