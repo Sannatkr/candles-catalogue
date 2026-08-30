@@ -5,8 +5,13 @@ import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { OfferBanner } from "@/components/offer-banner";
-import { getCollections, getFeaturedProducts, getProducts, getSettings } from "@/lib/data";
-import { eligibleGifts } from "@/lib/gift";
+import {
+  getCollections,
+  getFeaturedProducts,
+  getProducts,
+  getSettings,
+} from "@/lib/data";
+import { showcaseProducts } from "@/lib/gift";
 
 const FACTS = [
   { label: "Wax", value: "100% natural soy" },
@@ -40,10 +45,13 @@ export default async function HomePage() {
     getFeaturedProducts(6),
     getProducts(),
   ]);
-  const giftProducts = eligibleGifts(allProducts);
+  const showcase = showcaseProducts(allProducts);
 
   // Hero is the lead collection; the inset is the next best seller behind it.
-  const hero = collections[0]?.coverImage ?? featured[0]?.images[0] ?? "/placeholders/candle-01.svg";
+  const hero =
+    collections[0]?.coverImage ??
+    featured[0]?.images[0] ??
+    "/placeholders/candle-01.svg";
   const heroAlt =
     featured.find((p) => p.images[0] && p.images[0] !== hero)?.images[0] ??
     collections[1]?.coverImage ??
@@ -52,6 +60,10 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
+      {/* Before the hero. An offer people have to scroll to find is an offer
+          most people never find. */}
+      <OfferBanner showcase={showcase} />
+
       <section className="relative overflow-hidden">
         {/* Warm glow behind the hero image. On a phone the column stacks, so it
             would sit straight on top of the headline — keep it off small screens. */}
@@ -134,12 +146,6 @@ export default async function HomePage() {
       {/* The offer, straight after the hero. Not pinned to the top of the window:
           70% of mobile visitors scroll the whole homepage, and a strip above the
           masthead is the one place shoppers have trained themselves to ignore. */}
-      <section className="mx-auto max-w-[1240px] px-5 pt-20 sm:px-8">
-        <Reveal>
-          <OfferBanner products={giftProducts} />
-        </Reveal>
-      </section>
-
       {/* Collections */}
       {collections.length > 0 && (
         <section className="mx-auto max-w-[1240px] px-5 pt-24 sm:px-8">
@@ -147,7 +153,9 @@ export default async function HomePage() {
             <div>
               <p className="eyebrow">The range</p>
               <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.85rem)] leading-tight tracking-[-0.015em] text-ink">
-                {collections.length === 1 ? "One collection" : `${collections.length} collections`}
+                {collections.length === 1
+                  ? "One collection"
+                  : `${collections.length} collections`}
               </h2>
             </div>
             <Link
@@ -231,9 +239,10 @@ export default async function HomePage() {
             Most candles you buy are paraffin.
           </h2>
           <p className="mt-5 text-[1.02rem] leading-relaxed text-ink-soft">
-            Paraffin is a petroleum by-product. It is cheap, it burns hot, and it leaves the black film you
-            find on jar rims and walls. We have never used it. Every piece here is poured in 100% natural soy
-            — nothing blended in to cut cost.
+            Paraffin is a petroleum by-product. It is cheap, it burns hot, and
+            it leaves the black film you find on jar rims and walls. We have
+            never used it. Every piece here is poured in 100% natural soy —
+            nothing blended in to cut cost.
           </p>
         </Reveal>
 
@@ -266,8 +275,12 @@ export default async function HomePage() {
           ].map((item, i) => (
             <Reveal key={item.title} delay={(i % 3) * 80}>
               <div className="h-px w-10 bg-ember" />
-              <h3 className="mt-5 font-display text-[1.15rem] leading-snug text-ink">{item.title}</h3>
-              <p className="mt-2.5 text-[0.925rem] leading-relaxed text-ink-soft">{item.body}</p>
+              <h3 className="mt-5 font-display text-[1.15rem] leading-snug text-ink">
+                {item.title}
+              </h3>
+              <p className="mt-2.5 text-[0.925rem] leading-relaxed text-ink-soft">
+                {item.body}
+              </p>
             </Reveal>
           ))}
         </div>

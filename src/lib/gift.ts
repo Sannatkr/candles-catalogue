@@ -25,7 +25,10 @@ export const DEFAULT_GIFT: GiftConfig = {
 export const SURPRISE_SLUG = "surprise-gift";
 
 /** Is the unchosen extra riding along on this bag? */
-export function surpriseIncluded(config: GiftConfig, paidSubtotal: number): boolean {
+export function surpriseIncluded(
+  config: GiftConfig,
+  paidSubtotal: number,
+): boolean {
   return config.surpriseEnabled && giftUnlocked(config, paidSubtotal);
 }
 
@@ -34,8 +37,13 @@ export function eligibleGifts(products: Product[]): Product[] {
   return products.filter((p) => p.giftEligible && p.inStock);
 }
 
-export function giftUnlocked(config: GiftConfig, paidSubtotal: number): boolean {
-  return config.enabled && config.threshold > 0 && paidSubtotal >= config.threshold;
+export function giftUnlocked(
+  config: GiftConfig,
+  paidSubtotal: number,
+): boolean {
+  return (
+    config.enabled && config.threshold > 0 && paidSubtotal >= config.threshold
+  );
 }
 
 /** How much more they need to spend, or 0 once it is unlocked. */
@@ -59,4 +67,17 @@ export function resolveGift(
   const product = products.find((p) => p.slug === slug);
   if (!product || !product.giftEligible || !product.inStock) return null;
   return product;
+}
+
+/**
+ * The pieces to photograph a promotion with: the dearest in-stock candles.
+ * Deliberately NOT the giftable ones — the banner's job is to make the range
+ * look worth ₹1,499, while the words carry the offer. Nothing in the banner
+ * claims the pictured candle is the free one.
+ */
+export function showcaseProducts(products: Product[], count = 3): Product[] {
+  return products
+    .filter((p) => p.inStock && p.images.length > 0)
+    .sort((a, b) => b.basePrice - a.basePrice)
+    .slice(0, count);
 }
