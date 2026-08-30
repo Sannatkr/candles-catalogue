@@ -288,17 +288,19 @@ export function CheckoutForm({
             </label>
 
             <label className="block">
-              <span className="text-[0.82rem] font-medium text-ink">
-                Email <span className="font-normal text-ink-faint">— optional</span>
-              </span>
+              <span className="text-[0.82rem] font-medium text-ink">Email</span>
               <input
                 type="email"
                 autoComplete="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="For the receipt"
+                placeholder="you@example.com"
                 className={`mt-2.5 ${FIELD}`}
               />
+              <span className="mt-1.5 block text-[0.75rem] leading-relaxed text-ink-faint">
+                Your receipt goes here, and it is how you sign in later to see this order.
+              </span>
             </label>
 
             <label className="block sm:col-span-2">

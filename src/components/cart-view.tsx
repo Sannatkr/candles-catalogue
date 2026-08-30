@@ -58,8 +58,19 @@ export function CartView({
   const toFreeShipping = canGoFree ? shippingConfig.freeOverSubtotal - subtotal : 0;
 
   return (
-    <div className="mt-8 grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:gap-14">
-      <ul className="divide-y divide-line-soft border-y border-line-soft">
+    <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-x-14 lg:gap-y-6">
+      {/*
+        On a phone this sits above the candles, not under them. The bag is one
+        column there, so a banner placed after the list is a banner a buyer with
+        six candles never scrolls far enough to see — and it is the one thing on
+        this page that makes them add another. On a desktop the explicit grid
+        placement puts it back at the top of the right-hand column.
+      */}
+      <div className="lg:col-start-2 lg:row-start-1">
+        <GiftBanner config={giftConfig} products={giftProducts} />
+      </div>
+
+      <ul className="divide-y divide-line-soft border-y border-line-soft lg:col-start-1 lg:row-span-2 lg:row-start-1">
         {lines.map((line) => (
           <li key={line.slug} className="flex gap-4 py-5 sm:gap-5">
             <Link
@@ -132,11 +143,7 @@ export function CartView({
         ))}
       </ul>
 
-      <div className="lg:sticky lg:top-24 lg:self-start">
-        <div className="mb-4">
-          <GiftBanner config={giftConfig} products={giftProducts} />
-        </div>
-
+      <div className="lg:col-start-2 lg:row-start-2 lg:sticky lg:top-24 lg:self-start">
         <div className="rounded-[18px] border border-line bg-surface p-5 sm:p-6">
           <p className="eyebrow">Summary</p>
 

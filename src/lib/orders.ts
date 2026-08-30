@@ -92,8 +92,13 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   const phone = input.phone.replace(/\D/g, "").slice(-10);
   if (phone.length !== 10) return { ok: false, message: "That needs to be a 10-digit mobile number." };
 
+  // Required, not optional. An order placed with only a phone number can never
+  // be reached again: sign-in is by email, so its buyer has no way back to their
+  // own receipt — and verifying a phone number instead would mean SMS OTP, DLT
+  // registration and a per-message fee.
   const email = input.email.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email) return { ok: false, message: "Add your email — your receipt and order updates go there." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, message: "That email address does not look right." };
   }
 
@@ -240,7 +245,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
       total,
       buyer_name: name.slice(0, 120),
       phone,
-      email: email.slice(0, 160) || null,
+      email: email.slice(0, 160),
       instagram: input.instagram.trim().replace(/^@/, "").slice(0, 120) || null,
       pincode,
       state: input.state.trim().slice(0, 120) || null,
