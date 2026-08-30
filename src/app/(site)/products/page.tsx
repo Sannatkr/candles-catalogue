@@ -34,7 +34,9 @@ export default async function ProductsPage() {
             />
           </div>
         ) : (
-          <ProductBrowser products={products} />
+          <div id="browse" className="scroll-mt-28">
+            <ProductBrowser products={products} />
+          </div>
         )}
       </div>
     </>

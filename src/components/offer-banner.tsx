@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
@@ -28,6 +29,7 @@ import type { Product } from "@/lib/types";
 export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const { subtotal, giftSlug, ready } = useCart();
   const config = useGiftConfig();
+  const pathname = usePathname();
 
   if (!config.enabled || config.threshold <= 0) return null;
 
@@ -36,6 +38,12 @@ export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const started = ready && subtotal > 0;
   const claimed = unlocked && Boolean(giftSlug);
   const hero = showcase[0];
+
+  // "Shop the range" pointing at /products is a dead click for anyone already
+  // on /products. There, the useful move is down the page to the grid.
+  const onCatalogue = pathname === "/products";
+  const shopHref = onCatalogue ? "#browse" : "/products";
+  const shopLabel = onCatalogue ? "Browse the candles" : "Shop the range";
 
   return (
     <section className="relative isolate overflow-hidden bg-ink">
@@ -123,14 +131,14 @@ export function OfferBanner({ showcase }: { showcase: Product[] }) {
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
-              href={unlocked ? "/cart" : "/products"}
+              href={unlocked ? "/cart" : shopHref}
               className="group inline-flex items-center gap-2.5 rounded-full bg-canvas px-7 py-3.5 text-[0.92rem] text-ink transition-colors hover:bg-[#e5c07b]"
             >
               {unlocked
                 ? claimed
                   ? "View your bag"
                   : "Pick your candle"
-                : "Shop the range"}
+                : shopLabel}
               <ArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-1"
