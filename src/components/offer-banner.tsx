@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
@@ -13,8 +12,11 @@ import type { Product } from "@/lib/types";
 /**
  * The offer, at the top of the page, before anything else.
  *
- * Placed above the hero because an offer nobody scrolls to is an offer nobody
- * has. It is dark where the rest of the site is pale, which is what lets it
+ * Home page only, placed above the hero — an offer nobody scrolls to is an
+ * offer nobody has. It is deliberately not repeated on the catalogue or the
+ * collection pages: those are where someone browses, and a full-width slab
+ * above the grid is a wall between them and the candles. The sticky bar in the
+ * header carries the offer everywhere else. It is dark where the rest of the site is pale, which is what lets it
  * lead without shouting — the contrast does the work that a red SALE strip
  * would otherwise be asked to do, and it reads as the brand rather than as an
  * advert bolted onto it.
@@ -29,7 +31,6 @@ import type { Product } from "@/lib/types";
 export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const { subtotal, giftSlug, ready } = useCart();
   const config = useGiftConfig();
-  const pathname = usePathname();
 
   if (!config.enabled || config.threshold <= 0) return null;
 
@@ -38,12 +39,6 @@ export function OfferBanner({ showcase }: { showcase: Product[] }) {
   const started = ready && subtotal > 0;
   const claimed = unlocked && Boolean(giftSlug);
   const hero = showcase[0];
-
-  // "Shop the range" pointing at /products is a dead click for anyone already
-  // on /products. There, the useful move is down the page to the grid.
-  const onCatalogue = pathname === "/products";
-  const shopHref = onCatalogue ? "#browse" : "/products";
-  const shopLabel = onCatalogue ? "Browse the candles" : "Shop the range";
 
   return (
     <section className="relative isolate overflow-hidden bg-ink">
@@ -131,14 +126,14 @@ export function OfferBanner({ showcase }: { showcase: Product[] }) {
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
-              href={unlocked ? "/cart" : shopHref}
+              href={unlocked ? "/cart" : "/products"}
               className="group inline-flex items-center gap-2.5 rounded-full bg-canvas px-7 py-3.5 text-[0.92rem] text-ink transition-colors hover:bg-[#e5c07b]"
             >
               {unlocked
                 ? claimed
                   ? "View your bag"
                   : "Pick your candle"
-                : shopLabel}
+                : "Shop the range"}
               <ArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-1"

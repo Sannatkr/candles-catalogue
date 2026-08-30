@@ -1,9 +1,7 @@
 import { EmptyState } from "@/components/empty-state";
-import { OfferBanner } from "@/components/offer-banner";
 import { ProductBrowser } from "@/components/product-browser";
 import { Reveal } from "@/components/reveal";
 import { getProducts } from "@/lib/data";
-import { showcaseProducts } from "@/lib/gift";
 
 export const metadata = { title: "All Products" };
 
@@ -12,8 +10,6 @@ export default async function ProductsPage() {
 
   return (
     <>
-      <OfferBanner showcase={showcaseProducts(products)} />
-
       <div className="mx-auto max-w-[1240px] px-5 pt-10 sm:px-8 sm:pt-16 lg:pt-20">
         <Reveal>
           <p className="eyebrow">Catalogue</p>
@@ -34,9 +30,7 @@ export default async function ProductsPage() {
             />
           </div>
         ) : (
-          <div id="browse" className="scroll-mt-28">
-            <ProductBrowser products={products} />
-          </div>
+          <ProductBrowser products={products} />
         )}
       </div>
     </>
