@@ -44,9 +44,9 @@ const tiers = (sell: number): PriceTier[] => {
 
 export const seedSettings: SiteSettings = {
   businessName: "Sugandha Candles",
-  tagline: "100% natural soy wax. Smokeless burn. Imported fragrance.",
+  tagline: "100% natural soy wax. Smokeless burn. English fragrance.",
   aboutBlurb:
-    "Every candle here is poured by hand in 100% natural soy wax — never paraffin. Soy burns cool, clean and smokeless, so it throws scent instead of soot, and it lasts far longer for the same size. The fragrance oils are imported, skin-safe and IFRA-grade. Buy one piece or a thousand.",
+    "Every candle here is poured by hand in 100% natural soy wax — never paraffin. Soy burns cool, clean and smokeless, so it throws scent instead of soot, and it lasts far longer for the same size. The fragrance oils are English, skin-safe and IFRA-grade. Buy one piece or a thousand.",
   instagramHandle: "sugandha_candles_",
   email: "sugandha.workspace@gmail.com",
   addressLines: ["Sugandha Candles", "Gaur City, Greater Noida", "Uttar Pradesh 201009, India"],
@@ -114,7 +114,7 @@ export const seedSettings: SiteSettings = {
       body: [
         "Every candle ships in our house fragrance for that design unless you choose otherwise.",
         "Orders of 50 pieces and above can pick any fragrance from our list, free of charge.",
-        "All oils are imported, IFRA-grade and skin-safe. We do not use industrial-grade perfume.",
+        "All oils are English, IFRA-grade and skin-safe. We do not use industrial-grade perfume.",
         "Tell us if the candles are for a temple, a hospital or a closed room and we will suggest a lighter throw.",
       ],
     },
@@ -185,7 +185,7 @@ export const seedCollections: Collection[] = [
     name: "Festive Candles",
     tagline: "Diwali, weddings, gifting",
     description:
-      "Brass urlis, lotus ponds, diya sets and gift boxes — the pieces that sell through the festive season and carry a brand well. All poured in 100% natural soy wax with imported fragrance.",
+      "Brass urlis, lotus ponds, diya sets and gift boxes — the pieces that sell through the festive season and carry a brand well. All poured in 100% natural soy wax with English fragrance.",
     coverImage: img("peacock-urli-candle"),
     sortOrder: 1,
   },

@@ -9,7 +9,7 @@ import { getCollections, getFeaturedProducts, getSettings } from "@/lib/data";
 const FACTS = [
   { label: "Wax", value: "100% natural soy" },
   { label: "Burn", value: "Smokeless, no soot" },
-  { label: "Fragrance", value: "Premium imported oils" },
+  { label: "Fragrance", value: "English fragrance oils" },
   { label: "Order from", value: "A single piece" },
 ];
 
@@ -55,7 +55,7 @@ export default async function HomePage() {
 
         <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:pt-24 lg:pb-28">
           <Reveal>
-            <p className="eyebrow">Wholesale Catalogue</p>
+            <p className="eyebrow">Handmade soy candles</p>
             <h1 className="mt-5 font-display text-[clamp(2.6rem,6.5vw,4.6rem)] leading-[1.02] tracking-[-0.02em] text-ink">
               No smoke.
               <br />
