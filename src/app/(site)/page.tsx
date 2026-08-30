@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
+import { GiftProgress } from "@/components/gift-progress";
 import { getCollections, getFeaturedProducts, getSettings } from "@/lib/data";
 
 const FACTS = [
@@ -125,6 +126,15 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* The offer, straight after the hero. Not pinned to the top of the window:
+          70% of mobile visitors scroll the whole homepage, and a strip above the
+          masthead is the one place shoppers have trained themselves to ignore. */}
+      <section className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8">
+        <Reveal>
+          <GiftProgress />
+        </Reveal>
       </section>
 
       {/* Collections */}
