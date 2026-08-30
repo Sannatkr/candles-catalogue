@@ -119,6 +119,14 @@ export function GiftPicker({
                           sizes="(max-width: 640px) 45vw, 220px"
                           className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                         />
+                        {/* The shop's own recommendation — deliberately NOT a
+                            popularity claim, which would need to be true and
+                            provable under India's dark-pattern rules. */}
+                        {product.featured && !isChosen && (
+                          <span className="absolute top-2 left-2 rounded-full bg-ink/85 px-2.5 py-1 text-[0.65rem] tracking-wide text-canvas backdrop-blur-sm">
+                            Our pick
+                          </span>
+                        )}
                         {isChosen && (
                           <span className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-ember text-canvas">
                             <Check size={15} />

@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { GiftProgress } from "@/components/gift-progress";
 import { ProductBrowser } from "@/components/product-browser";
 import { Reveal } from "@/components/reveal";
 import { getProducts } from "@/lib/data";
@@ -28,7 +29,12 @@ export default async function ProductsPage() {
           />
         </div>
       ) : (
-        <ProductBrowser products={products} />
+        <>
+          <div className="mt-10">
+            <GiftProgress />
+          </div>
+          <ProductBrowser products={products} />
+        </>
       )}
     </div>
   );

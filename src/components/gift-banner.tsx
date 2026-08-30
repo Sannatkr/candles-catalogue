@@ -10,7 +10,7 @@ import { celebrateGift, celebrateUnlock, originOf } from "@/lib/celebrate";
 import { money } from "@/lib/format";
 import { amountToGift, giftUnlocked, resolveGift, surpriseIncluded } from "@/lib/gift";
 import { singlePrice } from "@/lib/pricing";
-import type { GiftConfig, Product } from "@/lib/types";
+import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
 
 /**
  * The free-candle offer, in its four honest states: not yet earned, just
@@ -20,14 +20,17 @@ import type { GiftConfig, Product } from "@/lib/types";
 export function GiftBanner({
   config,
   products,
+  shipping,
   readOnly = false,
 }: {
   config: GiftConfig;
   products: Product[];
+  /** Lets the banner offer the next goal once the gift is won. */
+  shipping?: ShippingConfig;
   /** Checkout shows the state but sends people back to the bag to change it. */
   readOnly?: boolean;
 }) {
-  const { subtotal, giftSlug, setGift, ready } = useCart();
+  const { subtotal, weightGrams, giftSlug, setGift, ready } = useCart();
   const [picking, setPicking] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const wasUnlocked = useRef(false);
@@ -41,6 +44,17 @@ export function GiftBanner({
   const gift = resolveGift(config, products, subtotal, giftSlug);
   const missing = amountToGift(config, subtotal);
   const surprise = surpriseIncluded(config, subtotal);
+
+  // Kivetz et al. found purchasing drops off sharply the moment a reward is
+  // collected and the card resets. So the instant the gift is won, the next
+  // real goal is offered — free delivery — but only when the parcel is
+  // genuinely still light enough to earn it. Dangling a goal this bag cannot
+  // reach would be a false promise, not a nudge.
+  const nextGoal =
+    shipping && shipping.freeOverSubtotal > subtotal &&
+    (shipping.freeUnderGrams <= 0 || weightGrams <= shipping.freeUnderGrams)
+      ? shipping.freeOverSubtotal - subtotal
+      : 0;
 
   // Celebrate the crossing, not the state — otherwise every re-render throws
   // paper. The first pass only records where we started.
@@ -119,6 +133,12 @@ export function GiftBanner({
               )}
 
               {surprise && <SurpriseGift label={config.surpriseLabel} threshold={money(config.threshold)} />}
+              {nextGoal > 0 && (
+                <p className="mt-3 border-t border-[#c9a227]/25 pt-3 text-[0.82rem] leading-relaxed text-ink-soft">
+                  Add <b className="text-ink tabular-nums">{money(nextGoal)}</b> more and delivery is
+                  free too.
+                </p>
+              )}
             </>
           ) : losing ? (
             /* --- chosen, but the bag dropped back under the line --- */
@@ -169,6 +189,12 @@ export function GiftBanner({
               </div>
 
               {surprise && <SurpriseGift label={config.surpriseLabel} threshold={money(config.threshold)} />}
+              {nextGoal > 0 && (
+                <p className="mt-3 border-t border-[#c9a227]/25 pt-3 text-[0.82rem] leading-relaxed text-ink-soft">
+                  Add <b className="text-ink tabular-nums">{money(nextGoal)}</b> more and delivery is
+                  free too.
+                </p>
+              )}
             </>
           ) : (
             /* --- not there yet: the nudge --- */

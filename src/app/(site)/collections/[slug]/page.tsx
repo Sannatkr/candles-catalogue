@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { GiftProgress } from "@/components/gift-progress";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { getCollection, getCollections, getProductsByCollection } from "@/lib/data";
@@ -63,6 +64,10 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
         <p className="eyebrow">
           {products.length} {products.length === 1 ? "design" : "designs"}
         </p>
+
+        <div className="mt-6">
+          <GiftProgress />
+        </div>
 
         {products.length === 0 ? (
           <p className="mt-8 text-ink-soft">Nothing published in this collection yet.</p>

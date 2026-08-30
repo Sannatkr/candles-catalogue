@@ -67,7 +67,7 @@ export function CartView({
         placement puts it back at the top of the right-hand column.
       */}
       <div className="lg:col-start-2 lg:row-start-1">
-        <GiftBanner config={giftConfig} products={giftProducts} />
+        <GiftBanner config={giftConfig} products={giftProducts} shipping={shippingConfig} />
       </div>
 
       <ul className="divide-y divide-line-soft border-y border-line-soft lg:col-start-1 lg:row-span-2 lg:row-start-1">

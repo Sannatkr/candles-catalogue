@@ -7,6 +7,7 @@ import { EnquiryDialog } from "@/components/enquiry-dialog";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
+import { GiftProgress } from "@/components/gift-progress";
 import { celebrateGift } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
@@ -275,6 +276,10 @@ export function ProductPurchase({
                 {added ? <Check size={17} /> : <ShoppingBag size={17} />}
                 {added ? "Added to bag" : "Add to bag"}
               </button>
+
+              {/* Next to the buy action, not in a banner: shoppers must look here
+                  to proceed, and up to 27% never see a site-wide strip at all. */}
+              {!canClaimFree && <GiftProgress variant="compact" />}
 
               {shortfall > 0 && (
                 <p className="mt-3 rounded-[12px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">

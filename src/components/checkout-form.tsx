@@ -440,7 +440,7 @@ export function CheckoutForm({
             </ul>
 
             <div className="mt-5">
-              <GiftBanner config={giftConfig} products={giftProducts} readOnly />
+              <GiftBanner config={giftConfig} products={giftProducts} shipping={shippingConfig} readOnly />
             </div>
 
             <dl className="mt-5 space-y-3 border-t border-line pt-4 text-[0.925rem]">
