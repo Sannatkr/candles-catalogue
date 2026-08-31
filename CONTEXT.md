@@ -3,7 +3,7 @@
 > Working context for whoever (human or AI) picks this up next.
 > **Keep this file current. Update the Changelog at the bottom on every change, big or small.**
 
-Last updated: 2026-08-28 · **LIVE in production** (see Status section below)
+Last updated: 2026-08-31 · **LIVE in production** (see Status section below)
 
 ---
 
@@ -182,6 +182,63 @@ Razorpay callback body before it verifies.
 
 ---
 
+---
+
+## SEO — state, decisions, and what NOT to do
+
+Added 2026-08-31. The domain went live 2026-08-30, so everything here is early-days.
+
+### What is in place
+
+- `src/app/robots.ts` — blocks `/admin`, `/cart`, `/checkout`, `/orders/`, `/account`; declares the sitemap. **A second rule allows `Storebot-Google` through the cart and checkout** — StoreBot walks the whole buying flow to confirm a listed product can really be bought, and blocking it makes Merchant Center disable the products it could not verify.
+- `src/app/sitemap.ts` — generated from the live catalogue (32 URLs), so a candle added in the admin needs no code edit. **Deliberately no `priority`, `changeFrequency` or `lastModified`**: Google's docs say it ignores the first two, and uses `lastModified` only when "consistently and verifiably accurate" — stamping every URL with today's date on every rebuild teaches it to ignore ours. Put `lastModified` back if/when the catalogue carries a real `updated_at`.
+- `src/lib/schema.ts` — `Product` + `Offer` + `BreadcrumbList` on product pages, `Organization` on home. **Two rules hold here:** everything marked up must be *visible on the page it describes*, and **nothing is invented** — there is deliberately no `aggregateRating` because there are no reviews yet, and fabricating stars is both a Google violation and a misleading advertisement under Indian consumer law.
+- Per-route canonicals via `alternates.canonical` in each page's metadata.
+
+### The canonical trap — do not repeat this
+
+`alternates.canonical` set on the **root layout is inherited by every page**. It was briefly set to `"/"`, which made every product and collection page declare the home page as its canonical — an instruction to Google to index none of them. Fixed in `ba9b342`; the root layout now carries a comment saying why it must stay absent. **Never set a canonical on the root layout.**
+
+### Strategy decided (research-backed, 2026-08-31)
+
+**Do not build a conventional blog.** The best evidence (a randomised study, 1,065 users, AI Overviews hidden in real time) puts outbound click loss at **−38%** with an AI Overview present, and that loss is concentrated on **informational** queries — 99.2% of AIO-triggering keywords in one large sample were informational. "What is soy wax" content is now answered by Google without a click.
+
+**Build occasion collection pages instead.** Semrush (600K keywords) found AIO presence on *commercial* queries up **+71%** while *transactional* queries fell **5%** — Google is retreating at the point of purchase. A collection page is the same writing effort but purchasable. Priority pages: **Diwali Gifting, Return Gifts & Bulk, Corporate Gifting, Wedding & Event Decor, Pooja Room, Under ₹200**. Only one collection (`festive-candles`) exists today, and **the bulk price tiers (10/25/50/100) — a real differentiator — are mentioned on no page at all.**
+
+**Highest-ROI action is not SEO: Google Merchant Center free listings.** Free placement in Shopping, Images, Lens and now AI surfaces *including India*, and crucially **feed inclusion does not depend on domain authority** — a shortcut past the exact problem a new domain has. Blocked on two missing pages: **a return policy and a contact page**.
+
+**Timeline, honestly:** branded queries only for months 1–3; long-tail product terms 3–6; gifting terms contestable 6–12. **SEO will not deliver Diwali 2026** — Instagram and Merchant Center will. Build the SEO base now because it compounds, but do not let it displace what works this season.
+
+### Explicitly skip
+
+- **FAQPage schema** — Google stopped showing FAQ rich results **7 May 2026**. **HowTo** likewise retired. Any advice recommending these is from a stale playbook.
+- **Informational blog posts** — AI Overview fodder.
+- `ItemList`/carousel markup on collections (unsupported for Product), meta keywords, directory submissions, paid links (an explicit spam violation), city-permutation landing pages (doorway pages), chasing a 100 Lighthouse score.
+
+### Open, in rough priority order
+
+1. **Verify the domain in Google Search Console — do this first.** 16-month retention and **no backfill**: it collects from the day you verify, so every day of delay is keyword data lost permanently. Use **DNS TXT at GoDaddy → Domain property**, then query as `sc-domain:sugandhacandles.com`.
+2. **OG images.** `openGraph` is set with **no image**, so every WhatsApp and Instagram share renders a blank card. For an Instagram-led brand this is likely the single highest-value item on the list. `opengraph-image.tsx` at root, plus per-product from the product photo.
+3. `/shipping-returns`, `/contact`, `/about` — Merchant Center prerequisites and trust signals; `/about` is where the "poured by hand in Greater Noida" story belongs.
+4. Enrol in Merchant Center, enable free listings.
+5. Enrich `Organization` with `logo`, `email`, `telephone`, `address`, and `hasMerchantReturnPolicy` once the policy page exists.
+6. Build the 4–6 occasion collections.
+7. Add `BreadcrumbList` to collection pages.
+8. Month 2–3: read real Search Console queries and build the keyword map from impressions rather than guesswork.
+9. A review mechanism — real reviews legitimately unlock `AggregateRating` on **Product** (the self-serving-review ban covers `Organization`/`LocalBusiness`, **not** first-party product reviews).
+
+### If a content skill is built later
+
+Guardrails that keep it the right side of Google's **scaled content abuse** policy (which is behaviour-based, not tool-based — AI-written content is explicitly allowed): a **finite** list of ~12 occasion pages then it stops; **refuses to draft** without a first-party input (a real photo, customer story, price or constraint); links to **≥3 real products** from the live catalogue; **mandatory owner review** adding at least one fact only she knows; a disclosure line; **one page per fortnight maximum**; measure at 90 days and stop writing what earns no impressions.
+
+### Search Console API, when it is wired up
+
+Free. **Use a service account**, not OAuth — an OAuth consent screen left in "Testing" expires refresh tokens after 7 days and silently breaks the job. Create the service account in Google Cloud, enable the Search Console API, download the JSON key (**keep it out of the repo**, `chmod 600`), then add its `client_email` as a user in Search Console → Settings → Users and permissions. Scope `webmasters.readonly`. Endpoint `POST https://www.googleapis.com/webmasters/v3/sites/{siteUrl}/searchAnalytics/query`. Data lags **2–3 days**; quotas are irrelevant at this size.
+
+**The blind spot to design around:** Google **anonymises low-volume queries** — they are absent from query-dimension results but still counted in totals, and for a small site that can be **30–50%+ of clicks**. Never compute totals from a query-dimension pull, and never assume the visible queries are the whole picture. Clicks/impressions/queries live **only in Search Console**; GA4 has none of them (it covers what happens after the click).
+
+---
+
 ## Supabase migrations
 
 Run in `Supabase → SQL Editor`. All are idempotent (safe to run twice). `schema.sql` is the
@@ -290,6 +347,7 @@ Nothing pushed yet — still all uncommitted on `main`.
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
 
+- 2026-08-31 — **SEO foundations built and audited; blog strategy decided against. See the new "SEO" section above — it carries the reasoning, and the next session should start there rather than re-researching.** Fixed a **serious self-inflicted bug**: `alternates.canonical: "/"` on the root layout is inherited by every route, so every product and collection page was declaring the home page as its canonical — telling Google to index none of them. Added the missing `robots.txt` and `sitemap.xml` (both were 404s, so nothing pointed a crawler at the catalogue), and `Product`/`Offer`/`BreadcrumbList`/`Organization` JSON-LD where there had been none. Then an audit caught four more defects: out-of-stock marked `PreOrder` instead of `OutOfStock` (factually wrong markup, hard Merchant Center failure), meta descriptions using taglines that contain no searchable words, `Storebot-Google` blocked from the cart (would make Merchant Center disable unverifiable products), and sitemap hints Google documents that it ignores. **Strategy:** occasion collection pages, not blog posts — AI Overviews have taken ~38% of clicks on *informational* queries while retreating from *transactional* ones; and **Merchant Center free listings** matter more than either, because feed inclusion does not depend on domain authority. **SEO will not deliver Diwali 2026.**
 - 2026-08-31 — **Banner ground is now drawn, not photographed; hero is a four-piece mosaic that survives a phone.** (a) New **`lotus-motif.tsx`** — an engraved rosette in fine gold line (concentric rings, 16 outer + 8 interlocking inner petals, a 48-tick beaded rim), generated in JSX rather than hand-written path data. Replaces the darkened, blurred product photo behind `OfferBanner`: a hidden photo reads as a hidden photo, engraved linework reads as something **made**, which is the claim the shop rests on — and it is a few hundred bytes of vector instead of a hero JPEG, crisp at any width, no image request on a phone. Two instances (a large one bled off the right for `sm+`, a smaller corner one below), plus two radial gradients so the ground is lit rather than flat black. (b) **Home hero rebuilt as a mosaic**: it was one photograph with a second inset hidden below `sm` — so phones, i.e. nearly every visitor, saw a single shot. Now one wide 16/11 tile over a row of three squares, **the same grid at every width**. Sources de-duplicated across collection covers, featured products *and the full catalogue* — the first two overlap (the lead cover is usually also a featured photo), which initially left the row a tile short.
 - 2026-08-30 — **`offer-banner.tsx` rebuilt as a dark hero banner, moved ABOVE the fold.** **Home page only**, as the first thing before the hero. **Not on the catalogue or collection pages** — those are where someone browses, and a full-width slab above the grid is a wall between them and the candles (collections also already open with their own cover + title card). The sticky `GiftBar` carries the offer on every other page. **Dark on an otherwise pale site** — the contrast is what lets it lead without a red SALE strip, so it reads as the brand rather than an advert bolted on. Backdrop is the shop's dearest candle at 38% under a gradient scrim; alongside it, the **three most expensive in-stock pieces** (`showcaseProducts()` in `lib/gift.ts` — sorts by price, deliberately NOT the giftable list). **Why the expensive candles and not the free ones:** the banner's job is to make the range look worth ₹1,499; the giftable candles are named at checkout. The line this walks: nothing labels the pictured candles as the gift, and the copy says "choose yours from a selection of our candles at checkout" — promoting one thing and supplying another is **bait and switch**, a notified dark pattern under the CCPA rules. Four states as before, progress along the base. Verified live: banner appears before the hero in source order, all four images load, three surfaces carry it.
 - 2026-08-30 — **`offer-banner.tsx` — a real promotional banner on home, collections and all-products.** Replaces the thin `GiftProgress` card on those three pages (the card variant is now unused there; `compact` still runs under Add to Cart, and the cart/checkout keep `gift-banner.tsx`). Full-width gold card: eyebrow, display headline, body, CTA, and **three fanned photographs of the actual giftable candles**. Showing the real candles rather than a gift icon is deliberate — a shopper deciding whether ₹1,499 is worth stretching to needs to see what they get, and **Raghubir (JCP 2004)** found a gift presented without its own identity is valued *less* afterwards, which for a shop giving away its own candles quietly cheapens the range. Four states so it is never a stale promise: invitation → "₹X away" → "waiting" → "chosen", with progress as a 3px line across the base (`scaleX`). Names `line-clamp-2` rather than truncated — "Designer Lot…" defeats the point of showing them. **Current surface map:** sticky `GiftBar` (47px, in the header, all pages) · `OfferBanner` (home / collections / all-products) · `GiftProgress variant="compact"` (product page, under Add to bag) · `GiftBanner` (cart + checkout) · `GiftRibbon` (giftable product cards) · claim banner (giftable product pages).
