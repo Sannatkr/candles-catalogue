@@ -9,37 +9,27 @@ Last updated: 2026-08-31 · **LIVE in production** (see Status section below)
 
 ## The one big thing to understand
 
-This project started life as a **catalogue** — a link you send a client, they see the
-range with photos, sizes and price slabs. **No cart, no checkout, no accounts.** That is
-what `README.md` still describes, and what is live in production today.
+This started life as a **catalogue** — a link you send a client, showing the range with
+photos, sizes and price slabs. No cart, no checkout, no accounts.
 
-It is **now being turned into a full online shop**: cart, checkout, real payments,
-customer accounts, order tracking. **This new work is NOT pushed and NOT deployed yet.**
-The plan is: finish the website first, then push and deploy in one go. Until then,
-production keeps running the old catalogue.
+It is now a **full online shop**, live and taking real money: cart, checkout, Razorpay,
+customer accounts, courier shipments, a free-candle offer. All of it is **pushed and
+deployed** at **sugandhacandles.com**.
 
-So there are two truths at once:
-- **Live / production** = the old catalogue (last pushed commit on `main`).
-- **Local working tree** = the new shop, half-built, uncommitted.
-
-`README.md` is stale on purpose for now (it describes the catalogue). Don't trust it for
-the new features — trust this file and the code.
+`README.md` still describes the old catalogue and is **stale** — it has not been rewritten.
+Trust this file and the code, not the README.
 
 ---
 
 ## Where the code stands right now (git)
 
-- Branch: `main`, up to date with `origin/main`.
-- The shop work lives entirely in **uncommitted changes** (modified + untracked files).
-- Nothing about the shop has been pushed. `origin/main` is still the catalogue.
-
-Rough shape of the uncommitted work:
-- **New customer flow**: `cart/`, `checkout/`, `orders/`, `account/` route folders.
-- **New libs**: `cart.tsx`, `orders.ts`, `pricing.ts`, `account.ts`, `analytics.tsx`.
-- **New admin**: `admin/(dash)/orders/`, `is-admin.ts`, `order-status.ts`.
-- **New SQL**: `013-orders.sql`, `014-admin-lockdown.sql`, `015-customer-accounts.sql`.
-- **Removed**: old `booking-dialog.tsx`, `product-actions.tsx` (replaced by
-  `product-purchase.tsx` + `enquiry-dialog.tsx`).
+- Branch `main`, pushed, in sync with `origin/main`. **Vercel auto-deploys every push**, so
+  anything committed here is live within a couple of minutes.
+- The working tree is normally clean. There is no "unpushed shop work" any more — that note
+  described the pre-launch state and no longer applies.
+- Content (products, collections, settings, the gift config) lives in **Supabase**, not in the
+  repo. Changing it does not need a deploy; changing `seed.ts` does nothing in production,
+  because that is only the fallback for when Supabase is unconfigured.
 
 ---
 
@@ -323,14 +313,20 @@ Razorpay keys in Vercel; local `.env.local` still has TEST keys). Repo:
 - Marketing: user is weighing Google Ads (advised against for low-AOV; Instagram/Meta Ads +
   Shopping feed + bundles instead). No conversion tag (Google/Meta pixel) on the site yet.
 
-## What was built this session (see Changelog for detail)
+## Where to pick up (as of 2026-08-31)
 
-Checkout smoke-tested + real test payment verified · flat-₹89 weight-guard shipping ·
-per-product pack weights · admin turned into a left-sidebar dashboard · Orders as a column
-table with an editable modal + ⋯ actions (incl. Refunded) · Enquiries editable (custom
-"unknown" candles + final-price/discount override) · **invoice generator** (`/admin/invoices`,
-GST toggle, jsPDF one-click download, start-from-order/enquiry) · **RapidShyp** auto-shipment.
-Nothing pushed yet — still all uncommitted on `main`.
+Everything below is live. The **Changelog** has the detail and the reasoning; the **SEO**
+section above is where the next piece of work starts.
+
+Recently shipped: the custom domain · a **free-candle + surprise-gift offer** (₹1,499
+threshold, admin-controlled, server-validated) with a sticky header bar, a home-page banner
+and a picker in the cart · a **Scripts** section in the admin for reel writing · RapidShyp
+auto-approve · email required at checkout · **SEO foundations** (canonicals, robots, sitemap,
+structured data).
+
+**Next, in order:** verify Search Console (urgent — no backfill), add OG images (every
+WhatsApp share is a blank card today), write `/shipping-returns` + `/contact` + `/about`,
+then Merchant Center. Reasoning for all of it is in the SEO section.
 
 ---
 
