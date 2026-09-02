@@ -42,3 +42,7 @@ next-env.d.ts
 
 # keep the template, ignore the real keys
 !.env.example
+
+# Horos writes a database scaffold wherever it is pointed; one landed in
+# supabase/ once and swallowed a migration file. Never commit one.
+Horos Data/
