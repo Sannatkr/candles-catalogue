@@ -3,10 +3,20 @@
 import Image from "next/image";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Check, Trash2, X } from "lucide-react";
-import { deleteOrder, saveOrderTracking, updateOrderDetails } from "@/lib/admin/actions";
+import { Check, Copy, ExternalLink, Link2, Trash2, X } from "lucide-react";
+import {
+  createOrderPaymentLink,
+  deleteOrder,
+  saveOrderTracking,
+  updateOrderDetails,
+} from "@/lib/admin/actions";
 import { IDLE } from "@/lib/admin/action-state";
-import { ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, type OrderStatus } from "@/lib/admin/order-status";
+import {
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_STYLE,
+  type OrderStatus,
+  PAID_STATUSES,
+} from "@/lib/admin/order-status";
 import type { AdminOrder } from "@/lib/admin/queries";
 import { money } from "@/lib/format";
 
@@ -19,6 +29,28 @@ export function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: ()
   const status = order.status as OrderStatus;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, startDelete] = useTransition();
+
+  // A checkout that failed leaves the order sitting here unpaid. Rather than
+  // asking the buyer to build their cart again, raise a Razorpay link for the
+  // same total and send it to them.
+  const [link, makeLink, making] = useActionState(createOrderPaymentLink, {
+    ok: true,
+    message: "",
+    url: order.paymentLinkUrl ?? undefined,
+  });
+  const payLink = link.url ?? null;
+  const unpaid = !PAID_STATUSES.includes(status);
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    if (!payLink) return;
+    try {
+      await navigator.clipboard.writeText(payLink);
+      setCopied(true);
+    } catch {
+      /* the link stays selectable on screen as a fallback */
+    }
+  }
 
   function remove() {
     startDelete(async () => {
@@ -120,6 +152,61 @@ export function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: ()
               </div>
             )}
           </dl>
+
+          {/* Unpaid — offer a link the buyer can pay from WhatsApp. */}
+          {unpaid && (
+            <div className="mt-6 rounded-[14px] border border-line bg-canvas-deep/30 px-4 py-4">
+              <p className="eyebrow">Payment</p>
+              {payLink ? (
+                <>
+                  <p className="mt-2 text-[0.8rem] text-ink-soft">
+                    Send this to {order.buyerName.split(" ")[0] || "the buyer"}. It marks the order
+                    paid by itself.
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate rounded-[9px] border border-line bg-surface px-3 py-2 text-[0.8rem] text-ink">
+                      {payLink}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={copyLink}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[0.8rem] text-canvas transition-colors hover:bg-ember"
+                    >
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                    <a
+                      href={payLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Open the payment page"
+                      className="inline-flex shrink-0 items-center rounded-full border border-line p-2 text-ink-soft transition-colors hover:border-ink hover:text-ink"
+                    >
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <form action={makeLink} className="mt-2.5 flex flex-wrap items-center gap-3">
+                  <input type="hidden" name="id" value={order.id} />
+                  <button
+                    type="submit"
+                    disabled={making}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[0.8rem] text-canvas transition-opacity hover:bg-ember disabled:opacity-50"
+                  >
+                    <Link2 size={14} />
+                    {making ? "Making the link…" : `Payment link for ${money(order.total)}`}
+                  </button>
+                  <span className="text-[0.78rem] text-ink-faint">
+                    Hosted by Razorpay — UPI, card or netbanking.
+                  </span>
+                </form>
+              )}
+              {!link.ok && link.message && (
+                <p className="mt-2.5 text-[0.78rem] text-ember-deep">{link.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Editable — who it is for and where it goes. */}
           <form action={save} className="mt-7">

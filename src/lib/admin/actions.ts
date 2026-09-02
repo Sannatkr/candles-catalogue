@@ -6,7 +6,8 @@ import type { ActionState } from "@/lib/admin/action-state";
 import { type BookingItem, itemsLabel, itemsTotals, parseItems } from "@/lib/admin/booking-items";
 import { isBookingStatus } from "@/lib/admin/booking-status";
 import { checkIsAdmin } from "@/lib/admin/is-admin";
-import { isOrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
+import { toOrderItems } from "@/lib/admin/queries";
+import { isOrderStatus, type OrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
 import { countWords, estimateDuration, isScriptStatus } from "@/lib/admin/script-status";
 import { slugify } from "@/lib/slug";
 import { getProducts } from "@/lib/data";
@@ -380,6 +381,67 @@ export async function createBookingPaymentLink(
 }
 
 // --------------------------------------------------------------- orders ----
+
+/**
+ * A payment link for a retail order whose checkout never completed — the buyer
+ * hit a card failure, or closed the tab. The link is hosted by Razorpay, so it
+ * works from a WhatsApp message and does not depend on our own checkout page.
+ *
+ * Always the full total: unlike an enquiry, a retail order has no advance.
+ */
+export async function createOrderPaymentLink(_prev: LinkState, fd: FormData): Promise<LinkState> {
+  const supabase = await requireAdmin();
+
+  const id = str(fd, "id");
+  if (!id) return { ok: false, message: "Which order?" };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, reference, items, total, buyer_name, phone, status, payment_link_url")
+    .eq("id", id)
+    .maybeSingle();
+  if (!order) return { ok: false, message: "That order no longer exists." };
+  if (PAID_STATUSES.includes(order.status as OrderStatus)) {
+    return { ok: false, message: "This order is already paid." };
+  }
+  // Raising a second link would let the same order be paid twice.
+  if (order.payment_link_url) {
+    return { ok: true, message: "Link ready.", url: order.payment_link_url as string };
+  }
+
+  const lines = toOrderItems(order.items);
+  const pieces = lines.reduce((sum, line) => sum + line.qty, 0);
+  const what = lines.length === 1 ? `${lines[0].name} × ${lines[0].qty}` : `${pieces} candles`;
+
+  const result = await createPaymentLink({
+    orderId: id,
+    reference: String(order.reference ?? id.slice(0, 8).toUpperCase()),
+    description: `${what} — Sugandha Candles (ref ${order.reference})`,
+    amount: Number(order.total ?? 0),
+    buyerName: order.buyer_name as string | null,
+    buyerPhone: order.phone as string | null,
+    notify: bool(fd, "notify"),
+  });
+  if (!result.ok) return { ok: false, message: result.message };
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ payment_link_id: result.link.id, payment_link_url: result.link.url })
+    .eq("id", id);
+
+  if (error) {
+    return {
+      ok: false,
+      message: "Link made at Razorpay but could not be saved here. Run migration 022.",
+      url: result.link.url,
+    };
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  return { ok: true, message: "Link ready.", url: result.link.url };
+}
+
 
 export async function setOrderStatus(fd: FormData) {
   const supabase = await requireAdmin();

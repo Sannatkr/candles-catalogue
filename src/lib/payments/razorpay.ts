@@ -23,7 +23,9 @@ export async function isRazorpayTestMode() {
 }
 
 export async function createPaymentLink(input: {
-  bookingId: string;
+  /** Exactly one of these. Which one decides what the webhook marks paid. */
+  bookingId?: string;
+  orderId?: string;
   reference: string;
   description: string;
   /** Rupees. Razorpay wants paise, converted below. */
@@ -38,6 +40,10 @@ export async function createPaymentLink(input: {
     return { ok: false, message: "Razorpay keys are not set on the server yet." };
   }
 
+  if (!input.bookingId && !input.orderId) {
+    return { ok: false, message: "A link needs a booking or an order to belong to." };
+  }
+
   const paise = Math.round(input.amount * 100);
   if (paise < 100) return { ok: false, message: "Razorpay needs at least ₹1." };
 
@@ -49,8 +55,9 @@ export async function createPaymentLink(input: {
     accept_partial: false,
     description: input.description.slice(0, 2048),
     reference_id: input.reference,
-    // Echoed back on the webhook, so a payment can be matched to its order.
-    notes: { booking_id: input.bookingId },
+    // Echoed back on the webhook, so a payment can be matched to its row. An
+    // enquiry and a retail order live in different tables, so the key says which.
+    notes: input.orderId ? { order_id: input.orderId } : { booking_id: input.bookingId },
     customer: {
       name: input.buyerName?.slice(0, 100) || undefined,
       contact: phone && phone.length === 10 ? phone : undefined,

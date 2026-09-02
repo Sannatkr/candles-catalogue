@@ -203,6 +203,7 @@ export type AdminOrder = {
   trackingNumber: string | null;
   trackingUrl: string | null;
   rapidshypOrderId: string | null;
+  paymentLinkUrl: string | null;
 };
 
 export function toOrderItems(value: unknown): OrderItem[] {
@@ -253,6 +254,7 @@ function toAdminOrder(row: Record<string, unknown>): AdminOrder {
     trackingNumber: text(row.tracking_number),
     trackingUrl: text(row.tracking_url),
     rapidshypOrderId: text(row.rapidshyp_order_id),
+    paymentLinkUrl: text(row.payment_link_url),
   };
 }
 

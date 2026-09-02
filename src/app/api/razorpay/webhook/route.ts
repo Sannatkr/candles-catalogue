@@ -8,7 +8,9 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
  * trustworthy — never act on the body before it verifies.
  *
  * Two jobs:
- *  - `payment_link.paid`   → marks a booking paid (the enquiry payment links).
+ *  - `payment_link.paid`   → marks a booking paid (the enquiry payment links), or
+ *    a retail order paid when the admin raised a link for a failed checkout.
+ *    `notes` says which table it belongs to.
  *  - `order.paid` / `payment.captured` → the safety net for retail checkout: if a
  *    buyer pays and their browser dies before confirmPayment runs, this promotes
  *    the order to paid and books the shipment, so nothing gets stuck pending.
@@ -24,7 +26,12 @@ function signatureMatches(rawBody: string, header: string | null, secret: string
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-type Entity = { id?: string; order_id?: string; amount_paid?: number; notes?: { booking_id?: string } };
+type Entity = {
+  id?: string;
+  order_id?: string;
+  amount_paid?: number;
+  notes?: { booking_id?: string; order_id?: string };
+};
 
 export async function POST(request: Request) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -56,11 +63,41 @@ export async function POST(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // ---- enquiry payment links -> bookings ----
+  // ---- payment links ----
   if (event.event === "payment_link.paid") {
     const entity = event.payload?.payment_link?.entity;
     const bookingId = entity?.notes?.booking_id;
+    const orderId = entity?.notes?.order_id;
     const linkId = entity?.id;
+
+    // A link raised by hand against a retail order that never got paid at
+    // checkout. Same promotion the checkout safety net does below.
+    if (orderId || (!bookingId && linkId)) {
+      const lookup = orderId
+        ? supabase.from("orders").select("id, total, status").eq("id", orderId)
+        : supabase.from("orders").select("id, total, status").eq("payment_link_id", linkId!);
+      const { data: orderData } = await lookup.maybeSingle();
+      const orderRow = orderData as { id: string; total: number; status: string } | null;
+
+      if (orderRow) {
+        if (orderRow.status === "pending") {
+          await supabase
+            .from("orders")
+            .update({
+              status: "paid",
+              paid_at: new Date().toISOString(),
+              amount_paid: (entity?.amount_paid ?? 0) / 100 || orderRow.total,
+            })
+            .eq("id", orderRow.id)
+            .eq("status", "pending");
+        }
+        const live = !(process.env.RAZORPAY_KEY_ID ?? "").startsWith("rzp_test_");
+        await shipOrderRow(supabase, orderRow.id, live);
+        return Response.json({ ok: true });
+      }
+      // Not an order after all — fall through and try bookings by link id.
+    }
+
     if (!bookingId && !linkId) return Response.json({ error: "no booking reference" }, { status: 400 });
 
     const patch = {
