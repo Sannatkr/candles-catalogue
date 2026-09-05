@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { instagramProfileLink } from "@/lib/format";
@@ -9,7 +10,10 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
       <div className="mx-auto max-w-[1240px] px-5 py-16 sm:px-8">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <p className="font-display text-2xl text-ink">{settings.businessName}</p>
+            <div className="flex items-center gap-3">
+              <Image src="/logo-mark.png" alt="" width={171} height={176} className="h-11 w-auto" />
+              <p className="font-display text-2xl text-ink">{settings.businessName}</p>
+            </div>
             <p className="mt-3 max-w-sm text-[0.925rem] leading-relaxed text-ink-soft">
               {settings.tagline}
             </p>

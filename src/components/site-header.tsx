@@ -1,6 +1,7 @@
 "use client";
 
 import { GiftBar } from "@/components/gift-bar";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,7 +42,18 @@ export function SiteHeader({
       }`}
     >
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="group flex items-baseline gap-2.5">
+        <Link href="/" className="group flex items-center gap-2.5">
+          {/* Decorative on purpose: the wordmark beside it already says the name,
+              and the seal's own lettering is illegible below ~120px, so the
+              header carries the swan monogram alone. */}
+          <Image
+            src="/logo-mark.png"
+            alt=""
+            width={171}
+            height={176}
+            priority
+            className="h-10 w-auto"
+          />
           <span className="font-display text-[1.35rem] tracking-tight text-ink">{businessName}</span>
           <span className="hidden h-1 w-1 rounded-full bg-ember transition-transform duration-500 group-hover:scale-150 sm:block" />
         </Link>

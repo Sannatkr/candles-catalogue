@@ -93,6 +93,9 @@ export function organizationSchema(instagramHandle?: string) {
     "@type": "Organization",
     name: "Sugandha Candles",
     url: SITE_URL,
+    // The full seal, not the header monogram — Google shows this one in the
+    // knowledge panel and wants the complete logo.
+    logo: `${SITE_URL}/logo.png`,
     description:
       "Handcrafted soy wax candles, urli platters and gift hampers, poured by hand in Greater Noida.",
     ...(instagramHandle

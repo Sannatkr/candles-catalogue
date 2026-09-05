@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -44,9 +45,12 @@ export function AdminNav() {
     <aside className="sticky top-0 z-50 flex shrink-0 items-center gap-4 border-b border-line bg-canvas/95 px-4 py-3 backdrop-blur-xl lg:h-dvh lg:w-[232px] lg:flex-col lg:items-stretch lg:gap-0 lg:border-b-0 lg:border-r lg:px-5 lg:py-7">
       <Link
         href="/admin"
-        className="shrink-0 font-display text-[1.15rem] whitespace-nowrap text-ink lg:px-2 lg:pb-7"
+        className="flex shrink-0 items-center gap-2.5 font-display text-[1.15rem] whitespace-nowrap text-ink lg:px-2 lg:pb-7"
       >
-        Sugandha <span className="text-ember">Admin</span>
+        <Image src="/logo-mark.png" alt="" width={171} height={176} className="h-8 w-auto" />
+        <span>
+          Sugandha <span className="text-ember">Admin</span>
+        </span>
       </Link>
 
       <nav className="-mx-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-1 lg:mx-0 lg:flex-none lg:flex-col lg:items-stretch lg:gap-1 lg:overflow-visible lg:px-0">
