@@ -13,9 +13,11 @@ handling before it can go on a cream page:
     flat spot at the bottom, so the ellipse is fitted, stretched to a true
     circle, and the clipped arc filled from a drawn annulus underneath.
 
-The tab icons deliberately use the bare swan monogram rather than the circular
-seal: at 16px a ring plus the SUGANDHA CANDLES lettering is an unreadable
-smudge, and the ring alone costs the swan about a third of its width.
+Every asset, tab icons included, is the same circular seal, so the mark in the
+tab matches the one in the header. It is a compromise at 16px — the lettering
+inside the ring goes to mush — but retina screens ask for the 32px face, where
+the ring and the swan both hold up, and one consistent mark was worth more than
+a sharper 16px one.
 """
 
 import os
@@ -32,7 +34,6 @@ SRC = ROOT / "scripts" / "logo-source.jpg"
 CX, CY, RX, RY = 623.2, 632.4, 591.7, 622.9
 RING_RGB = (83, 21, 135)          # median colour of the outer stroke
 RING_PX = 16                      # its thickness, in source pixels
-MONOGRAM = (275, 92, 997, 833)    # crowned swan + SC, ring and wordmark excluded
 CREAM = (250, 246, 239, 255)      # --color-canvas
 
 
@@ -77,15 +78,6 @@ def seal(art):
     return out
 
 
-def monogram(art):
-    """The swan alone, padded to a square."""
-    mark = art.crop(MONOGRAM)
-    side = max(mark.size) + 2 * int(max(mark.size) * 0.06)
-    out = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    out.alpha_composite(mark, ((side - mark.width) // 2, (side - mark.height) // 2))
-    return out
-
-
 def write(img, rel, box, flatten=None):
     img = img.copy()
     img.thumbnail(box, Image.LANCZOS)
@@ -100,10 +92,8 @@ def write(img, rel, box, flatten=None):
 
 
 def main():
-    art = artwork()
-    write(seal(art), "public/logo.png", (400, 400))
-
-    mark = monogram(art)
+    mark = seal(artwork())
+    write(mark, "public/logo.png", (400, 400))
     write(mark, "src/app/icon.png", (192, 192))
     # Apple composites transparency onto black, so bake the page colour in.
     write(mark, "src/app/apple-icon.png", (180, 180), flatten=CREAM)
