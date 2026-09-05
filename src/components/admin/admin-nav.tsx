@@ -47,7 +47,7 @@ export function AdminNav() {
         href="/admin"
         className="flex shrink-0 items-center gap-2.5 font-display text-[1.15rem] whitespace-nowrap text-ink lg:px-2 lg:pb-7"
       >
-        <Image src="/logo-mark.png" alt="" width={171} height={176} className="h-8 w-auto" />
+        <Image src="/logo.png" alt="" width={400} height={400} className="h-9 w-9" />
         <span>
           Sugandha <span className="text-ember">Admin</span>
         </span>

@@ -43,16 +43,14 @@ export function SiteHeader({
     >
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-5 sm:px-8">
         <Link href="/" className="group flex items-center gap-2.5">
-          {/* Decorative on purpose: the wordmark beside it already says the name,
-              and the seal's own lettering is illegible below ~120px, so the
-              header carries the swan monogram alone. */}
+          {/* Decorative on purpose — the wordmark beside it already says the name. */}
           <Image
-            src="/logo-mark.png"
+            src="/logo.png"
             alt=""
-            width={171}
-            height={176}
+            width={400}
+            height={400}
             priority
-            className="h-10 w-auto"
+            className="h-11 w-11"
           />
           <span className="font-display text-[1.35rem] tracking-tight text-ink">{businessName}</span>
           <span className="hidden h-1 w-1 rounded-full bg-ember transition-transform duration-500 group-hover:scale-150 sm:block" />
