@@ -11,7 +11,7 @@ import { GiftProgress } from "@/components/gift-progress";
 import { celebrateGift, celebrateUnlock } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
-import { money } from "@/lib/format";
+import { instagramDmLink, money } from "@/lib/format";
 import { MAX_ONLINE_QTY, minQtyOf, singlePrice } from "@/lib/pricing";
 import { packGramsOf } from "@/lib/shipping";
 import type { Product } from "@/lib/types";
@@ -120,28 +120,10 @@ export function ProductPurchase({
     if (crossedJustNow) celebrateUnlock();
   }, [canClaimFree, cart.ready]);
 
-  const chatButton = (label: string, primary: boolean) => (
-    <button
-      type="button"
-      onClick={openEnquiry}
-      style={
-        primary
-          ? {
-              backgroundImage:
-                "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)",
-            }
-          : undefined
-      }
-      className={
-        primary
-          ? "inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-          : "inline-flex w-full items-center justify-center gap-2 rounded-full border border-line px-7 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
-      }
-    >
-      <InstagramIcon size={primary ? 18 : 16} />
-      {label}
-    </button>
-  );
+  const INSTAGRAM =
+    "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)";
+  const chatClass =
+    "inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90";
 
   return (
     <>
@@ -298,10 +280,25 @@ export function ProductPurchase({
                 </Link>
               )}
 
-              <div className="mt-2.5">{chatButton("Buying in bulk? Chat with us", false)}</div>
+              {/* Straight to the Instagram chat, the same way the header's Enquire
+                  goes — bulk is a conversation, not a form. */}
+              <a
+                href={instagramDmLink(instagramHandle)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => track("bulk_chat_clicked", { product: product.slug, qty })}
+                style={{ backgroundImage: INSTAGRAM }}
+                className={`mt-2.5 ${chatClass}`}
+              >
+                <InstagramIcon size={18} />
+                Buying in bulk? Chat with us
+              </a>
             </>
           ) : (
-            chatButton(`Chat for ${qty} pieces`, true)
+            <button type="button" onClick={openEnquiry} style={{ backgroundImage: INSTAGRAM }} className={chatClass}>
+              <InstagramIcon size={18} />
+              Chat for {qty} pieces
+            </button>
           )}
 
           <p className="mt-3 text-center text-[0.78rem] leading-relaxed text-ink-faint">

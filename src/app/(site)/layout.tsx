@@ -1,3 +1,4 @@
+import { BulkFab } from "@/components/bulk-fab";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getSettings } from "@/lib/data";
@@ -26,6 +27,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         />
         <main className="flex-1">{children}</main>
         <SiteFooter settings={settings} />
+        <BulkFab href={instagramDmLink(settings.instagramHandle)} />
       </div>
     </GiftConfigProvider>
   );

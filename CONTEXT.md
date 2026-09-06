@@ -91,8 +91,12 @@ behind it. Keeping them apart means no screen has to ask "which kind of row is t
   four bulk slabs (10/25/50/100) are gone from the shop, the admin and the types; the
   `price_tiers` column still exists in Supabase with its old data but **nothing reads it**
   (drop it in a later migration once this has bedded in).
-- **Bulk is a conversation.** Every product page has an outlined "Buying in bulk? Chat with
-  us" button under Add to bag that opens the enquiry dialog at the current quantity.
+- **Bulk is a conversation.** Every product page has an Instagram-gradient "Buying in bulk?
+  Chat with us" under Add to bag that opens the Instagram DM in a new tab (same link as the
+  header's Enquire). A floating **"Bulk enquiry"** pill (`bulk-fab.tsx`, in the site layout)
+  sits bottom-right on every site page **except `/cart` and `/checkout`** — someone paying
+  should only be looking at the button that finishes the order. The structured enquiry dialog
+  is now reached only via "Chat for N pieces" past 100 of a design.
 - `MAX_ONLINE_QTY = 100` — more than 100 of *one design* can't be bought online; the buy
   button turns into the Instagram-gradient "Chat for N pieces". No total-bag cap.
 - **Sets** — `products.min_qty` (migration 023), `Product.minQty`, `minQtyOf()`. 1 for
@@ -359,6 +363,8 @@ then Merchant Center. Reasoning for all of it is in the SEO section.
 ## Changelog
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
+
+- 2026-09-07 — **Bulk button made loud, and a floating one added.** The outlined "Buying in bulk? Chat with us" was too quiet next to Add to bag; it is now the Instagram gradient and goes straight to the DM in a new tab, like the header's Enquire. New `BulkFab` — a floating "Bulk enquiry" pill bottom-right on every site page except the bag and checkout. Photos of the seven new candles re-cut as centre 4:5 crops (the blurred pad read as a size problem); Small Peacock Urli corrected to W 6.5 × H 2 in.
 
 - 2026-09-06 — **Bulk slabs removed; one price per piece; candles can be sold in sets; seven new
   listings.** Owner's call: "remove the bulk prices options and simple button for chat for bulk".
