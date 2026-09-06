@@ -369,11 +369,12 @@ _Newest first. Add an entry for every change — one line is fine. Format: `YYYY
   `Terms → Order size` rewritten in Supabase (it promised "rates step down at 10, 25, 50 and
   100"). Home-page and collections copy stopped saying "price slab". **New listings:** Yellow
   Pond Lotus Urli ₹249 (dimensions, weight and fragrance copied from Lotus Pond Urli, as asked)
-  and Small Peacock Urli ₹399 (width copied from Peacock Urli, height 6.5 in = 16.5 cm, pack
+  and Small Peacock Urli ₹399 (read as **W 6.5 in × H 2 in** — narrower than the 7.5 in Peacock
+  Urli, same depth; first pass had 6.5 in as the height, which read wrong on the card. Pack
   weight *estimated* at 1400 g) inserted over REST; the five mithai (₹20 laddoo/modak, ₹18
   jalebi/imriti, ₹25 gujiya, all in sets of 10) ride in **migration 023** because `min_qty`
-  needs the column first. Photos padded 1254² → 1200×1500 with a blurred copy, same as the
-  rangoli sets. **MRP = price + 30%, rounded up** on all seven (₹329, ₹519; ₹26/26/24/24/33) — owner's rule of thumb, to be tuned in the admin. Mithai
+  needs the column first. Photos are a centre 4:5 **crop** of the 1254² shots (the blurred-pad version
+  looked letterboxed next to the other cards, and nothing important sits at the edges here). **MRP = price + 30%, rounded up** on all seven (₹329, ₹519; ₹26/26/24/24/33) — owner's rule of thumb, to be tuned in the admin. Mithai
   fragrance blank, burn 5 h and pack weight 70–80 g/pc are placeholders to fill in the admin.
 
 - 2026-09-06 — **Tab icons are the circular seal too** — overrides the "tab icons stay the bare swan" note in the entry below. Owner asked for one mark everywhere. The 16px face does go to mush, which is why it was not done this way first, but retina screens request the 32px face and that one holds up. `scripts/make-logo.py` now feeds `seal()` to every output, so there is a single mark to maintain.
