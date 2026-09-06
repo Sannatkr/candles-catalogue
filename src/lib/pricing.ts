@@ -1,64 +1,42 @@
-import type { PriceTier, Product } from "./types";
+import type { Product } from "./types";
 
 /**
- * A buyer picks a band, not a number. The old catalogue printed the whole slab
- * table — "25 – 49 pcs ₹499" — which reads like a price list a wholesaler faxes
- * you. A shop shows one price at a time and changes it when you change your
- * mind, so that is what these helpers are for.
+ * One price per piece, whatever the quantity.
+ *
+ * The catalogue used to carry four bulk slabs on every design (10 / 25 / 50 /
+ * 100) and switched a buyer to a quote past twenty pieces. That is gone. Bulk
+ * is a conversation — the "Chat for bulk" button — and everything up to
+ * MAX_ONLINE_QTY checks out at the price on the page.
  */
 
 /**
- * Above this many of any one design, an online purchase becomes a bulk enquiry
- * — the buyer is quoted directly rather than checking out. There is no ceiling
- * on the bag as a whole: a buyer may add as many designs as they like.
+ * Above this many of one design an online purchase becomes a bulk enquiry —
+ * the buyer is quoted directly rather than checking out. Nothing caps the bag
+ * as a whole.
  */
-export const RETAIL_MAX = 20;
+export const MAX_ONLINE_QTY = 100;
 
-export type Band = {
-  minQty: number;
-  price: number;
-  /** What the chip says. Never a range. */
-  label: string;
-  /** Retail bands go through the cart; the rest go through the enquiry form. */
-  retail: boolean;
-};
-
-const sortTiers = (tiers: PriceTier[]) =>
-  [...tiers].filter((t) => t.minQty > 0 && t.price > 0).sort((a, b) => a.minQty - b.minQty);
+/** What one piece costs. The only price there is. */
+export function singlePrice(product: Pick<Product, "basePrice">) {
+  return product.basePrice;
+}
 
 /**
- * The bands offered on a product page. The first one is whatever the product
- * costs on its own; the rest are the bulk steps the seller set up — typically
- * 10, 25, 50 and 100.
+ * How many a buyer has to take at a time. 1 for nearly everything; 10 for the
+ * mithai candles, which are sold in sets. The stepper moves by it and nothing
+ * below it can be bought, but any number above it is fine — 35 is allowed.
  */
-export function bandsFor(product: Product): Band[] {
-  const tiers = sortTiers(product.priceTiers);
-
-  if (!tiers.length) {
-    return [{ minQty: 1, price: product.basePrice, label: "Single", retail: true }];
-  }
-
-  return tiers.map((tier, i) => ({
-    minQty: tier.minQty,
-    price: tier.price,
-    label: i === 0 && tier.minQty <= RETAIL_MAX ? "Single" : `${tier.minQty}+`,
-    retail: tier.minQty <= RETAIL_MAX,
-  }));
+export function minQtyOf(product: Pick<Product, "minQty">) {
+  return Math.max(1, Math.floor(product.minQty || 1));
 }
 
-/** What one piece costs on its own — the only price a catalogue card shows. */
-export function singlePrice(product: Product) {
-  const tiers = sortTiers(product.priceTiers);
-  const first = tiers.find((t) => t.minQty <= RETAIL_MAX) ?? tiers[0];
-  return first?.price ?? product.basePrice;
+/**
+ * A quantity the shop will actually sell: whole, at least the minimum, and no
+ * more than the online ceiling. Anything below 1 is not a quantity at all and
+ * comes back as 0 so the caller can drop the line.
+ */
+export function clampQty(raw: number, minQty: number) {
+  const qty = Math.floor(Number(raw) || 0);
+  if (qty < 1) return 0;
+  return Math.min(MAX_ONLINE_QTY, Math.max(minQty, qty));
 }
-
-/** The rate that applies once a real quantity is known. */
-export function priceAtQty(product: Product, qty: number) {
-  const tiers = sortTiers(product.priceTiers);
-  const applicable = [...tiers].reverse().find((t) => qty >= t.minQty);
-  return applicable?.price ?? singlePrice(product);
-}
-
-// Delivery is no longer a flat fee — it is worked out by weight and zone in
-// src/lib/shipping.ts.

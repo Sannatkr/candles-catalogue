@@ -19,7 +19,7 @@ export default async function AdminHome() {
       href: "/admin/products/new",
       icon: Package,
       title: "Add a candle",
-      body: "Photos, price slabs, sizes. Live the moment you save.",
+      body: "Photos, price, sizes. Live the moment you save.",
     },
     {
       href: "/admin/collections/new",

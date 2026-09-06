@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ImageUploader } from "@/components/admin/image-uploader";
-import { PriceTiers } from "@/components/admin/price-tiers";
 import { Card, Field, Input, Notice, Select, SubmitButton, Textarea, Toggle } from "@/components/admin/ui";
 import { IDLE } from "@/lib/admin/action-state";
 import { saveProduct } from "@/lib/admin/actions";
@@ -115,16 +114,26 @@ export function ProductForm({
 
       <Card
         title="Pricing"
-        hint="There is no minimum order, so start your first slab at 1 piece — that is the single-piece rate."
+        hint="One price per piece, whatever the quantity. Bulk buyers use the chat button and are quoted directly."
       >
-        <div className="space-y-6">
-          <PriceTiers name="price_tiers" initial={product?.price_tiers ?? []} />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Price per piece (₹)">
+            <Input type="number" name="base_price" min={0} step="1" defaultValue={product?.base_price ?? 0} required />
+          </Field>
 
           <Field
             label="MRP"
             hint="Shown struck through beside the price. Leave at 0 to show no discount. Only set this to a price you would genuinely sell at."
           >
             <Input type="number" name="mrp" min={0} step="1" defaultValue={product?.mrp ?? 0} />
+          </Field>
+
+          <Field
+            label="Sold in sets of"
+            hint="1 for most candles. 10 for the mithai candles — buyers take 10, 20, 30… or type any number of 10 or more."
+            className="sm:col-span-2"
+          >
+            <Input type="number" name="min_qty" min={1} step="1" defaultValue={product?.min_qty ?? 1} />
           </Field>
         </div>
       </Card>

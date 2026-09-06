@@ -87,12 +87,22 @@ behind it. Keeping them apart means no screen has to ask "which kind of row is t
 
 ## Pricing model (`src/lib/pricing.ts`)
 
-- Buyers pick a **band**, not a raw number. Card shows one price at a time (not the old
-  wholesale slab table).
-- `RETAIL_MAX = 20` — more than 20 of *one design* is a bulk rate, not a retail sale → it
-  goes through the **enquiry** form (Instagram-coloured "Chat for N pieces" button), not the
-  cart. **No total-bag cap** — `CART_MAX_PIECES` was removed; the bag is unbounded.
-- `priceAtQty()` / `singlePrice()` / `bandsFor()` are the helpers everything uses.
+- **One price per piece, whatever the quantity** (2026-09-06). `basePrice` is the price. The
+  four bulk slabs (10/25/50/100) are gone from the shop, the admin and the types; the
+  `price_tiers` column still exists in Supabase with its old data but **nothing reads it**
+  (drop it in a later migration once this has bedded in).
+- **Bulk is a conversation.** Every product page has an outlined "Buying in bulk? Chat with
+  us" button under Add to bag that opens the enquiry dialog at the current quantity.
+- `MAX_ONLINE_QTY = 100` — more than 100 of *one design* can't be bought online; the buy
+  button turns into the Instagram-gradient "Chat for N pieces". No total-bag cap.
+- **Sets** — `products.min_qty` (migration 023), `Product.minQty`, `minQtyOf()`. 1 for
+  nearly everything; **10 for the five mithai candles**. The product page starts at one set,
+  the −/+ buttons step by a set, anything below a set is refused, but **any number above it
+  can be typed** (35 is fine — the box only snaps to the minimum on blur if left below it).
+  The cart line carries `minQty` so the bag steps by the set too; stepping below the set
+  removes the line. `clampQty()` on the server rounds a doctored cart up to a set.
+- Helpers: `singlePrice()`, `minQtyOf()`, `clampQty()`. `priceAtQty`/`bandsFor`/`priceFor`/
+  `bestPrice` are gone.
 
 ## Shipping (`src/lib/shipping.ts`)
 
@@ -252,6 +262,10 @@ base; then numbered updates in order. **013 → 014 → 015 order matters; 016�
 - `021-free-gift.sql` — adds `products.gift_eligible` and pre-ticks everything ≤₹149.
   **Needed or the free-candle offer has nothing to give** (and saving a product errors on the
   missing column).
+- `023-one-price-and-sets.sql` — adds `products.min_qty` (default 1) **and inserts the five
+  mithai candles** (laddoo, modak, jalebi, imriti, gujiya) with `min_qty = 10`. **Until it
+  runs, saving a candle in the admin errors on the missing column, and the mithai are not on
+  the site at all.** Re-running only re-asserts `min_qty`, so admin edits survive.
 - **`scratchpad/repricing.sql`** (not a migration, run once) — the gentle-tier + heavy-bump
   repricing of all 27 products.
 
@@ -324,6 +338,9 @@ and a picker in the cart · a **Scripts** section in the admin for reel writing 
 auto-approve · email required at checkout · **SEO foundations** (canonicals, robots, sitemap,
 structured data).
 
+**First:** run `supabase/023-one-price-and-sets.sql` in the SQL editor — it adds `min_qty` and
+puts the five mithai candles live in sets of ten. Then set MRPs on the seven new candles.
+
 **Next, in order:** verify Search Console (urgent — no backfill), add OG images (every
 WhatsApp share is a blank card today), write `/shipping-returns` + `/contact` + `/about`,
 then Merchant Center. Reasoning for all of it is in the SEO section.
@@ -342,6 +359,22 @@ then Merchant Center. Reasoning for all of it is in the SEO section.
 ## Changelog
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
+
+- 2026-09-06 — **Bulk slabs removed; one price per piece; candles can be sold in sets; seven new
+  listings.** Owner's call: "remove the bulk prices options and simple button for chat for bulk".
+  See the rewritten **Pricing model** section. Product page now: price per piece → quantity
+  (−/+ step by the set, box accepts any number ≥ the set) → Add to bag → an outlined *Buying in
+  bulk? Chat with us* under it; past 100 of a design the buy button becomes *Chat for N pieces*.
+  Admin Pricing card is now Price per piece / MRP / Sold in sets of; `price-tiers.tsx` deleted.
+  `Terms → Order size` rewritten in Supabase (it promised "rates step down at 10, 25, 50 and
+  100"). Home-page and collections copy stopped saying "price slab". **New listings:** Yellow
+  Pond Lotus Urli ₹249 (dimensions, weight and fragrance copied from Lotus Pond Urli, as asked)
+  and Small Peacock Urli ₹399 (width copied from Peacock Urli, height 6.5 in = 16.5 cm, pack
+  weight *estimated* at 1400 g) inserted over REST; the five mithai (₹20 laddoo/modak, ₹18
+  jalebi/imriti, ₹25 gujiya, all in sets of 10) ride in **migration 023** because `min_qty`
+  needs the column first. Photos padded 1254² → 1200×1500 with a blurred copy, same as the
+  rangoli sets. **MRP left at 0 on all seven** (no strike-through) — owner to set. Mithai
+  fragrance blank, burn 5 h and pack weight 70–80 g/pc are placeholders to fill in the admin.
 
 - 2026-09-06 — **Tab icons are the circular seal too** — overrides the "tab icons stay the bare swan" note in the entry below. Owner asked for one mark everywhere. The 16px face does go to mush, which is why it was not done this way first, but retina screens request the 32px face and that one holds up. `scripts/make-logo.py` now feeds `seal()` to every output, so there is a single mark to maintain.
 

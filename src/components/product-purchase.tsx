@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Gift, Minus, Plus, ShoppingBag } from "lucide-react";
 import { EnquiryDialog } from "@/components/enquiry-dialog";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
@@ -11,20 +11,19 @@ import { GiftProgress } from "@/components/gift-progress";
 import { celebrateGift, celebrateUnlock } from "@/lib/celebrate";
 import { giftUnlocked } from "@/lib/gift";
 import { useGiftConfig } from "@/lib/gift-context";
-import { Gift } from "lucide-react";
 import { money } from "@/lib/format";
-import { bandsFor, priceAtQty, RETAIL_MAX } from "@/lib/pricing";
+import { MAX_ONLINE_QTY, minQtyOf, singlePrice } from "@/lib/pricing";
 import { packGramsOf } from "@/lib/shipping";
 import type { Product } from "@/lib/types";
 
 /**
  * The buying block on a product page.
  *
- * Quantity is the single source of truth. The price on screen is always the
- * rate for the quantity actually chosen — pick 2 and you pay the single rate,
- * pick 10 and the 10+ rate applies. The bands are quantity shortcuts, and the
- * one that matches the current quantity is the one highlighted, so the price,
- * the band and the number can never disagree.
+ * One price, one quantity, one button. The price per piece never moves; the
+ * total is simply price × quantity. Candles sold in sets (the mithai, in tens)
+ * start at a set, step by a set, and refuse anything below a set — but any
+ * number above it can be typed in, so 35 is fine. Past MAX_ONLINE_QTY the buy
+ * button becomes a chat button, because that many is a quote, not a checkout.
  */
 export function ProductPurchase({
   product,
@@ -37,14 +36,15 @@ export function ProductPurchase({
   instagramHandle: string;
   businessName: string;
 }) {
-  const bands = useMemo(() => bandsFor(product), [product]);
+  const step = minQtyOf(product);
+  const unitPrice = singlePrice(product);
 
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState(step);
   /**
    * What is literally in the box while it is being typed in, which is not the
    * same thing as the quantity. Clearing the field has to leave it empty for a
-   * moment — clamping on every keystroke means it refills with a 1 the instant
-   * you hit backspace, and you can never type a fresh number.
+   * moment, and typing "3" on the way to "35" must not be snapped to 10 —
+   * so the quantity only follows the box once what is in it is sellable.
    */
   const [draft, setDraft] = useState<string | null>(null);
   const [enquiry, setEnquiry] = useState(false);
@@ -66,27 +66,15 @@ export function ProductPurchase({
     !cart.giftSlug &&
     giftUnlocked(giftConfig, cart.subtotal);
 
-  // Everything below is derived from the quantity.
-  const unitPrice = priceAtQty(product, qty);
-  const retail = qty <= RETAIL_MAX;
+  const online = qty <= MAX_ONLINE_QTY;
   const total = unitPrice * qty;
-  // The band the current quantity falls in: the highest whose minimum it reaches.
-  const activeIndex = bands.reduce((best, b, i) => (qty >= b.minQty ? i : best), 0);
-  const activeLabel = bands[activeIndex]?.label ?? "Single";
+  const sets = step > 1 && qty % step === 0 ? qty / step : 0;
 
-  const clamp = (value: number) => Math.max(1, Math.min(9999, Math.floor(value)));
-
-  function chooseBand(index: number) {
-    const next = bands[index];
-    setQty(next.minQty);
+  function changeQty(next: number) {
+    setQty(Math.max(step, Math.min(9999, next)));
     setDraft(null);
     setAdded(false);
     setShortfall(0);
-    track("tier_selected", {
-      product: product.slug,
-      band: next.label,
-      unit_price: priceAtQty(product, next.minQty),
-    });
   }
 
   function addToCart() {
@@ -97,6 +85,7 @@ export function ProductPurchase({
         image: product.images[0] ?? null,
         unitPrice,
         packWeightGrams: packGramsOf(product),
+        minQty: step,
       },
       qty,
     );
@@ -130,6 +119,29 @@ export function ProductPurchase({
     sawGiftState.current = true;
     if (crossedJustNow) celebrateUnlock();
   }, [canClaimFree, cart.ready]);
+
+  const chatButton = (label: string, primary: boolean) => (
+    <button
+      type="button"
+      onClick={openEnquiry}
+      style={
+        primary
+          ? {
+              backgroundImage:
+                "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)",
+            }
+          : undefined
+      }
+      className={
+        primary
+          ? "inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+          : "inline-flex w-full items-center justify-center gap-2 rounded-full border border-line px-7 py-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink"
+      }
+    >
+      <InstagramIcon size={primary ? 18 : 16} />
+      {label}
+    </button>
+  );
 
   return (
     <>
@@ -176,52 +188,24 @@ export function ProductPurchase({
           )}
         </div>
 
-        {/* Bands — quantity shortcuts */}
-        {bands.length > 1 && (
-          <div className="mt-6">
-            <p className="text-[0.8rem] font-medium text-ink">Buying more than one?</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {bands.map((option, i) => (
-                <button
-                  key={option.minQty}
-                  type="button"
-                  onClick={() => chooseBand(i)}
-                  aria-pressed={i === activeIndex}
-                  className={`rounded-full border px-4 py-2 text-[0.85rem] whitespace-nowrap transition-colors ${
-                    i === activeIndex
-                      ? "border-ink bg-ink text-canvas"
-                      : "border-line text-ink-soft hover:border-ink/40 hover:text-ink"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-[0.8rem] leading-relaxed text-ink-soft">
-              {retail
-                ? "The more you buy, the lower the rate — it updates as you change the number."
-                : "This is a bulk quote. We confirm the rate with you before anything is due."}
-            </p>
-          </div>
+        {step > 1 && (
+          <p className="mt-3 text-[0.85rem] leading-relaxed text-ink-soft">
+            Sold in sets of {step} — <span className="text-ink tabular-nums">{money(unitPrice * step)}</span> a
+            set. Take as many sets as you like, or any number from {step} up.
+          </p>
         )}
 
         {/* Quantity */}
         <div className="mt-6 border-t border-line pt-5">
-          <p className="text-[0.8rem] font-medium text-ink">
-            {retail ? "How many?" : "Roughly how many?"}
-          </p>
+          <p className="text-[0.8rem] font-medium text-ink">How many pieces?</p>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
             <div className="flex items-center rounded-full border border-line bg-canvas">
               <button
                 type="button"
-                onClick={() => {
-                  setDraft(null);
-                  setAdded(false);
-                  setQty((q) => Math.max(1, q - 1));
-                }}
-                disabled={qty <= 1}
-                aria-label="One fewer"
+                onClick={() => changeQty(qty - step)}
+                disabled={qty <= step}
+                aria-label={step > 1 ? `${step} fewer` : "One fewer"}
                 className="flex h-11 w-11 items-center justify-center rounded-l-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 <Minus size={16} />
@@ -229,38 +213,35 @@ export function ProductPurchase({
               <input
                 type="number"
                 inputMode="numeric"
-                min={1}
+                min={step}
                 max={9999}
+                step={step}
                 value={draft ?? String(qty)}
                 onChange={(e) => {
                   const raw = e.target.value;
                   const parsed = Number(raw);
-
-                  // An empty or half-typed box leaves the quantity where it was
-                  // rather than guessing at one, so backspacing works.
-                  if (raw.trim() === "" || !Number.isFinite(parsed) || parsed < 1) {
-                    setDraft(raw);
-                    return;
-                  }
-
-                  const next = clamp(parsed);
-                  setQty(next);
-                  setDraft(String(next));
+                  setDraft(raw);
                   setAdded(false);
+                  // Follow the box only once it holds something sellable. Below
+                  // the minimum it may just be half-typed — "3" on its way to "35".
+                  if (raw.trim() !== "" && Number.isFinite(parsed) && parsed >= step) {
+                    setQty(Math.min(9999, Math.floor(parsed)));
+                  }
                 }}
-                onBlur={() => setDraft(null)}
+                onBlur={() => {
+                  // Left below the minimum on purpose? Then they get the minimum.
+                  const parsed = Number(draft);
+                  if (draft !== null && Number.isFinite(parsed) && parsed >= 1 && parsed < step) setQty(step);
+                  setDraft(null);
+                }}
                 aria-label="Quantity"
                 className="h-11 w-[4.5rem] [appearance:textfield] border-x border-line bg-transparent text-center text-[1rem] text-ink tabular-nums focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
               <button
                 type="button"
-                onClick={() => {
-                  setDraft(null);
-                  setAdded(false);
-                  setQty((q) => Math.min(9999, q + 1));
-                }}
+                onClick={() => changeQty(qty + step)}
                 disabled={qty >= 9999}
-                aria-label="One more"
+                aria-label={step > 1 ? `${step} more` : "One more"}
                 className="flex h-11 w-11 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 <Plus size={16} />
@@ -269,20 +250,24 @@ export function ProductPurchase({
 
             <span className="text-[0.9rem] text-ink-soft tabular-nums">
               {money(total)}
-              <span className="text-ink-faint"> total</span>
+              <span className="text-ink-faint">
+                {" "}
+                for {qty} {qty === 1 ? "piece" : "pieces"}
+                {sets > 0 && ` · ${sets} ${sets === 1 ? "set" : "sets"}`}
+              </span>
             </span>
           </div>
 
-          {retail && qty === RETAIL_MAX && (
+          {step > 1 && (
             <p className="mt-3 text-[0.8rem] leading-relaxed text-ink-soft">
-              Need more than {RETAIL_MAX}? Add one more and we switch you to a bulk quote.
+              The buttons add or remove a set of {step}. Type in the box for any other number of {step} or more.
             </p>
           )}
         </div>
 
         {/* The one action that matters — it follows the quantity. */}
         <div className="mt-6">
-          {retail ? (
+          {online ? (
             <>
               <button
                 type="button"
@@ -299,8 +284,8 @@ export function ProductPurchase({
 
               {shortfall > 0 && (
                 <p className="mt-3 rounded-[12px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
-                  You can buy up to {RETAIL_MAX} of one design online, so {shortfall} did not fit. Want more?
-                  Increase the number for a bulk quote and we quote you directly.
+                  You can buy up to {MAX_ONLINE_QTY} of one design online, so {shortfall} did not fit. For more
+                  than that, chat with us and we quote you directly.
                 </p>
               )}
 
@@ -312,26 +297,17 @@ export function ProductPurchase({
                   Go to bag ({cart.count})
                 </Link>
               )}
+
+              <div className="mt-2.5">{chatButton("Buying in bulk? Chat with us", false)}</div>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={openEnquiry}
-              style={{
-                backgroundImage:
-                  "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)",
-              }}
-              className="inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              <InstagramIcon size={18} />
-              Chat for {qty} pieces
-            </button>
+            chatButton(`Chat for ${qty} pieces`, true)
           )}
 
           <p className="mt-3 text-center text-[0.78rem] leading-relaxed text-ink-faint">
-            {retail
+            {online
               ? "Secure checkout. Dispatched in 2–4 working days."
-              : `${activeLabel} bulk rate · no payment now. We confirm your rate, fragrance and delivery date first.`}
+              : "No payment now. We confirm your rate, fragrance and delivery date first."}
           </p>
         </div>
       </div>

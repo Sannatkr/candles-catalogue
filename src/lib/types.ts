@@ -1,8 +1,3 @@
-export type PriceTier = {
-  minQty: number;
-  price: number;
-};
-
 export type Product = {
   id: string;
   slug: string;
@@ -32,10 +27,16 @@ export type Product = {
    */
   packWeightGrams: number;
 
+  /** Price per piece. The only price there is — bulk is a conversation, not a slab. */
   basePrice: number;
   /** List price shown struck through. 0 hides it. */
   mrp: number;
-  priceTiers: PriceTier[];
+  /**
+   * Sold in sets of this many. 1 for nearly everything; 10 for the mithai
+   * candles. The quantity stepper moves by it and nothing below it can be
+   * bought, but any number above it is allowed.
+   */
+  minQty: number;
   packaging: string;
 
   inStock: boolean;

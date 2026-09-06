@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { RETAIL_MAX } from "@/lib/pricing";
+import { MAX_ONLINE_QTY } from "@/lib/pricing";
 
 /**
  * The cart lives in localStorage, not the database. Nobody has an account, so
@@ -14,8 +14,9 @@ import { RETAIL_MAX } from "@/lib/pricing";
  * tab staying in step — which is a real case when someone opens two candles
  * side by side.
  *
- * Retail only. A line is capped at RETAIL_MAX because past that the buyer is
- * asking for a quote, not checking out.
+ * A line is capped at MAX_ONLINE_QTY because past that the buyer is asking for
+ * a quote, not checking out. Some candles are sold in sets — a line remembers
+ * its set size so the bag can step by it and never hold half a set.
  */
 
 export type CartLine = {
@@ -26,6 +27,8 @@ export type CartLine = {
   unitPrice: number;
   /** Chargeable shipping weight of one piece, in grams. Drives delivery cost. */
   packWeightGrams: number;
+  /** Sold in sets of this many. 1 for most candles; 10 for the mithai. */
+  minQty: number;
 };
 
 const KEY = "sugandha.cart.v1";
@@ -61,9 +64,13 @@ function parse(raw: string | null): CartLine[] {
       if (typeof line.slug !== "string" || typeof line.name !== "string") return [];
       const unitPrice = Number(line.unitPrice);
       if (!Number.isFinite(unitPrice) || unitPrice <= 0) return [];
-      const qty = Math.min(RETAIL_MAX, Math.max(1, Math.floor(Number(line.qty) || 1)));
+      const qty = Math.min(MAX_ONLINE_QTY, Math.max(1, Math.floor(Number(line.qty) || 1)));
       const packWeightGrams = Math.max(0, Math.floor(Number(line.packWeightGrams) || 0));
-      return [{ slug: line.slug, name: line.name, image: line.image ?? null, qty, unitPrice, packWeightGrams }];
+      // Carts saved before sets existed have no minQty; they were all singles.
+      const minQty = Math.max(1, Math.floor(Number(line.minQty) || 1));
+      return [
+        { slug: line.slug, name: line.name, image: line.image ?? null, qty, unitPrice, packWeightGrams, minQty },
+      ];
     });
     return lines.length ? lines : EMPTY;
   } catch {
@@ -161,7 +168,7 @@ export function useCart() {
 
     // Only a per-design ceiling now — past it the buyer is asking for a bulk
     // quote. The bag as a whole is unbounded.
-    const roomOnLine = Math.max(0, RETAIL_MAX - (existing?.qty ?? 0));
+    const roomOnLine = Math.max(0, MAX_ONLINE_QTY - (existing?.qty ?? 0));
     const added = Math.min(wanted, roomOnLine);
     if (added === 0) return 0;
 
@@ -176,13 +183,17 @@ export function useCart() {
   const setQty = useCallback((slug: string, qty: number) => {
     const next = Math.floor(qty);
     const current = getSnapshot();
+    const line = current.find((l) => l.slug === slug);
+    if (!line) return;
 
-    if (next < 1) {
+    // Stepping below the minimum takes the line out. A set of ten cannot
+    // become a set of six, and one fewer than a single is none.
+    if (next < Math.max(1, line.minQty)) {
       commit(current.filter((l) => l.slug !== slug));
       return;
     }
 
-    commit(current.map((l) => (l.slug === slug ? { ...l, qty: Math.min(RETAIL_MAX, next) } : l)));
+    commit(current.map((l) => (l.slug === slug ? { ...l, qty: Math.min(MAX_ONLINE_QTY, next) } : l)));
   }, []);
 
   const remove = useCallback((slug: string) => {

@@ -1,16 +1,11 @@
 import { DEFAULT_GIFT } from "./gift";
 import { DEFAULT_SHIPPING } from "./shipping";
-import type { Collection, PriceTier, Product, SiteSettings } from "./types";
+import type { Collection, Product, SiteSettings } from "./types";
 
 const COLLECTION = "festive-candles";
 
 const img = (slug: string, n = 1) => `/products/${slug}/${slug}-${n}.jpg`;
 
-/**
- * Slabs are the same shape on every product: a single-piece rate, then the
- * four bulk steps. Dummy rates for now — Sannat is replacing them with real
- * ones, and each can be edited per product in the admin.
- */
 /**
  * Sannat's quoted price is the list price, shown struck through. The rate he
  * actually sells at is Rs 20-30 below it, kept to the 9-ending house style his
@@ -19,27 +14,6 @@ const img = (slug: string, n = 1) => `/products/${slug}/${slug}-${n}.jpg`;
 const sellingPrice = (list: number) => {
   const off = list >= 400 ? 30 : list >= 200 ? 25 : 20;
   return Math.floor((list - off - 9) / 10) * 10 + 9;
-};
-
-/**
- * Slabs come off the selling rate, not the list price. The guard stops rounding
- * ever making a bigger order cost more than a smaller one.
- */
-const tiers = (sell: number): PriceTier[] => {
-  const steps: [number, number][] = [
-    [10, 0.9],
-    [25, 0.82],
-    [50, 0.73],
-    [100, 0.65],
-  ];
-
-  const out: PriceTier[] = [{ minQty: 1, price: sell }];
-  for (const [minQty, mult] of steps) {
-    const prev = out[out.length - 1].price;
-    const rounded = Math.round((sell * mult) / 5) * 5;
-    out.push({ minQty, price: rounded < prev ? rounded : prev - 5 });
-  }
-  return out;
 };
 
 export const seedSettings: SiteSettings = {
@@ -103,9 +77,9 @@ export const seedSettings: SiteSettings = {
     {
       heading: "Order size",
       body: [
-        "There is no minimum order. A single piece is welcome, and so is a bulk order.",
-        "Rates step down at 10, 25, 50 and 100 pieces. The step applies on its own — you do not have to ask.",
-        "Slabs are counted per design, so buying more of one design is what brings the rate down.",
+        "Most candles have no minimum — a single piece is welcome. The mithai candles are sold in sets of ten.",
+        "One price per piece, whatever the quantity: the price on the page is the price you pay.",
+        "Buying in bulk? Tap Chat for bulk on any candle and we quote you directly — rate, fragrance and delivery date.",
         "You may mix designs and fragrances freely within one order.",
       ],
     },
@@ -638,7 +612,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   packWeightGrams: 0,
   basePrice: sellingPrice(d.price),
   mrp: d.price,
-  priceTiers: tiers(sellingPrice(d.price)),
+  minQty: 1,
   packaging: d.packaging,
   inStock: true,
   featured: Boolean(d.featured),

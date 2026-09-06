@@ -21,7 +21,7 @@ export type AdminProduct = {
   pack_weight_grams: number | null;
   base_price: number | null;
   mrp: number | null;
-  price_tiers: { minQty: number; price: number }[] | null;
+  min_qty: number | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;

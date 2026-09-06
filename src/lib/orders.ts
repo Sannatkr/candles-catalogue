@@ -4,7 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { getProducts, getSettings } from "@/lib/data";
 import { resolveGift, SURPRISE_SLUG, surpriseIncluded } from "@/lib/gift";
-import { priceAtQty, RETAIL_MAX } from "@/lib/pricing";
+import { clampQty, minQtyOf, singlePrice } from "@/lib/pricing";
 import { shipOrderRow } from "@/lib/fulfillment";
 import { packGramsOf, shippingCost } from "@/lib/shipping";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
@@ -125,9 +125,11 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   const items: OrderItemRow[] = input.lines.flatMap((line): OrderItemRow[] => {
     const product = catalogue.find((p) => p.slug === line.slug);
     if (!product || !product.inStock) return [];
-    const qty = Math.min(RETAIL_MAX, Math.max(1, Math.floor(Number(line.qty) || 0)));
+    // Rounded up to the set size if a doctored cart asks for less than one set,
+    // and capped at the online ceiling. The buyer pays for exactly what ships.
+    const qty = clampQty(Number(line.qty), minQtyOf(product));
     if (qty < 1) return [];
-    const unitPrice = priceAtQty(product, qty);
+    const unitPrice = singlePrice(product);
     if (!(unitPrice > 0)) return [];
     return [
       {

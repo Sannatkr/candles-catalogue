@@ -7,7 +7,7 @@ import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
 import { resolveGift, surpriseIncluded } from "@/lib/gift";
-import { RETAIL_MAX, singlePrice } from "@/lib/pricing";
+import { MAX_ONLINE_QTY, singlePrice } from "@/lib/pricing";
 import { shippingCost } from "@/lib/shipping";
 import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
 
@@ -71,7 +71,10 @@ export function CartView({
       </div>
 
       <ul className="divide-y divide-line-soft border-y border-line-soft lg:col-start-1 lg:row-span-2 lg:row-start-1">
-        {lines.map((line) => (
+        {lines.map((line) => {
+          // Sets step by the set. A single steps by one.
+          const step = Math.max(1, line.minQty);
+          return (
           <li key={line.slug} className="flex gap-4 py-5 sm:gap-5">
             <Link
               href={`/products/${line.slug}`}
@@ -90,15 +93,15 @@ export function CartView({
                 {line.name}
               </Link>
               <p className="mt-1 text-[0.82rem] text-ink-faint tabular-nums">
-                {money(line.unitPrice)} each
+                {money(line.unitPrice)} each{step > 1 && ` · sold in sets of ${step}`}
               </p>
 
               <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-3">
                 <div className="flex items-center rounded-full border border-line bg-surface">
                   <button
                     type="button"
-                    onClick={() => setQty(line.slug, line.qty - 1)}
-                    aria-label={`One fewer ${line.name}`}
+                    onClick={() => setQty(line.slug, line.qty - step)}
+                    aria-label={`${step > 1 ? `${step} fewer` : "One fewer"} ${line.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded-l-full text-ink transition-colors hover:bg-canvas-deep"
                   >
                     <Minus size={14} />
@@ -106,9 +109,9 @@ export function CartView({
                   <span className="w-9 text-center text-[0.9rem] text-ink tabular-nums">{line.qty}</span>
                   <button
                     type="button"
-                    onClick={() => setQty(line.slug, line.qty + 1)}
-                    disabled={line.qty >= RETAIL_MAX}
-                    aria-label={`One more ${line.name}`}
+                    onClick={() => setQty(line.slug, line.qty + step)}
+                    disabled={line.qty >= MAX_ONLINE_QTY}
+                    aria-label={`${step > 1 ? `${step} more` : "One more"} ${line.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
                   >
                     <Plus size={14} />
@@ -120,13 +123,13 @@ export function CartView({
                 </span>
               </div>
 
-              {line.qty >= RETAIL_MAX && (
+              {line.qty >= MAX_ONLINE_QTY && (
                 <p className="mt-2.5 text-[0.78rem] leading-relaxed text-ember-deep">
-                  {RETAIL_MAX} is the most you can buy online.{" "}
+                  {MAX_ONLINE_QTY} is the most you can buy online.{" "}
                   <Link href={`/products/${line.slug}`} className="underline underline-offset-2">
-                    Ask for a bulk rate
+                    Chat for bulk
                   </Link>{" "}
-                  instead.
+                  for more.
                 </p>
               )}
             </div>
@@ -140,7 +143,8 @@ export function CartView({
               <Trash2 size={15} className="mx-auto" />
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       <div className="lg:col-start-2 lg:row-start-2 lg:sticky lg:top-24 lg:self-start">
@@ -214,8 +218,7 @@ export function CartView({
         </div>
 
         <p className="mt-4 px-1 text-[0.78rem] leading-relaxed text-ink-faint">
-          Buying {RETAIL_MAX + 1} or more of one candle? Open that candle and pick a bulk band — the rate
-          drops and we quote you directly.
+          Buying in bulk? Open the candle and tap Chat for bulk — we quote you directly.
         </p>
       </div>
     </div>

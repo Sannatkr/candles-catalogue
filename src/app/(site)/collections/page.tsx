@@ -19,7 +19,7 @@ export default async function CollectionsPage() {
         </h1>
         <p className="mt-5 max-w-[54ch] text-[1.02rem] leading-relaxed text-ink-soft">
           Each collection is priced and produced a little differently. Open one to see every design in it
-          with sizes and price slabs.
+          with sizes and prices.
         </p>
       </Reveal>
 

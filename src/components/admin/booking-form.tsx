@@ -7,12 +7,13 @@ import { Card, Field, Input, Notice, Select, SubmitButton, Textarea } from "@/co
 import { IDLE } from "@/lib/admin/action-state";
 import { createBooking } from "@/lib/admin/actions";
 import { BOOKING_STATUSES, STATUS_LABEL } from "@/lib/admin/booking-status";
-import { money, priceFor } from "@/lib/format";
+import { money } from "@/lib/format";
+import { singlePrice } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Rate is kept as text so an empty box can mean "use the listed slab rate". */
+/** Rate is kept as text so an empty box can mean "use the listed price". */
 type Line = { slug: string; qty: number; rate: string };
 
 export function BookingForm({ products, fragrances }: { products: Product[]; fragrances: string[] }) {
@@ -25,9 +26,9 @@ export function BookingForm({ products, fragrances }: { products: Product[]; fra
 
   const priced = lines.map((line) => {
     const product = bySlug.get(line.slug);
-    // Suggest the slab rate for the quantity, but let it be overwritten — an
-    // offline deal is exactly where the listed rate stops applying.
-    const suggested = product ? priceFor(product, line.qty) : 0;
+    // Suggest the listed price, but let it be overwritten — an offline deal is
+    // exactly where the listed price stops applying.
+    const suggested = product ? singlePrice(product) : 0;
     const rate = line.rate === "" ? suggested : Number(line.rate);
     const unitPrice = Number.isFinite(rate) ? rate : 0;
     return { ...line, product, suggested, unitPrice, total: Math.round(unitPrice * line.qty) };

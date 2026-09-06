@@ -8,7 +8,8 @@ import { updateBooking } from "@/lib/admin/actions";
 import { IDLE } from "@/lib/admin/action-state";
 import { itemsOf } from "@/lib/admin/booking-items";
 import type { AdminBooking } from "@/lib/admin/queries";
-import { money, priceFor } from "@/lib/format";
+import { money } from "@/lib/format";
+import { singlePrice } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
 
 const FIELD =
@@ -62,7 +63,7 @@ export function BookingEdit({
     if (!p) return;
     setLines((prev) => [
       ...prev,
-      { slug: p.slug, name: p.name, image: p.images[0] ?? null, qty: 1, rate: String(priceFor(p, 1)) },
+      { slug: p.slug, name: p.name, image: p.images[0] ?? null, qty: 1, rate: String(singlePrice(p)) },
     ]);
   };
 

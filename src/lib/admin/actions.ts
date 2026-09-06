@@ -69,9 +69,10 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   const images = json<string[]>(fd, "images", []);
   if (images.length === 0) return { ok: false, message: "Add at least one photo." };
 
-  const tiers = json<{ minQty: number; price: number }[]>(fd, "price_tiers", [])
-    .filter((t) => t.minQty > 0 && t.price > 0)
-    .sort((a, b) => a.minQty - b.minQty);
+  const basePrice = num(fd, "base_price");
+  if (!(basePrice > 0)) return { ok: false, message: "Give it a price per piece." };
+  // Sold in sets of this many. Anything odd typed here collapses to 1.
+  const minQty = Math.max(1, Math.floor(num(fd, "min_qty")) || 1);
 
   const row = {
     slug: str(fd, "slug") || slugify(name),
@@ -91,9 +92,9 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     height_cm: num(fd, "height_cm"),
     diameter_cm: num(fd, "diameter_cm"),
     pack_weight_grams: num(fd, "pack_weight_grams"),
-    base_price: tiers[0]?.price ?? num(fd, "base_price"),
+    base_price: basePrice,
     mrp: num(fd, "mrp"),
-    price_tiers: tiers,
+    min_qty: minQty,
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),
     gift_eligible: bool(fd, "gift_eligible"),

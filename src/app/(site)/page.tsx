@@ -25,12 +25,12 @@ const STEPS = [
   {
     n: "01",
     title: "Browse and shortlist",
-    body: "Sizes, burn time, packing and every price slab are on the page. Nothing hidden behind a phone call.",
+    body: "Sizes, burn time, packing and the price per piece are on the page. Nothing hidden behind a phone call.",
   },
   {
     n: "02",
     title: "Book it in a minute",
-    body: "Pick your quantity, see the rate change, and send it over. We reply on Instagram the same working day.",
+    body: "Pick your quantity and pay online — or tap Chat for bulk and we reply on Instagram the same working day.",
   },
   {
     n: "03",
