@@ -12,6 +12,9 @@
 -- fine. Until this runs, the site treats every candle as sold singly, and
 -- saving a candle in the admin fails on the missing column.
 --
+-- MRP is the price plus 30%, rounded up — the owner's rule of thumb, to be tuned in
+-- the admin later.
+--
 -- Safe to run twice.
 
 alter table public.products
@@ -31,7 +34,7 @@ values
    'A motichoor-style laddoo in wax — the round, grainy surface, the warm orange, a flake of silver leaf on top. Set a few out on a thali and watch someone reach for one. Sold in sets of ten.',
    '{/products/laddoo-candle/laddoo-candle-1.jpg}',
    '{laddoo,motichoor,mithai,sweet,dessert,diwali,return gift,novelty,food,set of 10}',
-   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 50, 75, 20, 0, 10, 'Set of 10',
+   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 50, 75, 20, 26, 10, 'Set of 10',
    true, false, false, 28),
 
   ('modak-candle', 'Modak Candle', 'festive-candles',
@@ -39,7 +42,7 @@ values
    'A hand-shaped modak with its pleated top, finished with a touch of silver leaf. Comes in pastel pink, blue, mint, cream and marigold. The Ganesh Chaturthi piece, and a return gift that gets photographed. Sold in sets of ten.',
    '{/products/modak-candle/modak-candle-1.jpg}',
    '{modak,ganesh chaturthi,ganpati,mithai,sweet,pastel,return gift,novelty,food,set of 10}',
-   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 50, 75, 20, 0, 10, 'Set of 10',
+   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 50, 75, 20, 26, 10, 'Set of 10',
    true, false, false, 29),
 
   ('jalebi-candle', 'Jalebi Candle', 'festive-candles',
@@ -47,7 +50,7 @@ values
    'A coiled jalebi in a deep saffron orange, glossy as if it had just been lifted from the kadhai, with a flake of silver leaf. Sold in sets of ten.',
    '{/products/jalebi-candle/jalebi-candle-1.jpg}',
    '{jalebi,mithai,sweet,dessert,orange,diwali,return gift,novelty,food,set of 10}',
-   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 45, 70, 18, 0, 10, 'Set of 10',
+   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 45, 70, 18, 24, 10, 'Set of 10',
    true, false, false, 30),
 
   ('imriti-candle', 'Imriti Candle', 'festive-candles',
@@ -55,7 +58,7 @@ values
    'An imriti in its ring of tight red-orange loops, the colour of the real thing, with a flake of silver leaf on top. Sold in sets of ten.',
    '{/products/imriti-candle/imriti-candle-1.jpg}',
    '{imriti,imarti,mithai,sweet,dessert,red,diwali,return gift,novelty,food,set of 10}',
-   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 45, 70, 18, 0, 10, 'Set of 10',
+   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 45, 70, 18, 24, 10, 'Set of 10',
    true, false, false, 31),
 
   ('gujiya-candle', 'Gujiya Candle', 'festive-candles',
@@ -63,6 +66,6 @@ values
    'A crescent gujiya in wax, down to the rope-crimped edge, in a warm orange with silver leaf on top. Holi and Diwali both. Sold in sets of ten.',
    '{/products/gujiya-candle/gujiya-candle-1.jpg}',
    '{gujiya,holi,mithai,sweet,dessert,diwali,return gift,novelty,food,set of 10}',
-   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 55, 80, 25, 0, 10, 'Set of 10',
+   '', '100% natural soy wax', 'Cotton, lead-free', 5, 0, 0, 55, 80, 25, 33, 10, 'Set of 10',
    true, false, false, 32)
 on conflict (slug) do update set min_qty = excluded.min_qty;

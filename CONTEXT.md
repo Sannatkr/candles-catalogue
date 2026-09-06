@@ -373,7 +373,7 @@ _Newest first. Add an entry for every change — one line is fine. Format: `YYYY
   weight *estimated* at 1400 g) inserted over REST; the five mithai (₹20 laddoo/modak, ₹18
   jalebi/imriti, ₹25 gujiya, all in sets of 10) ride in **migration 023** because `min_qty`
   needs the column first. Photos padded 1254² → 1200×1500 with a blurred copy, same as the
-  rangoli sets. **MRP left at 0 on all seven** (no strike-through) — owner to set. Mithai
+  rangoli sets. **MRP = price + 30%, rounded up** on all seven (₹329, ₹519; ₹26/26/24/24/33) — owner's rule of thumb, to be tuned in the admin. Mithai
   fragrance blank, burn 5 h and pack weight 70–80 g/pc are placeholders to fill in the admin.
 
 - 2026-09-06 — **Tab icons are the circular seal too** — overrides the "tab icons stay the bare swan" note in the entry below. Owner asked for one mark everywhere. The 16px face does go to mush, which is why it was not done this way first, but retina screens request the 32px face and that one holds up. `scripts/make-logo.py` now feeds `seal()` to every output, so there is a single mark to maintain.
