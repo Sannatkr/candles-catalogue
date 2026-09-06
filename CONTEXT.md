@@ -364,6 +364,8 @@ then Merchant Center. Reasoning for all of it is in the SEO section.
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
 
+- 2026-09-07 — **Product page reordered: price first, specs as chips, story last and short.** Order is now title → tagline → buy block → spec chips (Fragrance first, then Size / Wax / Wick) → description held to two lines by `ClampedText` with a "Read more". The clamp's "is there more?" compares against an invisible full-height twin, not scrollHeight — the standard `line-clamp` discards clipped lines so scroll metrics say nothing.
+
 - 2026-09-07 — **Bulk button made loud, and a floating one added.** The outlined "Buying in bulk? Chat with us" was too quiet next to Add to bag; it is now the Instagram gradient and goes straight to the DM in a new tab, like the header's Enquire. New `BulkFab` — a floating "Bulk enquiry" pill bottom-right on every site page except the bag and checkout. Photos of the seven new candles re-cut as centre 4:5 crops (the blurred pad read as a size problem); Small Peacock Urli corrected to W 6.5 × H 2 in.
 
 - 2026-09-06 — **Bulk slabs removed; one price per piece; candles can be sold in sets; seven new

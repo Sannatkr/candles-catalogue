@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ClampedText } from "@/components/clamped-text";
 import { ProductPurchase } from "@/components/product-purchase";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
@@ -13,7 +14,7 @@ import {
   getProducts,
   getSettings,
 } from "@/lib/data";
-import { toInches } from "@/lib/format";
+import { sizeLabel } from "@/lib/format";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -61,22 +62,12 @@ export default async function ProductPage({
     )
     .slice(0, 3);
 
+  // In short, and scent first — it is the one spec a buyer actually asks about.
   const specs = [
     { label: "Fragrance", value: product.fragrance },
+    { label: "Size", value: sizeLabel(product) },
     { label: "Wax", value: product.waxType },
     { label: "Wick", value: product.wickType },
-    {
-      label: "Width",
-      value: product.diameterCm
-        ? `${toInches(product.diameterCm)} in (${Math.round(product.diameterCm)} cm)`
-        : "",
-    },
-    {
-      label: "Height",
-      value: product.heightCm
-        ? `${toInches(product.heightCm)} in (${Math.round(product.heightCm)} cm)`
-        : "",
-    },
   ].filter((s) => s.value);
 
   return (
@@ -143,10 +134,6 @@ export default async function ProductPage({
             </span>
           )}
 
-          <p className="mt-7 max-w-[54ch] leading-relaxed text-ink-soft">
-            {product.description}
-          </p>
-
           <ProductPurchase
             product={product}
             fragrances={settings.fragrances}
@@ -154,25 +141,24 @@ export default async function ProductPage({
             businessName={settings.businessName}
           />
 
-          {/* Specs */}
-          <div className="mt-11">
-            <p className="eyebrow">Specification</p>
-            <dl className="mt-4 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+          {/* The specs, right under the price and short: chips, not a table.
+              Fragrance leads because that is the one line people read. */}
+          {specs.length > 0 && (
+            <ul className="mt-6 flex flex-wrap gap-2">
               {specs.map((spec) => (
-                <div
+                <li
                   key={spec.label}
-                  className="flex items-baseline justify-between gap-4 border-b border-line-soft py-3"
+                  className="inline-flex items-baseline gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[0.85rem]"
                 >
-                  <dt className="text-[0.875rem] text-ink-faint">
-                    {spec.label}
-                  </dt>
-                  <dd className="text-right text-[0.925rem] text-ink">
-                    {spec.value}
-                  </dd>
-                </div>
+                  <span className="text-ink-faint">{spec.label}</span>
+                  <span className="text-ink">{spec.value}</span>
+                </li>
               ))}
-            </dl>
-          </div>
+            </ul>
+          )}
+
+          {/* The story last, held to two lines. Few read it; those who do can open it. */}
+          <ClampedText text={product.description} className="mt-7 max-w-[54ch]" />
         </Reveal>
       </article>
 
