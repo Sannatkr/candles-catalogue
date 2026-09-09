@@ -2,28 +2,36 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Check, Gift, Minus, Plus, ShoppingBag } from "lucide-react";
-import { EnquiryDialog } from "@/components/enquiry-dialog";
-import { InstagramIcon } from "@/components/instagram-icon";
+import { Check, Layers, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
+import { BulkEnquiryDialog } from "@/components/bulk-enquiry-dialog";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
-import { GiftProgress } from "@/components/gift-progress";
-import { celebrateGift, celebrateUnlock } from "@/lib/celebrate";
-import { giftUnlocked } from "@/lib/gift";
-import { useGiftConfig } from "@/lib/gift-context";
-import { instagramDmLink, money } from "@/lib/format";
-import { MAX_ONLINE_QTY, minQtyOf, singlePrice } from "@/lib/pricing";
+import { celebrateUnlock, originOf } from "@/lib/celebrate";
+import { money } from "@/lib/format";
+import {
+  freeShipQtyOf,
+  maxQtyOf,
+  minQtyOf,
+  singlePrice,
+  slabsFor,
+  unitPriceAt,
+} from "@/lib/pricing";
+import { useBulkTiers } from "@/lib/shop-config";
 import { packGramsOf } from "@/lib/shipping";
 import type { Product } from "@/lib/types";
 
 /**
  * The buying block on a product page.
  *
- * One price, one quantity, one button. The price per piece never moves; the
- * total is simply price × quantity. Candles sold in sets (the mithai, in tens)
- * start at a set, step by a set, and refuse anything below a set — but any
- * number above it can be typed in, so 35 is fine. Past MAX_ONLINE_QTY the buy
- * button becomes a chat button, because that many is a quote, not a checkout.
+ * Three things move with the quantity, and they are the whole point of it: the
+ * price per piece, which steps down the bulk ladder; free delivery, which this
+ * candle earns at its own quantity; and the button itself, which stops being a
+ * checkout and becomes an enquiry once the parcel will not hold any more.
+ *
+ * The ladder is shown in full, including the rungs this candle cannot reach
+ * online. A peacock urli stops at 7 in a parcel, but the buyer asking for 100
+ * of them is the buyer worth having — the greyed rungs are what tells them the
+ * rate keeps falling and that there is a form for it.
  */
 export function ProductPurchase({
   product,
@@ -37,7 +45,11 @@ export function ProductPurchase({
   businessName: string;
 }) {
   const step = minQtyOf(product);
-  const unitPrice = singlePrice(product);
+  const cap = maxQtyOf(product);
+  const freeShipAt = freeShipQtyOf(product);
+  const tiers = useBulkTiers();
+  const slabs = slabsFor(product, tiers);
+  const basePrice = singlePrice(product);
 
   const [qty, setQty] = useState(step);
   /**
@@ -52,26 +64,20 @@ export function ProductPurchase({
   const [shortfall, setShortfall] = useState(0);
 
   const cart = useCart();
-  const giftConfig = useGiftConfig();
-  const couldClaimBefore = useRef(false);
-  const sawGiftState = useRef(false);
 
-  // Offered here only when it can actually be taken: the bag has earned a gift,
-  // this candle is one of the giftable ones, and none has been claimed yet.
-  const canClaimFree =
-    cart.ready &&
-    giftConfig.enabled &&
-    product.giftEligible &&
-    product.inStock &&
-    !cart.giftSlug &&
-    giftUnlocked(giftConfig, cart.subtotal);
-
-  const online = qty <= MAX_ONLINE_QTY;
+  const unitPrice = unitPriceAt(product, tiers, qty);
+  const online = qty <= cap;
   const total = unitPrice * qty;
+  const saving = (basePrice - unitPrice) * qty;
   const sets = step > 1 && qty % step === 0 ? qty / step : 0;
+  const shipsFree = freeShipAt > 0 && qty >= freeShipAt && online;
+  const toFreeShip = freeShipAt > 0 && online ? Math.max(0, freeShipAt - qty) : 0;
+
+  const freeShipRef = useRef<HTMLParagraphElement | null>(null);
+  const wasFree = useRef(false);
 
   function changeQty(next: number) {
-    setQty(Math.max(step, Math.min(9999, next)));
+    setQty(Math.max(step, Math.min(100000, next)));
     setDraft(null);
     setAdded(false);
     setShortfall(0);
@@ -83,9 +89,12 @@ export function ProductPurchase({
         slug: product.slug,
         name: product.name,
         image: product.images[0] ?? null,
-        unitPrice,
+        basePrice,
         packWeightGrams: packGramsOf(product),
         minQty: step,
+        maxQty: cap,
+        freeShipQty: freeShipAt,
+        bulkPricing: product.bulkPricing,
       },
       qty,
     );
@@ -106,53 +115,17 @@ export function ProductPurchase({
     track("bulk_quote_opened", { product: product.slug, qty, unit_price: unitPrice });
   }
 
-  /**
-   * Crossing the threshold on a giftable candle swaps the progress line out for
-   * the claim banner — so the line unmounts on the very render that earns the
-   * gift and never gets to celebrate. The banner takes that job here instead,
-   * which keeps exactly one celebration per crossing.
-   */
+  /** The one moment worth a celebration: the quantity that earns free delivery. */
   useEffect(() => {
-    if (!cart.ready) return;
-    const crossedJustNow = sawGiftState.current && canClaimFree && !couldClaimBefore.current;
-    couldClaimBefore.current = canClaimFree;
-    sawGiftState.current = true;
-    if (crossedJustNow) celebrateUnlock();
-  }, [canClaimFree, cart.ready]);
-
-  const INSTAGRAM =
-    "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)";
-  const chatClass =
-    "inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90";
+    if (shipsFree && !wasFree.current) celebrateUnlock(originOf(freeShipRef.current));
+    wasFree.current = shipsFree;
+  }, [shipsFree]);
 
   return (
     <>
-      {canClaimFree && (
-        <button
-          type="button"
-          onClick={() => {
-            cart.setGift(product.slug);
-            celebrateGift();
-          }}
-          className="gift-shine relative mt-9 flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-ember/40 bg-ember-wash px-5 py-4 text-left transition-colors hover:border-ember"
-        >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canvas text-ember-deep">
-            <Gift size={17} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-[1.02rem] leading-snug text-ink">
-              Have this one free
-            </span>
-            <span className="mt-0.5 block text-[0.82rem] text-ink-soft">
-              Your bag has earned a free candle — tap to claim this one.
-            </span>
-          </span>
-        </button>
-      )}
-
       <div className="mt-9 rounded-[16px] border border-line bg-surface p-5 sm:p-6">
         {/* The price, on its own line so nothing can crowd it on a phone. */}
-        <p className="eyebrow">Price per piece</p>
+        <p className="eyebrow">{qty > step ? `Price per piece at ${qty}` : "Price per piece"}</p>
 
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-display text-[2rem] leading-none text-ink tabular-nums">
@@ -177,6 +150,56 @@ export function ProductPurchase({
           </p>
         )}
 
+        {/* The ladder. Shown whole, including what this candle cannot ship. */}
+        {slabs.length > 0 && (
+          <div className="mt-5 border-t border-line pt-5">
+            <p className="text-[0.8rem] font-medium text-ink">Buying more? The price comes down.</p>
+            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {slabs.map((slab) => {
+                const live = online && qty >= slab.minQty;
+                return (
+                  <li
+                    key={slab.minQty}
+                    className={`rounded-[12px] border px-3 py-2.5 text-center transition-colors ${
+                      live
+                        ? "border-ember bg-ember-wash/60"
+                        : slab.online
+                          ? "border-line bg-canvas"
+                          : "border-dashed border-line bg-canvas"
+                    }`}
+                  >
+                    <span className="block text-[0.72rem] tracking-wide text-ink-faint tabular-nums">
+                      {slab.minQty}+ pcs
+                    </span>
+                    <span
+                      className={`mt-1 block text-[0.95rem] tabular-nums ${
+                        slab.online ? "text-ink" : "text-ink-faint"
+                      }`}
+                    >
+                      {money(slab.unitPrice)}
+                    </span>
+                    <span className="mt-0.5 block text-[0.68rem] text-ink-faint">
+                      {slab.online ? `${slab.percentOff}% off` : "On enquiry"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            {slabs.some((s) => !s.online) && (
+              <p className="mt-2.5 text-[0.78rem] leading-relaxed text-ink-faint">
+                Up to {cap} of this design go through the checkout. Past that we quote you — and the
+                rate keeps falling.
+              </p>
+            )}
+          </div>
+        )}
+
+        {!product.bulkPricing && (
+          <p className="mt-4 text-[0.82rem] leading-relaxed text-ink-soft">
+            One fixed price on this one, whatever the quantity — it is already at its bulk rate.
+          </p>
+        )}
+
         {/* Quantity */}
         <div className="mt-6 border-t border-line pt-5">
           <p className="text-[0.8rem] font-medium text-ink">How many pieces?</p>
@@ -196,7 +219,7 @@ export function ProductPurchase({
                 type="number"
                 inputMode="numeric"
                 min={step}
-                max={9999}
+                max={100000}
                 step={step}
                 value={draft ?? String(qty)}
                 onChange={(e) => {
@@ -207,7 +230,7 @@ export function ProductPurchase({
                   // Follow the box only once it holds something sellable. Below
                   // the minimum it may just be half-typed — "3" on its way to "35".
                   if (raw.trim() !== "" && Number.isFinite(parsed) && parsed >= step) {
-                    setQty(Math.min(9999, Math.floor(parsed)));
+                    setQty(Math.min(100000, Math.floor(parsed)));
                   }
                 }}
                 onBlur={() => {
@@ -222,9 +245,8 @@ export function ProductPurchase({
               <button
                 type="button"
                 onClick={() => changeQty(qty + step)}
-                disabled={qty >= 9999}
                 aria-label={step > 1 ? `${step} more` : "One more"}
-                className="flex h-11 w-11 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex h-11 w-11 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep"
               >
                 <Plus size={16} />
               </button>
@@ -240,9 +262,37 @@ export function ProductPurchase({
             </span>
           </div>
 
+          {saving > 0 && online && (
+            <p className="mt-3 text-[0.82rem] text-[#3d5730] tabular-nums">
+              Bulk rate applied — you save {money(saving)} on this line.
+            </p>
+          )}
+
           {step > 1 && (
             <p className="mt-3 text-[0.8rem] leading-relaxed text-ink-soft">
               The buttons add or remove a set of {step}. Type in the box for any other number of {step} or more.
+            </p>
+          )}
+
+          {/* Free delivery, earned by this one design. */}
+          {freeShipAt > 0 && (
+            <p
+              ref={freeShipRef}
+              className={`mt-4 flex items-start gap-2.5 rounded-[12px] px-4 py-3 text-[0.82rem] leading-relaxed ${
+                shipsFree ? "free-ship-pop bg-[#e6efe3] text-[#3d5730]" : "bg-canvas-deep text-ink-soft"
+              }`}
+            >
+              <Truck size={15} className="mt-0.5 shrink-0" />
+              {shipsFree ? (
+                <span>
+                  <b className="font-semibold">Delivery is on us.</b> {qty} pieces of this design ships
+                  free, anywhere in India.
+                </span>
+              ) : (
+                <span>
+                  Add {toFreeShip} more — {freeShipAt} of this design and delivery is free.
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -260,14 +310,10 @@ export function ProductPurchase({
                 {added ? "Added to bag" : "Add to bag"}
               </button>
 
-              {/* Next to the buy action, not in a banner: shoppers must look here
-                  to proceed, and up to 27% never see a site-wide strip at all. */}
-              {!canClaimFree && <GiftProgress variant="compact" />}
-
               {shortfall > 0 && (
                 <p className="mt-3 rounded-[12px] bg-ember-wash px-4 py-3 text-[0.82rem] leading-relaxed text-ember-deep">
-                  You can buy up to {MAX_ONLINE_QTY} of one design online, so {shortfall} did not fit. For more
-                  than that, chat with us and we quote you directly.
+                  You can buy up to {cap} of this design online, so {shortfall} did not fit. For more
+                  than that, send a bulk enquiry and we quote you directly.
                 </p>
               )}
 
@@ -280,43 +326,40 @@ export function ProductPurchase({
                 </Link>
               )}
 
-              {/* Straight to the Instagram chat, the same way the header's Enquire
-                  goes — bulk is a conversation, not a form. */}
-              <a
-                href={instagramDmLink(instagramHandle)}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => track("bulk_chat_clicked", { product: product.slug, qty })}
-                style={{ backgroundImage: INSTAGRAM }}
-                className={`mt-2.5 ${chatClass}`}
+              <button
+                type="button"
+                onClick={openEnquiry}
+                className="mt-2.5 inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-ink px-7 py-3.5 text-[0.92rem] font-medium text-ink transition-colors hover:bg-ink hover:text-canvas"
               >
-                <InstagramIcon size={18} />
-                Buying in bulk? Chat with us
-              </a>
+                <Layers size={17} />
+                Buying in bulk? Get a quote
+              </button>
             </>
           ) : (
-            <button type="button" onClick={openEnquiry} style={{ backgroundImage: INSTAGRAM }} className={chatClass}>
-              <InstagramIcon size={18} />
-              Chat for {qty} pieces
+            <button
+              type="button"
+              onClick={openEnquiry}
+              className="inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+            >
+              <Layers size={17} />
+              Get a quote for {qty} pieces
             </button>
           )}
 
           <p className="mt-3 text-center text-[0.78rem] leading-relaxed text-ink-faint">
             {online
               ? "Secure checkout. Dispatched in 2–4 working days."
-              : "No payment now. We confirm your rate, fragrance and delivery date first."}
+              : `More than ${cap} of this design is a quote, not a checkout. No payment now — we confirm your rate, fragrance and delivery date first.`}
           </p>
         </div>
       </div>
 
       {enquiry && (
-        <EnquiryDialog
-          product={product}
+        <BulkEnquiryDialog
           fragrances={fragrances}
           instagramHandle={instagramHandle}
           businessName={businessName}
-          initialQty={qty}
-          unitPrice={unitPrice}
+          initialPicks={[{ slug: product.slug, qty: Math.max(step, qty) }]}
           onClose={() => setEnquiry(false)}
         />
       )}

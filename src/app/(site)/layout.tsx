@@ -2,7 +2,7 @@ import { BulkFab } from "@/components/bulk-fab";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getSettings } from "@/lib/data";
-import { GiftConfigProvider } from "@/lib/gift-context";
+import { ShopConfigProvider } from "@/lib/shop-config";
 import { instagramDmLink } from "@/lib/format";
 
 /**
@@ -19,7 +19,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const settings = await getSettings();
 
   return (
-    <GiftConfigProvider config={settings.gift}>
+    <ShopConfigProvider bulkTiers={settings.bulkTiers}>
       <div className="flex min-h-dvh flex-col">
         <SiteHeader
           businessName={settings.businessName}
@@ -27,8 +27,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         />
         <main className="flex-1">{children}</main>
         <SiteFooter settings={settings} />
-        <BulkFab href={instagramDmLink(settings.instagramHandle)} />
+        <BulkFab
+          fragrances={settings.fragrances}
+          instagramHandle={settings.instagramHandle}
+          businessName={settings.businessName}
+        />
       </div>
-    </GiftConfigProvider>
+    </ShopConfigProvider>
   );
 }

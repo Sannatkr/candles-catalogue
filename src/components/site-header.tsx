@@ -1,6 +1,5 @@
 "use client";
 
-import { GiftBar } from "@/components/gift-bar";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -146,7 +145,6 @@ export function SiteHeader({
           </nav>
         </div>
       )}
-      <GiftBar />
     </header>
   );
 }

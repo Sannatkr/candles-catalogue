@@ -22,11 +22,13 @@ export type AdminProduct = {
   base_price: number | null;
   mrp: number | null;
   min_qty: number | null;
+  max_qty: number | null;
+  free_ship_qty: number | null;
+  bulk_pricing: boolean | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
-  gift_eligible: boolean | null;
 };
 
 export type AdminCollection = {

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { Card, Field, Input, Notice, SubmitButton, Textarea, Toggle } from "@/components/admin/ui";
+import { Card, Field, Input, Notice, SubmitButton, Textarea } from "@/components/admin/ui";
 import { IDLE } from "@/lib/admin/action-state";
 import { saveSettings } from "@/lib/admin/actions";
 import type { SiteSettings, TermsSection } from "@/lib/types";
@@ -87,28 +87,23 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
       </Card>
 
       <Card
-        title="Free candle"
-        hint="One free candle, chosen by the buyer, once their bag reaches the amount below. Which candles they may choose from is set per candle, on the product page — tick “Can be given free”."
+        title="Bulk pricing"
+        hint="Take this many of one design and the price per piece comes down by this much — shown on every product page, so a buyer never has to ask. Applies to every candle except the ones you untick under “Bulk slabs apply” on the product itself. Clear a row to remove that rung."
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <Toggle
-            name="gift_enabled"
-            label="Offer a free candle"
-            hint="Turn off to end the offer without unticking every candle."
-            defaultChecked={settings.gift.enabled}
-          />
-          <Field label="Bag must reach (₹)" hint="Counts only what is being paid for — the gift never unlocks itself.">
-            <Input type="number" name="gift_threshold" min={0} step="1" defaultValue={settings.gift.threshold} />
-          </Field>
-          <Toggle
-            name="gift_surprise_enabled"
-            label="Add a surprise gift too"
-            hint="A second freebie they do not choose — whatever you decide to pack that week. Appears on your packing list so you never forget it."
-            defaultChecked={settings.gift.surpriseEnabled}
-          />
-          <Field label="What to call it" hint="Keep it vague — the surprise is the point.">
-            <Input name="gift_surprise_label" defaultValue={settings.gift.surpriseLabel} placeholder="A surprise gift" />
-          </Field>
+          {[1, 2, 3, 4, 5].map((i) => {
+            const tier = settings.bulkTiers[i - 1];
+            return (
+              <div key={i} className="grid grid-cols-2 gap-3">
+                <Field label={`Rung ${i} — from (pcs)`}>
+                  <Input type="number" name={`tier${i}_qty`} min={0} step="1" defaultValue={tier?.minQty ?? ""} />
+                </Field>
+                <Field label="% off">
+                  <Input type="number" name={`tier${i}_off`} min={0} max={89} step="1" defaultValue={tier?.percentOff ?? ""} />
+                </Field>
+              </div>
+            );
+          })}
         </div>
       </Card>
 

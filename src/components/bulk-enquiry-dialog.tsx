@@ -2,12 +2,23 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Copy, Loader2, MapPin, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Copy,
+  Loader2,
+  MapPin,
+  Minus,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
 import { FragrancePicker } from "@/components/fragrance-picker";
 import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { CUSTOMISE_FROM } from "@/lib/booking-config";
-import { placeBooking } from "@/lib/bookings";
+import { bulkCatalogue, placeBulkEnquiry, type BulkChoice } from "@/lib/bulk";
 import {
   compactQty,
   instagramChatLink,
@@ -16,65 +27,61 @@ import {
   onMobileDevice,
 } from "@/lib/format";
 import { lookupPincode } from "@/lib/pincode";
-import type { Product } from "@/lib/types";
 
 /**
- * The bulk path. Ten pieces and up is a conversation, not a checkout — the rate
- * gets confirmed, a fragrance gets chosen, freight gets worked out.
+ * The bulk enquiry form: pick the candles, say how many of each, leave a way to
+ * be reached.
  *
- * Only three things are actually required: a name, a pincode, and one way to
- * reach the buyer. That last one is either a phone number or an Instagram
- * handle — asking for both is how a form loses people, and either one is enough
- * to answer them.
+ * This replaces the old "chat with us" links that dropped a buyer into an empty
+ * Instagram DM. An empty DM asks the buyer to compose the enquiry themselves,
+ * and most of them never did — the ones who wrote at all wrote "price?". The
+ * picker asks the two questions that make a quote possible (which candles, how
+ * many) in the one place where the buyer is already looking at the range.
+ *
+ * Instagram is still here, but afterwards: the enquiry is saved first, then the
+ * whole thing is copied to the clipboard so they can paste it into the chat if
+ * they want an answer tonight.
  */
 
 const FIELD =
   "w-full rounded-[12px] border border-line bg-surface px-4 py-3 text-[0.95rem] text-ink placeholder:text-ink-faint transition-colors focus:border-ink/50 focus:outline-none";
 
-export function EnquiryDialog({
-  product,
+export function BulkEnquiryDialog({
   fragrances,
   instagramHandle,
   businessName,
-  initialQty,
-  unitPrice,
+  initialPicks,
   onClose,
 }: {
-  product: Product;
   fragrances: string[];
   instagramHandle: string;
   businessName: string;
-  initialQty: number;
-  unitPrice: number;
+  /** Opened from a product page? Start with that candle already chosen. */
+  initialPicks?: { slug: string; qty: number }[];
   onClose: () => void;
 }) {
-  const [qty] = useState(initialQty);
-  const [fragrance, setFragrance] = useState(product.fragrance || fragrances[0] || "");
+  const [catalogue, setCatalogue] = useState<BulkChoice[] | null>(null);
+  const [picks, setPicks] = useState<Record<string, number>>(() =>
+    Object.fromEntries((initialPicks ?? []).map((p) => [p.slug, p.qty])),
+  );
+  const [query, setQuery] = useState("");
+  const [step, setStep] = useState<"pick" | "details">("pick");
+
+  const [fragrance, setFragrance] = useState(fragrances[0] ?? "");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [pincode, setPincode] = useState("");
   const [lookup, setLookup] = useState<{ pincode: string; state: string | null; district: string } | null>(
     null,
   );
-  const [name, setName] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const total = unitPrice * qty;
-  const canPickFragrance = qty >= CUSTOMISE_FROM;
   const onPhone = onMobileDevice();
-
-  // Ten digits, however they typed it — spaces, +91, dashes.
-  const phoneDigits = phone.replace(/\D/g, "").slice(-10);
-  const phoneOk = phoneDigits.length === 10;
-  const instagramOk = Boolean(instagram.trim()) && isValidInstagramHandle(instagram);
-  const reachable = phoneOk || instagramOk;
-  const pincodeOk = /^\d{6}$/.test(pincode);
-  const canSubmit = Boolean(name.trim()) && reachable && pincodeOk && !busy;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -86,6 +93,18 @@ export function EnquiryDialog({
     };
   }, [onClose]);
 
+  // The catalogue is not on the page — the picker asks for it when it opens.
+  useEffect(() => {
+    let live = true;
+    bulkCatalogue()
+      .then((rows) => live && setCatalogue(rows))
+      .catch(() => live && setCatalogue([]));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const pincodeOk = /^\d{6}$/.test(pincode);
   useEffect(() => {
     if (!pincodeOk) return;
     const controller = new AbortController();
@@ -102,34 +121,56 @@ export function EnquiryDialog({
 
   const resolved = lookup?.pincode === pincode ? lookup : null;
   const lookingUp = pincodeOk && !resolved;
-
-  // A fresh object every render would make every memo below it useless.
   const place = useMemo(
     () => (resolved?.state ? { state: resolved.state, district: resolved.district } : null),
     [resolved],
   );
 
-  const productUrl =
-    typeof window === "undefined" ? "" : `${window.location.origin}/products/${product.slug}`;
+  const chosen = useMemo(
+    () => (catalogue ?? []).filter((c) => (picks[c.slug] ?? 0) > 0),
+    [catalogue, picks],
+  );
+  const pieces = chosen.reduce((sum, c) => sum + (picks[c.slug] ?? 0), 0);
+  const value = chosen.reduce((sum, c) => sum + (picks[c.slug] ?? 0) * c.basePrice, 0);
+  const canPickFragrance = pieces >= CUSTOMISE_FROM;
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!catalogue) return [];
+    if (!q) return catalogue;
+    return catalogue.filter((c) => c.name.toLowerCase().includes(q));
+  }, [catalogue, query]);
+
+  const phoneDigits = phone.replace(/\D/g, "").slice(-10);
+  const phoneOk = phoneDigits.length === 10;
+  const instagramOk = Boolean(instagram.trim()) && isValidInstagramHandle(instagram);
+  const reachable = phoneOk || instagramOk;
+  const canSubmit = Boolean(name.trim()) && reachable && pincodeOk && pieces > 0 && !busy;
+
+  function setQty(slug: string, qty: number, step: number) {
+    setPicks((prev) => {
+      const next = { ...prev };
+      if (qty < step) delete next[slug];
+      else next[slug] = Math.min(100000, qty);
+      return next;
+    });
+  }
 
   const summary = useMemo(
     () =>
       [
         `Bulk enquiry — ${businessName}`,
         ``,
-        `Candle: ${product.name}`,
-        productUrl,
+        ...chosen.map((c) => `${compactQty(picks[c.slug] ?? 0)} × ${c.name}`),
         ``,
-        `Quantity: ${compactQty(qty)} pcs`,
-        `Rate quoted: ${money(unitPrice)} per piece`,
-        `Order value: ${money(total)}`,
+        `Total: ${compactQty(pieces)} pcs`,
+        `Indicative value: ${money(value)}`,
         canPickFragrance ? `Fragrance: ${fragrance}` : null,
         ``,
         `Name: ${name}`,
         instagramOk ? `Instagram: @${instagram.replace(/^@/, "")}` : null,
         phoneOk ? `Phone: ${phoneDigits}` : null,
         `Delivery: ${pincode}${place ? ` — ${place.district}, ${place.state}` : ""}`,
-        address ? `Address: ${address}` : null,
         note ? `Note: ${note}` : null,
         done && done !== "PREVIEW" ? `` : null,
         done && done !== "PREVIEW" ? `Reference: ${done}` : null,
@@ -137,8 +178,8 @@ export function EnquiryDialog({
         .filter((l) => l !== null)
         .join("\n"),
     [
-      businessName, product.name, productUrl, qty, unitPrice, total, canPickFragrance, fragrance,
-      name, instagramOk, instagram, phoneOk, phoneDigits, pincode, place, address, note, done,
+      businessName, chosen, picks, pieces, value, canPickFragrance, fragrance, name,
+      instagramOk, instagram, phoneOk, phoneDigits, pincode, place, note, done,
     ],
   );
 
@@ -152,42 +193,6 @@ export function EnquiryDialog({
       .catch(() => {});
   }, [done, summary]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setBusy(true);
-    setError("");
-
-    const result = await placeBooking({
-      productSlug: product.slug,
-      productName: product.name,
-      productImage: product.images[0] ?? null,
-      quantity: qty,
-      unitPrice,
-      fragrance: canPickFragrance ? fragrance : null,
-      pincode,
-      state: place ? `${place.district ? `${place.district}, ` : ""}${place.state}` : null,
-      buyerName: name,
-      buyerContact: instagramOk ? instagram : "",
-      phone: phoneOk ? phoneDigits : "",
-      note: [address ? `Address: ${address}` : null, note || null].filter(Boolean).join("\n") || null,
-    });
-
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-    track("bulk_quote_submitted", {
-      product: product.slug,
-      qty,
-      unit_price: unitPrice,
-      value: total,
-      reachable_by: instagramOk && phoneOk ? "both" : instagramOk ? "instagram" : "phone",
-    });
-    setDone(result.reference ?? "");
-  }
-
   async function copySummary() {
     try {
       await navigator.clipboard.writeText(summary);
@@ -195,6 +200,37 @@ export function EnquiryDialog({
     } catch {
       setError("Could not copy. Select the text above instead.");
     }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    setError("");
+
+    const result = await placeBulkEnquiry({
+      picks: chosen.map((c) => ({ slug: c.slug, qty: picks[c.slug] ?? 0 })),
+      fragrance: canPickFragrance ? fragrance : null,
+      buyerName: name,
+      phone: phoneOk ? phoneDigits : "",
+      instagram: instagramOk ? instagram : "",
+      pincode,
+      state: place ? `${place.district ? `${place.district}, ` : ""}${place.state}` : null,
+      note: note || null,
+    });
+
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    track("bulk_enquiry_submitted", {
+      designs: chosen.length,
+      qty: pieces,
+      value,
+      reachable_by: instagramOk && phoneOk ? "both" : instagramOk ? "instagram" : "phone",
+    });
+    setDone(result.reference ?? "");
   }
 
   return (
@@ -205,18 +241,28 @@ export function EnquiryDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Reserve ${product.name}`}
-        className="flex max-h-[92dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-[22px] bg-canvas sm:rounded-[22px]"
+        aria-label="Bulk enquiry"
+        className="flex max-h-[94dvh] w-full max-w-[680px] flex-col overflow-hidden rounded-t-[22px] bg-canvas sm:rounded-[22px]"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-4 sm:px-7">
+        <div className="flex shrink-0 items-center gap-2 border-b border-line px-5 py-4 sm:px-7">
+          {step === "details" && done === null && (
+            <button
+              type="button"
+              onClick={() => setStep("pick")}
+              aria-label="Back to the candles"
+              className="-ml-2 rounded-full p-2 text-ink-soft transition-colors hover:text-ink"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <p className="font-display text-[1.2rem] text-ink">
-            {done !== null ? "Reserved" : "Reserve your slot"}
+            {done !== null ? "Enquiry sent" : step === "pick" ? "Bulk enquiry" : "Where do we send the quote?"}
           </p>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-2 rounded-full p-2 text-ink-soft transition-colors hover:text-ink"
+            className="-mr-2 ml-auto rounded-full p-2 text-ink-soft transition-colors hover:text-ink"
           >
             <X size={19} />
           </button>
@@ -229,16 +275,17 @@ export function EnquiryDialog({
                 <Check size={18} />
               </span>
               <div className="min-w-0">
-                <p className="font-display text-[1.35rem] leading-snug text-ink">Slot held.</p>
+                <p className="font-display text-[1.35rem] leading-snug text-ink">We have it.</p>
                 <p className="mt-1.5 text-[0.95rem] leading-relaxed text-ink-soft">
-                  {compactQty(qty)} × {product.name}
+                  {compactQty(pieces)} pieces across {chosen.length}{" "}
+                  {chosen.length === 1 ? "design" : "designs"}
                   {done && done !== "PREVIEW" && (
                     <>
                       {" "}
                       — reference <span className="text-ink">{done}</span>
                     </>
                   )}
-                  . We come back with the confirmed rate and lead time.
+                  . We come back with the rate, the lead time and the freight.
                 </p>
               </div>
             </div>
@@ -309,27 +356,170 @@ export function EnquiryDialog({
               Close
             </button>
           </div>
+        ) : step === "pick" ? (
+          <>
+            <div className="shrink-0 px-5 pt-5 sm:px-7">
+              <p className="text-[0.9rem] leading-relaxed text-ink-soft">
+                Choose the candles and say how many of each. Mixed orders are welcome — most
+                corporate and wedding orders are.
+              </p>
+              <label className="mt-4 relative block">
+                <Search size={16} className="absolute top-1/2 left-4 -translate-y-1/2 text-ink-faint" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search the range"
+                  aria-label="Search the range"
+                  className={`${FIELD} pl-11`}
+                />
+              </label>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+              {catalogue === null ? (
+                <p className="flex items-center gap-2 py-10 text-center text-[0.9rem] text-ink-faint">
+                  <Loader2 size={15} className="animate-spin" />
+                  Loading the range…
+                </p>
+              ) : shown.length === 0 ? (
+                <p className="py-10 text-center text-[0.9rem] text-ink-faint">
+                  Nothing matches “{query}”.
+                </p>
+              ) : (
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {shown.map((c) => {
+                    const qty = picks[c.slug] ?? 0;
+                    const step = Math.max(1, c.minQty);
+                    return (
+                      <li key={c.slug}>
+                        <div
+                          className={`overflow-hidden rounded-[14px] border transition-colors ${
+                            qty > 0 ? "border-ember bg-ember-wash/40" : "border-line bg-surface"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setQty(c.slug, qty > 0 ? 0 : step, step)}
+                            className="block w-full text-left"
+                          >
+                            <span className="relative block aspect-4/5 bg-canvas-deep">
+                              {c.image && (
+                                <Image
+                                  src={c.image}
+                                  alt=""
+                                  fill
+                                  sizes="(max-width: 640px) 45vw, 200px"
+                                  className="object-cover"
+                                />
+                              )}
+                              {qty > 0 && (
+                                <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-ember text-canvas">
+                                  <Check size={13} />
+                                </span>
+                              )}
+                            </span>
+                            <span className="block px-3 pt-2.5">
+                              <span className="block truncate text-[0.82rem] leading-snug text-ink">
+                                {c.name}
+                              </span>
+                              <span className="mt-0.5 block text-[0.75rem] text-ink-faint tabular-nums">
+                                {money(c.basePrice)}
+                                {step > 1 && ` · sets of ${step}`}
+                              </span>
+                            </span>
+                          </button>
+
+                          {qty > 0 && (
+                            <div className="flex items-center justify-between gap-1 px-2 pt-2 pb-2.5">
+                              <button
+                                type="button"
+                                onClick={() => setQty(c.slug, qty - step, step)}
+                                aria-label={`Fewer ${c.name}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-canvas text-ink"
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={step}
+                                step={step}
+                                value={qty}
+                                onChange={(e) => setQty(c.slug, Math.floor(Number(e.target.value) || 0), step)}
+                                aria-label={`How many ${c.name}`}
+                                className="h-8 w-full min-w-0 [appearance:textfield] rounded-[8px] border border-line bg-canvas text-center text-[0.85rem] text-ink tabular-nums focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setQty(c.slug, qty + step, step)}
+                                aria-label={`More ${c.name}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-canvas text-ink"
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="shrink-0 border-t border-line bg-canvas px-5 py-4 sm:px-7">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-[0.85rem] text-ink-soft tabular-nums">
+                  {pieces > 0 ? (
+                    <>
+                      {compactQty(pieces)} pcs
+                      <span className="text-ink-faint">
+                        {" "}
+                        · {chosen.length} {chosen.length === 1 ? "design" : "designs"} ·{" "}
+                        {money(value)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-ink-faint">Nothing picked yet</span>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  disabled={pieces === 0}
+                  onClick={() => {
+                    setStep("details");
+                    track("bulk_enquiry_picked", { designs: chosen.length, qty: pieces });
+                  }}
+                  className="shrink-0 rounded-full bg-ink px-6 py-3 text-[0.9rem] text-canvas transition-colors hover:bg-ember disabled:opacity-40"
+                >
+                  Continue
+                </button>
+              </div>
+              <p className="mt-2 text-[0.72rem] text-ink-faint">
+                Indicative only — your quoted rate comes back with the freight and lead time.
+              </p>
+            </div>
+          </>
         ) : (
           <form onSubmit={submit} className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">
-            <div className="flex items-center gap-4">
-              {product.images[0] && (
-                <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-[12px] bg-canvas-deep">
-                  <Image src={product.images[0]} alt="" fill sizes="68px" className="object-cover" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate font-display text-[1.1rem] text-ink">{product.name}</p>
-                <p className="mt-0.5 text-[0.85rem] text-ink-soft tabular-nums">
-                  {compactQty(qty)} pcs · {money(unitPrice)} each
-                </p>
-              </div>
-              <span className="ml-auto shrink-0 text-right">
-                <span className="block font-display text-[1.2rem] text-ink tabular-nums">
-                  {money(total)}
-                </span>
-                <span className="block text-[0.72rem] text-ink-faint">indicative</span>
-              </span>
-            </div>
+            <ul className="divide-y divide-line-soft rounded-[14px] border border-line bg-surface px-4">
+              {chosen.map((c) => (
+                <li key={c.slug} className="flex items-center gap-3 py-2.5">
+                  {c.image && (
+                    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[8px] bg-canvas-deep">
+                      <Image src={c.image} alt="" fill sizes="36px" className="object-cover" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[0.85rem] text-ink">{c.name}</span>
+                  <span className="shrink-0 text-[0.82rem] text-ink-soft tabular-nums">
+                    {compactQty(picks[c.slug] ?? 0)} pcs
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2.5 text-[0.8rem] text-ink-faint tabular-nums">
+              {compactQty(pieces)} pieces · {money(value)} indicative
+            </p>
 
             {canPickFragrance && (
               <div className="mt-6 rounded-[14px] border border-ember-wash bg-ember-wash/45 p-5">
@@ -354,14 +544,10 @@ export function EnquiryDialog({
                 />
               </label>
 
-              {/* One of these two, not both. The heading says so once, rather
-                  than every field carrying an "optional" that means nothing. */}
               <div className="sm:col-span-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <span className="text-[0.82rem] font-medium text-ink">How should we reach you?</span>
-                  <span
-                    className={`text-[0.75rem] ${reachable ? "text-[#3d5730]" : "text-ink-faint"}`}
-                  >
+                  <span className={`text-[0.75rem] ${reachable ? "text-[#3d5730]" : "text-ink-faint"}`}>
                     {reachable ? "That works" : "Either one is enough"}
                   </span>
                 </div>
@@ -444,26 +630,13 @@ export function EnquiryDialog({
 
               <label className="block">
                 <span className="text-[0.82rem] font-medium text-ink">
-                  Address <span className="font-normal text-ink-faint">— optional</span>
+                  When do you need it? <span className="font-normal text-ink-faint">— optional</span>
                 </span>
                 <input
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Add it now or later"
-                  className={`mt-2.5 ${FIELD}`}
-                />
-              </label>
-
-              <label className="block sm:col-span-2">
-                <span className="text-[0.82rem] font-medium text-ink">
-                  Anything else? <span className="font-normal text-ink-faint">— optional</span>
-                </span>
-                <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  rows={3}
-                  placeholder="Delivery date, custom colours, mixed designs, custom label…"
-                  className={`mt-2.5 resize-none leading-relaxed ${FIELD}`}
+                  placeholder="Date, branding, custom colours…"
+                  className={`mt-2.5 ${FIELD}`}
                 />
               </label>
             </div>
@@ -476,7 +649,7 @@ export function EnquiryDialog({
               className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember disabled:opacity-40"
             >
               {busy && <Loader2 size={16} className="animate-spin" />}
-              {busy ? "Sending…" : "Reserve my slot"}
+              {busy ? "Sending…" : "Send my enquiry"}
             </button>
 
             <p className="mt-3.5 text-center text-[0.78rem] leading-relaxed text-ink-faint">

@@ -13,7 +13,7 @@ This started life as a **catalogue** — a link you send a client, showing the r
 photos, sizes and price slabs. No cart, no checkout, no accounts.
 
 It is now a **full online shop**, live and taking real money: cart, checkout, Razorpay,
-customer accounts, courier shipments, a free-candle offer. All of it is **pushed and
+customer accounts, courier shipments, bulk slabs. All of it is **pushed and
 deployed** at **sugandhacandles.com**.
 
 `README.md` still describes the old catalogue and is **stale** — it has not been rewritten.
@@ -27,7 +27,7 @@ Trust this file and the code, not the README.
   anything committed here is live within a couple of minutes.
 - The working tree is normally clean. There is no "unpushed shop work" any more — that note
   described the pre-launch state and no longer applies.
-- Content (products, collections, settings, the gift config) lives in **Supabase**, not in the
+- Content (products, collections, settings, the bulk ladder) lives in **Supabase**, not in the
   repo. Changing it does not need a deploy; changing `seed.ts` does nothing in production,
   because that is only the fallback for when Supabase is unconfigured.
 
@@ -87,38 +87,75 @@ behind it. Keeping them apart means no screen has to ask "which kind of row is t
 
 ## Pricing model (`src/lib/pricing.ts`)
 
-- **One price per piece, whatever the quantity** (2026-09-06). `basePrice` is the price. The
-  four bulk slabs (10/25/50/100) are gone from the shop, the admin and the types; the
-  `price_tiers` column still exists in Supabase with its old data but **nothing reads it**
-  (drop it in a later migration once this has bedded in).
-- **Bulk is a conversation.** Every product page has an Instagram-gradient "Buying in bulk?
-  Chat with us" under Add to bag that opens the Instagram DM in a new tab (same link as the
-  header's Enquire). A floating **"Bulk enquiry"** pill (`bulk-fab.tsx`, in the site layout)
-  sits bottom-right on every site page **except `/cart` and `/checkout`** — someone paying
-  should only be looking at the button that finishes the order. The structured enquiry dialog
-  is now reached only via "Chat for N pieces" past 100 of a design.
-- `MAX_ONLINE_QTY = 100` — more than 100 of *one design* can't be bought online; the buy
-  button turns into the Instagram-gradient "Chat for N pieces". No total-bag cap.
-- **Sets** — `products.min_qty` (migration 023), `Product.minQty`, `minQtyOf()`. 1 for
-  nearly everything; **10 for the five mithai candles**. The product page starts at one set,
-  the −/+ buttons step by a set, anything below a set is refused, but **any number above it
-  can be typed** (35 is fine — the box only snaps to the minimum on blur if left below it).
-  The cart line carries `minQty` so the bag steps by the set too; stepping below the set
-  removes the line. `clampQty()` on the server rounds a doctored cart up to a set.
-- Helpers: `singlePrice()`, `minQtyOf()`, `clampQty()`. `priceAtQty`/`bandsFor`/`priceFor`/
-  `bestPrice` are gone.
+Rewritten 2026-09-09. Bulk slabs are back, but nothing like the old per-candle price lists.
+
+- **One ladder for the whole shop, as percentages.** `settings.bulkTiers` — **10+ / 25+ /
+  50+ / 100+ / 200+ at 3 / 5 / 8 / 12 / 15% off**, edited in **Settings → Bulk pricing** (five
+  rows), no migration needed to change them. `DEFAULT_BULK_TIERS` in `pricing.ts` is the
+  fallback. The ladder opens at **ten** because ten is also where the big pieces stop being a
+  checkout — so on a peacock urli every rung reads *On enquiry*, which is the intent.
+- **Volume, not graduated.** Reaching a rung reprices the whole line: 50 pieces are all at
+  the 50+ rate. It is the version a buyer can do in their head.
+- **Rounded to the rupee, deliberately NOT charm-priced to a 9.** Snapping ₹75 down to ₹69
+  on a ₹79 candle gives away 13% where 5% was promised, and it collapsed three rungs onto
+  the same number. Bulk rates are quotation numbers, not shelf prices.
+- **`bulk_pricing` per candle** (migration 024). True everywhere except the five mithai
+  candles sold in sets of ten — they are already at a bulk price and stay fixed.
+- **Every candle has its own ceiling**: `products.max_qty`, set in migration 024 in three
+  groups. **Big or dear — a dish 13 cm (5 in) or wider, or anything over ₹399 — stops at 9**,
+  so the button changes at ten (peacock urlis, the rangoli sets, the 6-inch bowls, the mogra
+  bowl, the brass tin: nine of those, then we quote). **Everything else stops at 50**, except
+  the rasmalai cup at 100. **The mithai sets have no ceiling at all** (100000) — any number
+  can be bought straight off the site. Past the ceiling there is no checkout, only the bulk
+  enquiry form. 0 in the column means "not set" and falls back to `MAX_ONLINE_QTY = 100`.
+- The product page shows the **whole ladder including the rungs this candle cannot reach**,
+  greyed and marked *On enquiry*. A peacock urli that stops at 7 in a parcel should still
+  tell the buyer the rate keeps falling — that is what the enquiry form is for.
+- **Sets** — `products.min_qty` (migration 023), `minQtyOf()`. 1 for nearly everything;
+  **10 for the five mithai candles**. The product page starts at one set, the −/+ buttons
+  step by a set, anything below a set is refused, but **any number above it can be typed**
+  (35 is fine). The cart line carries `minQty`; stepping below the set removes the line.
+- Helpers: `unitPriceAt()`, `slabsFor()`, `tierAt()`, `maxQtyOf()`, `freeShipQtyOf()`,
+  `minQtyOf()`, `singlePrice()`, `clampQty(raw, minQty, maxQty)`, `normaliseTiers()`.
+
+## Bulk enquiries (`src/lib/bulk.ts`, `src/components/bulk-enquiry-dialog.tsx`)
+
+- **The bulk button is a form now, not an Instagram link** (2026-09-09). "DM for price"
+  trained the inbox to fill with one-word messages; the form asks the two questions that
+  make a quote possible — which candles, how many — where the buyer is already looking at
+  the range.
+- Two steps: a **picker** (photograph, name, price, tap to select, a quantity stepper on
+  each, search box, running total) then **details** (name, phone *or* Instagram, pincode
+  with lookup, fragrance at 50+, one free-text line). Saves to `bookings` with a multi-line
+  `items` array (migration 011), then offers the Instagram paste as a *follow-up*.
+- The catalogue is fetched on open (`bulkCatalogue()`), not shipped with every page.
+- Reached from: the floating **Bulk enquiry** pill (site layout, not on `/cart` or
+  `/checkout`), **"Buying in bulk? Get a quote"** under Add to bag, the over-ceiling **"Get
+  a quote for N pieces"** button, and the home-page banner. `enquiry-dialog.tsx` (the old
+  single-candle version) is gone.
 
 ## Shipping (`src/lib/shipping.ts`)
 
-- **FLAT ₹89**, free over a subtotal (**₹2000**) — but only while the parcel stays under a
-  weight cap (**2 kg**), so heavy urli orders never ship free. `ShippingConfig` =
-  `{ flatFee, freeOverSubtotal, freeUnderGrams }`, editable in **Settings → Delivery**.
-- Each product has a **pack weight (g)** — the courier's chargeable weight once boxed
-  (`products.pack_weight_grams`, migration 017; auto-estimated from size when 0 via
-  `packGramsOf`/`estimatePackGrams`). Drives the free-shipping weight guard AND the
-  RapidShyp package weight.
-- `shippingCost(config,{grams,subtotal})` is the one calculator; cart-view, checkout-form
-  and `startCheckout` (server authority) all use it.
+**Two ways to get free delivery, and they are deliberately different.**
+
+1. **Retail rule (unchanged):** FLAT **₹89**, free over a subtotal (**₹2000**) — but only
+   while the parcel stays under a weight cap (**2 kg**), so a heavy urli order never ships
+   free. `ShippingConfig = { flatFee, freeOverSubtotal, freeUnderGrams }`, editable in
+   **Settings → Delivery**.
+2. **Bulk rule (built 2026-09-09, currently OFF):** one design reaching its own
+   `free_ship_qty` ships the whole order free, **whatever it weighs**. Migration 024 sets it
+   to **0 on every candle**, so nothing earns it today — the owner's call, taken after seeing
+   that 50 lotus diyas is ~36 kg of freight given away. The machinery is in the code, in the
+   server, and in the admin, so switching it on is a number in one box (**Products → the
+   candle → Free delivery from**) with no migration and no deploy. Free delivery and the
+   ceiling are **separate settings**: a candle can stop selling online at 9 and still ship
+   free at 200 on a quote.
+- `freeShipEarned(lines)` decides rule 2; `shippingCost(config, {grams, subtotal,
+  freeByQty})` is the one calculator, used by cart-view, checkout-form and `startCheckout`
+  (the server authority, which recomputes it from the catalogue).
+- Each product still carries a **pack weight (g)** — the courier's chargeable weight once
+  boxed (`products.pack_weight_grams`, migration 017; auto-estimated from size when 0 via
+  `packGramsOf`/`estimatePackGrams`). Drives rule 1's weight guard AND the RapidShyp weight.
 
 ---
 
@@ -127,8 +164,13 @@ behind it. Keeping them apart means no screen has to ask "which kind of row is t
 - Lives in **localStorage only** (`sugandha.cart.v1`), not the DB — no account needed to
   shop, survives closing the tab, syncs across tabs.
 - Read via `useSyncExternalStore` (no empty-cart flash, no mount cascade).
-- Enforces the caps client-side, but caps are **re-enforced server-side** at checkout
-  because a localStorage cart is "a wish, not a quote".
+- Enforces each line's **own** ceiling client-side (`maxQty` on the line), but every cap and
+  every price is **re-enforced server-side** at checkout because a localStorage cart is "a
+  wish, not a quote".
+- A line stores `basePrice`, **not** the price paid. The slab rate is derived on every read
+  from the live ladder (`ShopConfigProvider` → `useBulkTiers`), so a stale price cannot
+  survive a change to the slabs in an open tab. Old v1 lines with `unitPrice` and no
+  `basePrice` are read as base prices, so nobody's bag is emptied by the upgrade.
 
 ---
 
@@ -263,13 +305,18 @@ base; then numbered updates in order. **013 → 014 → 015 order matters; 016�
   hand-shipping enquiries).
 - `020-scripts.sql` — the `reel_scripts` table (admin-only RLS) **plus the first five reel
   scripts seeded** with their posting slots.
-- `021-free-gift.sql` — adds `products.gift_eligible` and pre-ticks everything ≤₹149.
-  **Needed or the free-candle offer has nothing to give** (and saving a product errors on the
-  missing column).
+- `021-free-gift.sql` — adds `products.gift_eligible`. **The free-candle offer it fed was
+  retired on 2026-09-09**; the column is left in place (harmless, unread) rather than dropped.
 - `023-one-price-and-sets.sql` — adds `products.min_qty` (default 1) **and inserts the five
   mithai candles** (laddoo, modak, jalebi, imriti, gujiya) with `min_qty = 10`. **Until it
   runs, saving a candle in the admin errors on the missing column, and the mithai are not on
   the site at all.** Re-running only re-asserts `min_qty`, so admin edits survive.
+- `024-bulk-slabs-and-caps.sql` — adds `products.max_qty` (per-candle online ceiling, set by
+  size), `products.free_ship_qty` (`least(50, max_qty)`) and `products.bulk_pricing` (false
+  for the set-of-ten mithai). **Until it runs, every candle falls back to the site-wide
+  ceiling of 100, no candle earns free delivery by quantity, and saving a candle in the admin
+  errors on the missing columns.** Safe to re-run: 0 means "never set" and the backfill only
+  touches rows still at 0, so admin edits survive.
 - **`scratchpad/repricing.sql`** (not a migration, run once) — the gentle-tier + heavy-bump
   repricing of all 27 products.
 
@@ -331,19 +378,21 @@ Razorpay keys in Vercel; local `.env.local` still has TEST keys). Repo:
 - Marketing: user is weighing Google Ads (advised against for low-AOV; Instagram/Meta Ads +
   Shopping feed + bundles instead). No conversion tag (Google/Meta pixel) on the site yet.
 
-## Where to pick up (as of 2026-08-31)
+## Where to pick up (as of 2026-09-09)
 
-Everything below is live. The **Changelog** has the detail and the reasoning; the **SEO**
-section above is where the next piece of work starts.
+The **Changelog** has the detail and the reasoning; the **SEO** section above is where the
+next piece of work starts.
 
-Recently shipped: the custom domain · a **free-candle + surprise-gift offer** (₹1,499
-threshold, admin-controlled, server-validated) with a sticky header bar, a home-page banner
-and a picker in the cart · a **Scripts** section in the admin for reel writing · RapidShyp
-auto-approve · email required at checkout · **SEO foundations** (canonicals, robots, sitemap,
-structured data).
+Recently shipped: the custom domain · **bulk slabs, per-candle ceilings, free delivery by
+quantity and a real bulk enquiry form** (the free-candle offer was retired to make room) · a
+**Scripts** section in the admin for reel writing · RapidShyp auto-approve · email required
+at checkout · **SEO foundations** (canonicals, robots, sitemap, structured data).
 
-**First:** run `supabase/023-one-price-and-sets.sql` in the SQL editor — it adds `min_qty` and
-puts the five mithai candles live in sets of ten. Then set MRPs on the seven new candles.
+**First:** run `supabase/024-bulk-slabs-and-caps.sql` in the SQL editor — nothing about the
+ceilings works until it does, and saving a candle in the admin errors on the missing columns.
+Then **check the ceilings it set** (admin → each candle): big-or-dear stops at 9, everything
+else at 50, mithai unlimited. Free delivery by quantity is **off on every candle** and is a
+separate box from the ceiling — put a number in it when you want to switch it on.
 
 **Next, in order:** verify Search Console (urgent — no backfill), add OG images (every
 WhatsApp share is a blank card today), write `/shipping-returns` + `/contact` + `/about`,
@@ -363,6 +412,16 @@ then Merchant Center. Reasoning for all of it is in the SEO section.
 ## Changelog
 
 _Newest first. Add an entry for every change — one line is fine. Format: `YYYY-MM-DD — what changed`._
+
+- 2026-09-09 — **Bulk slabs back, a ceiling on every candle, free delivery by quantity, and a real bulk enquiry form. The free-candle offer is retired.** Five changes, one argument: this shop's money comes from gifting orders, so the site should answer a gifting buyer's questions instead of a retail shopper's.
+  **(1) Slabs.** One ladder for the whole shop, held as percentages in `settings.bulkTiers` — **10+/25+/50+/100+/200+ at 3/5/8/12/15%**, edited in Settings → Bulk pricing, no migration to change them. Volume pricing, not graduated: reaching a rung reprices the line. **Rounded to the rupee, NOT charm-priced to a 9** — caught in testing: on a ₹79 candle, snapping ₹75 down to ₹69 gives away 13% where 5% was promised, and it collapsed 25+, 50+ and 100+ onto the same ₹69. Bulk rates are quotation numbers, not shelf prices. The five mithai sets carry `bulk_pricing = false` and stay at one fixed price — at ₹18–25 a piece they are already there.
+  **(2) A ceiling per candle** (`products.max_qty`, migration 024), in three groups: **big or dear — 13 cm (5 in) across or over ₹399 — stops at 9**, so the button changes at ten; **everything else at 50** (rasmalai cup 100); **the mithai sets have none**, any number can be bought off the site. Past it the buy button becomes *Get a quote for N pieces*. The ladder's first rung and the big-piece ceiling deliberately meet at ten. The product page still shows **the rungs the candle cannot reach**, greyed and marked *On enquiry* — a peacock urli that stops at 7 in a parcel should still tell a buyer the rate keeps falling, because that buyer is the one worth having.
+  **(3) Free delivery by quantity — built, then switched off before shipping** (`products.free_ship_qty`). One design reaching its number ships the whole order free whatever it weighs, per design and **not** the combined bag; confetti and a colour change on the product page the moment it is earned; the old subtotal rule (₹2,000, under 2 kg) untouched alongside it. Migration 024 sets it to **0 on every candle** — the owner's call once the numbers were on the table: 50 lotus diyas is ~36 kg of freight given away, 15 marigold urlis ~32 kg. Kept in the code rather than removed, because turning it on later is then one number in one admin box, no deploy. **The ceiling and the free-delivery number are separate settings and must stay separate** — a candle can stop selling online at 9 and still ship free at 200 on a quote.
+  **(4) The bulk button is a form, not an Instagram link.** "DM for price" trained the inbox to fill with one-word messages. `bulk-enquiry-dialog.tsx` is a two-step sheet: pick candles from a photo grid with a quantity stepper on each (search, running total, mixed orders expected), then name + phone *or* Instagram + pincode. Saves to `bookings` as a multi-line `items` array, then offers the Instagram paste as a follow-up rather than the only door. Reached from the floating pill, the product page, the over-ceiling button and the home banner. The old single-candle `enquiry-dialog.tsx` is deleted.
+  **(5) The free-candle offer is gone** — `gift.ts`, `gift-context.tsx`, the banner, bar, picker, ribbon, progress and surprise components, the cart's `sugandha.gift.v1` key, the ₹0 gift lines in `startCheckout`, and the Settings card. `products.gift_eligible` stays in Supabase, unread, rather than being dropped. The home banner it fed was **rebuilt, not deleted**: same dark ground and lotus engraving, now leading with "Gifting 25 to 500 people? The price is on the page" and printing the ladder.
+  **Cart change worth knowing:** a line now stores `basePrice`, not the price paid, and the slab rate is derived on every read from the live ladder (`ShopConfigProvider` → `useBulkTiers`) — a stale price in localStorage can no longer outlive a change to the slabs. Old v1 lines with `unitPrice` and no `basePrice` are read as base prices, so no one's bag is emptied by the upgrade. Every cap and every price is still recomputed server-side in `startCheckout`.
+  Verified: `tsc`, `eslint`, `next build` clean, plus a direct check of the helpers — peacock cap 7 with all four rungs on enquiry, 6 pcs → ₹89 and 7 pcs → free; lotus diya cap 50 with 25+/50+ live at ₹75/₹73 and 100+/200+ on enquiry; laddoo fixed at ₹20 at every quantity with a 3 → 10 clamp. The bulk form was driven end to end in a browser. **Testing note, again:** the in-app browser pane blocks React's inline `$RC` scripts, so the whole page body stays parked in `div#S:0` and nothing inside it can be clicked — the live site does the same thing in that pane, so it is the pane, not a regression. Drive the layout-level components (the floating pill opens the form fine) or verify by rendering.
+  **Run migration `024-bulk-slabs-and-caps.sql`.**
 
 - 2026-09-07 — **Product page reordered: price first, specs as chips, story last and short.** Order is now title → tagline → buy block → spec chips (Fragrance first, then Size / Wax / Wick) → description held to two lines by `ClampedText` with a "Read more". The clamp's "is there more?" compares against an invisible full-height twin, not scrollHeight — the standard `line-clamp` discards clipped lines so scroll metrics say nothing.
 

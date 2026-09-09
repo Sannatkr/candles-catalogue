@@ -1,5 +1,5 @@
 /**
- * The celebration when a gift is unlocked or claimed.
+ * The celebration when an order earns free delivery.
  *
  * canvas-confetti does the drawing: it is the smallest of the serious options
  * (92 kB unpacked, no dependencies) and it renders to its own canvas rather
@@ -40,8 +40,8 @@ async function load() {
 }
 
 /**
- * The moment the bag earns a gift. A quick double burst from the banner —
- * enough to catch the eye mid-scroll, over before it can annoy.
+ * The moment the quantity earns free delivery. A quick double burst by the
+ * quantity box — enough to catch the eye, over before it can annoy.
  */
 export async function celebrateUnlock(origin: Origin = { x: 0.5, y: 0.35 }) {
   const confetti = await load();
@@ -61,52 +61,4 @@ export async function celebrateUnlock(origin: Origin = { x: 0.5, y: 0.35 }) {
   window.setTimeout(() => {
     confetti({ ...base, particleCount: 25, spread: 90, startVelocity: 22, decay: 0.92, ticks: 160 });
   }, 130);
-}
-
-/**
- * The moment they choose their candle. Bigger, and finished with a slow drift
- * of gold — the bit that makes it feel like a gift rather than a discount.
- */
-export async function celebrateGift(origin: Origin = { x: 0.5, y: 0.4 }) {
-  const confetti = await load();
-  if (!confetti) return;
-
-  const base = {
-    origin,
-    disableForReducedMotion: true,
-    zIndex: 70,
-  } as const;
-
-  // Two angled cannons, so the burst has a direction instead of spraying evenly.
-  confetti({ ...base, particleCount: 55, angle: 62, spread: 58, startVelocity: 42, colors: BRAND });
-  confetti({ ...base, particleCount: 55, angle: 118, spread: 58, startVelocity: 42, colors: BRAND });
-
-  window.setTimeout(() => {
-    confetti({
-      ...base,
-      particleCount: 30,
-      spread: 120,
-      startVelocity: 26,
-      decay: 0.9,
-      scalar: 1.15,
-      colors: GOLD,
-      shapes: ["circle"],
-    });
-  }, 160);
-
-  // Gold flakes that hang and fall — the flourish that separates this from a
-  // generic "success" animation.
-  window.setTimeout(() => {
-    confetti({
-      ...base,
-      particleCount: 22,
-      spread: 140,
-      startVelocity: 14,
-      gravity: 0.55,
-      decay: 0.94,
-      scalar: 0.75,
-      ticks: 260,
-      colors: GOLD,
-    });
-  }, 380);
 }

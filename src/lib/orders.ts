@@ -3,10 +3,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { getProducts, getSettings } from "@/lib/data";
-import { resolveGift, SURPRISE_SLUG, surpriseIncluded } from "@/lib/gift";
-import { clampQty, minQtyOf, singlePrice } from "@/lib/pricing";
+import { clampQty, freeShipQtyOf, maxQtyOf, minQtyOf, unitPriceAt } from "@/lib/pricing";
 import { shipOrderRow } from "@/lib/fulfillment";
-import { packGramsOf, shippingCost } from "@/lib/shipping";
+import { freeShipEarned, packGramsOf, shippingCost } from "@/lib/shipping";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { getPublicSupabase, getServerSupabase } from "@/lib/supabase/server";
 
@@ -22,8 +21,6 @@ export type CheckoutLine = { slug: string; qty: number };
 
 export type CheckoutInput = {
   lines: CheckoutLine[];
-  /** The free candle the buyer chose. Re-checked here; never trusted as sent. */
-  giftSlug?: string | null;
   buyerName: string;
   phone: string;
   email: string;
@@ -114,6 +111,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   // Rebuild every line from the catalogue. Unknown slugs are dropped rather
   // than failing the whole order — a candle can be retired mid-session.
   const catalogue = await getProducts();
+  const { shipping: shippingConfig, bulkTiers } = await getSettings();
   type OrderItemRow = {
     slug: string;
     name: string;
@@ -126,10 +124,13 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     const product = catalogue.find((p) => p.slug === line.slug);
     if (!product || !product.inStock) return [];
     // Rounded up to the set size if a doctored cart asks for less than one set,
-    // and capped at the online ceiling. The buyer pays for exactly what ships.
-    const qty = clampQty(Number(line.qty), minQtyOf(product));
+    // and capped at this candle's own ceiling. The buyer pays for exactly what
+    // ships.
+    const qty = clampQty(Number(line.qty), minQtyOf(product), maxQtyOf(product));
     if (qty < 1) return [];
-    const unitPrice = singlePrice(product);
+    // The slab rate for the quantity that survived the clamp — never the rate
+    // the browser sent, and never the rate for a quantity it did not get.
+    const unitPrice = unitPriceAt(product, bulkTiers, qty);
     if (!(unitPrice > 0)) return [];
     return [
       {
@@ -156,43 +157,19 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     const product = catalogue.find((p) => p.slug === i.slug);
     return sum + (product ? packGramsOf(product) : 0) * i.qty;
   }, 0);
-  const { shipping: shippingConfig, gift: giftConfig } = await getSettings();
 
-  // The free candle, re-decided from scratch. The browser only names a slug;
-  // whether it is giftable, in stock, and actually earned is settled here
-  // against `subtotal`, which contains only paid lines. A cart that claims a
-  // ₹699 urli for free simply resolves to null and is dropped.
-  const gift = resolveGift(giftConfig, catalogue, subtotal, input.giftSlug ?? null);
-  if (gift) {
-    items.push({
-      slug: gift.slug,
-      name: gift.name,
-      image: gift.images[0] ?? null,
-      qty: 1,
-      unitPrice: 0,
-      total: 0,
-    });
-  }
+  // Free delivery is earned by a single design reaching its own bulk quantity —
+  // 50 of most candles, 7 of a peacock urli. Decided here from the clamped
+  // quantities, so a cart that claims it without the pieces simply does not
+  // get it.
+  const freeByQty = freeShipEarned(
+    items.map((i) => {
+      const product = catalogue.find((p) => p.slug === i.slug);
+      return { qty: i.qty, freeShipQty: product ? freeShipQtyOf(product) : 0 };
+    }),
+  );
 
-  // The surprise rides on the same threshold. It is not a catalogue product —
-  // it is whatever is packed that week — so it goes on as a named ₹0 line,
-  // which is all the packing list needs and all the buyer was promised.
-  if (surpriseIncluded(giftConfig, subtotal)) {
-    items.push({
-      slug: SURPRISE_SLUG,
-      name: giftConfig.surpriseLabel || "A surprise gift",
-      image: null,
-      qty: 1,
-      unitPrice: 0,
-      total: 0,
-    });
-  }
-
-  // Note what is NOT added: the gift contributes nothing to `subtotal` (so it
-  // cannot unlock itself) and nothing to `grams` (so a heavy gift never cancels
-  // the free delivery the buyer already earned). It still physically ships, and
-  // the courier's weight is recomputed from the saved items at fulfilment.
-  const shipping = shippingCost(shippingConfig, { grams, subtotal });
+  const shipping = shippingCost(shippingConfig, { grams, subtotal, freeByQty });
   const total = subtotal + shipping;
   const paise = Math.round(total * 100);
   if (paise < 100) return { ok: false, message: "That order is too small to charge." };

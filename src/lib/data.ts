@@ -1,3 +1,4 @@
+import { normaliseTiers } from "./pricing";
 import { seedCollections, seedProducts, seedSettings } from "./seed";
 import { isSupabaseConfigured } from "./supabase/config";
 import { getPublicSupabase } from "./supabase/server";
@@ -34,11 +35,13 @@ type ProductRow = {
   base_price: number | null;
   mrp: number | null;
   min_qty: number | null;
+  max_qty: number | null;
+  free_ship_qty: number | null;
+  bulk_pricing: boolean | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
-  gift_eligible: boolean | null;
 };
 
 const FALLBACK_IMAGE = "/placeholders/candle-01.svg";
@@ -77,11 +80,15 @@ function toProduct(row: ProductRow): Product {
     basePrice: row.base_price ?? 0,
     mrp: Number(row.mrp ?? 0),
     minQty: Math.max(1, row.min_qty ?? 1),
+    // 0 until migration 024 has run, which the pricing helpers read as
+    // "no ceiling of its own" and fall back to the site-wide one.
+    maxQty: Math.max(0, row.max_qty ?? 0),
+    freeShipQty: Math.max(0, row.free_ship_qty ?? 0),
+    bulkPricing: row.bulk_pricing ?? true,
     packaging: row.packaging ?? "",
     inStock: row.in_stock ?? true,
     featured: row.featured ?? false,
     sortOrder: row.sort_order ?? 0,
-    giftEligible: row.gift_eligible ?? false,
   };
 }
 
@@ -149,6 +156,10 @@ export async function getSettings(): Promise<SiteSettings> {
     ...stored,
     // Deep-merge shipping so a partly-filled config still has every rate.
     shipping: { ...seedSettings.shipping, ...(stored.shipping ?? {}) },
-    gift: { ...seedSettings.gift, ...(stored.gift ?? {}) },
+    // The ladder is replaced whole or not at all — merging two lists of rungs
+    // would silently resurrect a rung the owner deleted.
+    bulkTiers: normaliseTiers(stored.bulkTiers).length
+      ? normaliseTiers(stored.bulkTiers)
+      : seedSettings.bulkTiers,
   };
 }

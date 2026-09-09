@@ -13,6 +13,7 @@ import { slugify } from "@/lib/slug";
 import { getProducts } from "@/lib/data";
 import { createPaymentLink } from "@/lib/payments/razorpay";
 import { createRapidshypShipment, isRapidshypConfigured } from "@/lib/rapidshyp";
+import { normaliseTiers } from "@/lib/pricing";
 import { packGramsOf } from "@/lib/shipping";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -73,6 +74,14 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   if (!(basePrice > 0)) return { ok: false, message: "Give it a price per piece." };
   // Sold in sets of this many. Anything odd typed here collapses to 1.
   const minQty = Math.max(1, Math.floor(num(fd, "min_qty")) || 1);
+  // The ceiling for this design. Never below one set, or nothing could be
+  // bought at all. 0 means "use the site-wide ceiling".
+  const maxQtyRaw = Math.max(0, Math.floor(num(fd, "max_qty")));
+  const maxQty = maxQtyRaw > 0 ? Math.max(minQty, maxQtyRaw) : 0;
+  // How many earn free delivery. Above the ceiling it could never be reached,
+  // so it is pulled down to it rather than quietly promising nothing.
+  const freeShipRaw = Math.max(0, Math.floor(num(fd, "free_ship_qty")));
+  const freeShipQty = maxQty > 0 ? Math.min(freeShipRaw, maxQty) : freeShipRaw;
 
   const row = {
     slug: str(fd, "slug") || slugify(name),
@@ -95,9 +104,11 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     base_price: basePrice,
     mrp: num(fd, "mrp"),
     min_qty: minQty,
+    max_qty: maxQty,
+    free_ship_qty: freeShipQty,
+    bulk_pricing: bool(fd, "bulk_pricing"),
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),
-    gift_eligible: bool(fd, "gift_eligible"),
     sort_order: num(fd, "sort_order"),
   };
 
@@ -185,12 +196,13 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
       freeOverSubtotal: num(fd, "ship_free_over"),
       freeUnderGrams: Math.round(num(fd, "ship_free_under_kg") * 1000),
     },
-    gift: {
-      enabled: bool(fd, "gift_enabled"),
-      threshold: num(fd, "gift_threshold"),
-      surpriseEnabled: bool(fd, "gift_surprise_enabled"),
-      surpriseLabel: str(fd, "gift_surprise_label") || "A surprise gift",
-    },
+    // The bulk ladder. Empty rungs are dropped, so clearing a row deletes it.
+    bulkTiers: normaliseTiers(
+      [1, 2, 3, 4, 5].map((i) => ({
+        minQty: num(fd, `tier${i}_qty`),
+        percentOff: num(fd, `tier${i}_off`),
+      })),
+    ),
     termsIntro: str(fd, "termsIntro"),
     termsSections: json<{ heading: string; body: string[] }[]>(fd, "termsSections", []).filter(
       (s) => s.heading.trim(),

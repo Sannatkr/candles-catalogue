@@ -3,24 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { GiftBanner } from "@/components/gift-banner";
+import { Truck } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { money } from "@/lib/format";
-import { resolveGift, surpriseIncluded } from "@/lib/gift";
-import { MAX_ONLINE_QTY, singlePrice } from "@/lib/pricing";
-import { shippingCost } from "@/lib/shipping";
-import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
+import { MAX_ONLINE_QTY } from "@/lib/pricing";
+import { freeShipEarned, shippingCost } from "@/lib/shipping";
+import type { ShippingConfig } from "@/lib/types";
 
-export function CartView({
-  shippingConfig,
-  giftConfig,
-  giftProducts,
-}: {
-  shippingConfig: ShippingConfig;
-  giftConfig: GiftConfig;
-  giftProducts: Product[];
-}) {
-  const { lines, ready, count, subtotal, weightGrams, giftSlug, setQty, remove } = useCart();
+export function CartView({ shippingConfig }: { shippingConfig: ShippingConfig }) {
+  const { lines, ready, count, subtotal, bulkSaving, weightGrams, setQty, remove } = useCart();
 
   // Nothing renders until localStorage has been read, or an empty bag flashes
   // for a frame on every visit.
@@ -46,12 +37,19 @@ export function CartView({
     );
   }
 
-  // The gift is excluded from both the subtotal and the weight above, so it can
-  // neither unlock itself nor tip the parcel past the free-delivery limit.
-  const gift = resolveGift(giftConfig, giftProducts, subtotal, giftSlug);
-  const surprise = surpriseIncluded(giftConfig, subtotal) && giftProducts.length > 0;
-  const shipping = shippingCost(shippingConfig, { grams: weightGrams, subtotal });
+  // Free delivery two ways: one design at its own bulk quantity, or the old
+  // retail rule — spend enough, stay light enough.
+  const freeByQty = freeShipEarned(lines);
+  const shipping = shippingCost(shippingConfig, { grams: weightGrams, subtotal, freeByQty });
   const total = subtotal + shipping;
+
+  // The line closest to earning free delivery on its own, so the bag can name
+  // one candle and one number rather than listing every near miss.
+  const nearestFree = freeByQty
+    ? null
+    : lines
+        .filter((l) => l.freeShipQty > 0 && l.qty < l.freeShipQty && l.freeShipQty <= (l.maxQty || MAX_ONLINE_QTY))
+        .sort((a, b) => a.freeShipQty - a.qty - (b.freeShipQty - b.qty))[0] ?? null;
   const canGoFree =
     shippingConfig.freeOverSubtotal > 0 &&
     (shippingConfig.freeUnderGrams <= 0 || weightGrams <= shippingConfig.freeUnderGrams);
@@ -67,13 +65,36 @@ export function CartView({
         placement puts it back at the top of the right-hand column.
       */}
       <div className="lg:col-start-2 lg:row-start-1">
-        <GiftBanner config={giftConfig} products={giftProducts} shipping={shippingConfig} />
+        {(freeByQty || nearestFree) && (
+          <p
+            className={`flex items-start gap-2.5 rounded-[14px] px-4 py-3.5 text-[0.85rem] leading-relaxed ${
+              freeByQty ? "bg-[#e6efe3] text-[#3d5730]" : "bg-ember-wash text-ember-deep"
+            }`}
+          >
+            <Truck size={16} className="mt-0.5 shrink-0" />
+            {freeByQty ? (
+              <span>
+                <b className="font-semibold">Delivery is on us</b> — you have a bulk quantity in the
+                bag.
+              </span>
+            ) : (
+              nearestFree && (
+                <span>
+                  {nearestFree.freeShipQty - nearestFree.qty} more {nearestFree.name} —{" "}
+                  {nearestFree.freeShipQty} of one design and delivery is free.
+                </span>
+              )
+            )}
+          </p>
+        )}
       </div>
 
       <ul className="divide-y divide-line-soft border-y border-line-soft lg:col-start-1 lg:row-span-2 lg:row-start-1">
         {lines.map((line) => {
           // Sets step by the set. A single steps by one.
           const step = Math.max(1, line.minQty);
+          // Each candle carries its own ceiling — 7 for a peacock urli.
+          const cap = Math.max(step, line.maxQty > 0 ? line.maxQty : MAX_ONLINE_QTY);
           return (
           <li key={line.slug} className="flex gap-4 py-5 sm:gap-5">
             <Link
@@ -94,6 +115,9 @@ export function CartView({
               </Link>
               <p className="mt-1 text-[0.82rem] text-ink-faint tabular-nums">
                 {money(line.unitPrice)} each{step > 1 && ` · sold in sets of ${step}`}
+                {line.unitPrice < line.basePrice && (
+                  <span className="ml-1.5 text-[#3d5730]">bulk rate</span>
+                )}
               </p>
 
               <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-3">
@@ -110,7 +134,7 @@ export function CartView({
                   <button
                     type="button"
                     onClick={() => setQty(line.slug, line.qty + step)}
-                    disabled={line.qty >= MAX_ONLINE_QTY}
+                    disabled={line.qty >= cap}
                     aria-label={`${step > 1 ? `${step} more` : "One more"} ${line.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded-r-full text-ink transition-colors hover:bg-canvas-deep disabled:opacity-30 disabled:hover:bg-transparent"
                   >
@@ -123,11 +147,11 @@ export function CartView({
                 </span>
               </div>
 
-              {line.qty >= MAX_ONLINE_QTY && (
+              {line.qty >= cap && (
                 <p className="mt-2.5 text-[0.78rem] leading-relaxed text-ember-deep">
-                  {MAX_ONLINE_QTY} is the most you can buy online.{" "}
+                  {cap} is the most of this design you can buy online.{" "}
                   <Link href={`/products/${line.slug}`} className="underline underline-offset-2">
-                    Chat for bulk
+                    Send a bulk enquiry
                   </Link>{" "}
                   for more.
                 </p>
@@ -158,29 +182,22 @@ export function CartView({
               </dt>
               <dd className="text-ink tabular-nums">{money(subtotal)}</dd>
             </div>
-            {gift && (
+            {bulkSaving > 0 && (
               <div className="flex items-baseline justify-between gap-4">
-                <dt className="truncate text-ink-soft">
-                  {gift.name} <span className="text-ink-faint">(gift)</span>
-                </dt>
-                <dd className="shrink-0 tabular-nums">
-                  <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
-                  <b className="font-semibold text-[#3d5730]">FREE</b>
+                <dt className="text-ink-soft">Bulk rate</dt>
+                <dd className="shrink-0 font-semibold text-[#3d5730] tabular-nums">
+                  −{money(bulkSaving)}
                 </dd>
-              </div>
-            )}
-{surprise && (
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="truncate text-ink-soft">
-                  {giftConfig.surpriseLabel} <span className="text-ink-faint">(gift)</span>
-                </dt>
-                <dd className="shrink-0 font-semibold text-[#3d5730]">FREE</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-4">
               <dt className="text-ink-soft">Delivery</dt>
               <dd className="text-ink tabular-nums">
-                {shipping === 0 ? <span className="text-[#3d5730]">Free</span> : money(shipping)}
+                {shipping === 0 ? (
+                  <span className="text-[#3d5730]">{freeByQty ? "Free — bulk order" : "Free"}</span>
+                ) : (
+                  money(shipping)
+                )}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
@@ -218,7 +235,8 @@ export function CartView({
         </div>
 
         <p className="mt-4 px-1 text-[0.78rem] leading-relaxed text-ink-faint">
-          Buying in bulk? Open the candle and tap Chat for bulk — we quote you directly.
+          Buying in bulk? Tap Bulk enquiry — pick your candles and quantities, and we quote you
+          directly.
         </p>
       </div>
     </div>

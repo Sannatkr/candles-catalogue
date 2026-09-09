@@ -12,7 +12,6 @@ import {
   getProducts,
   getSettings,
 } from "@/lib/data";
-import { showcaseProducts } from "@/lib/gift";
 
 const FACTS = [
   { label: "Wax", value: "100% natural soy" },
@@ -30,7 +29,7 @@ const STEPS = [
   {
     n: "02",
     title: "Book it in a minute",
-    body: "Pick your quantity and pay online — or tap Chat for bulk and we reply on Instagram the same working day.",
+    body: "Pick your quantity and pay online. Buying for a team or a wedding? Tap Bulk enquiry, choose your candles and quantities, and we quote you the same working day.",
   },
   {
     n: "03",
@@ -48,7 +47,13 @@ export default async function HomePage() {
     getFeaturedProducts(6),
     getProducts(),
   ]);
-  const showcase = showcaseProducts(allProducts);
+  // The pieces to photograph the bulk banner with: the dearest in-stock
+  // candles, because the banner's job is to make the range look worth ordering
+  // a hundred of.
+  const showcase = allProducts
+    .filter((p) => p.inStock && p.images.length > 0)
+    .sort((a, b) => b.basePrice - a.basePrice)
+    .slice(0, 3);
 
   // Four distinct photographs for the hero mosaic: the lead collection cover,
   // then the best sellers behind it, de-duplicated so the same candle never
@@ -83,7 +88,13 @@ export default async function HomePage() {
       {/* Hero */}
       {/* Before the hero. An offer people have to scroll to find is an offer
           most people never find. */}
-      <OfferBanner showcase={showcase} />
+      <OfferBanner
+        showcase={showcase}
+        tiers={settings.bulkTiers}
+        fragrances={settings.fragrances}
+        instagramHandle={settings.instagramHandle}
+        businessName={settings.businessName}
+      />
 
       <section className="relative overflow-hidden">
         {/* Warm glow behind the hero image. On a phone the column stacks, so it

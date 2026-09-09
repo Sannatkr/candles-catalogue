@@ -7,15 +7,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { track } from "@/lib/analytics";
-import { GiftBanner } from "@/components/gift-banner";
 import { useCart } from "@/lib/cart";
-import { resolveGift, surpriseIncluded } from "@/lib/gift";
 import { instagramChatLink, money } from "@/lib/format";
 import { abandonOrder, confirmPayment, startCheckout } from "@/lib/orders";
 import { lookupPincode } from "@/lib/pincode";
-import { shippingCost } from "@/lib/shipping";
-import { singlePrice } from "@/lib/pricing";
-import type { GiftConfig, Product, ShippingConfig } from "@/lib/types";
+import { freeShipEarned, shippingCost } from "@/lib/shipping";
+import type { ShippingConfig } from "@/lib/types";
 
 /**
  * Address, then payment. Razorpay's own sheet handles the card details — this
@@ -56,14 +53,10 @@ export function CheckoutForm({
   configured,
   instagramHandle,
   shippingConfig,
-  giftConfig,
-  giftProducts,
 }: {
   configured: boolean;
   instagramHandle: string;
   shippingConfig: ShippingConfig;
-  giftConfig: GiftConfig;
-  giftProducts: Product[];
 }) {
   const router = useRouter();
   const cart = useCart();
@@ -88,10 +81,15 @@ export function CheckoutForm({
   const resolved = lookup?.pincode === pincode ? lookup : null;
   const lookingUp = pincodeOk && !resolved;
 
-  // Flat delivery, free over a subtotal but only while the parcel stays light.
-  const gift = resolveGift(giftConfig, giftProducts, cart.subtotal, cart.giftSlug);
-  const surprise = surpriseIncluded(giftConfig, cart.subtotal) && giftProducts.length > 0;
-  const shipping = shippingCost(shippingConfig, { grams: cart.weightGrams, subtotal: cart.subtotal });
+  // Flat delivery, free over a subtotal while the parcel stays light — or free
+  // outright once one design reaches its bulk quantity. The server decides it
+  // again from the catalogue; this is only what the buyer is shown.
+  const freeByQty = freeShipEarned(cart.lines);
+  const shipping = shippingCost(shippingConfig, {
+    grams: cart.weightGrams,
+    subtotal: cart.subtotal,
+    freeByQty,
+  });
   const total = cart.subtotal + shipping;
 
   useEffect(() => {
@@ -153,7 +151,6 @@ export function CheckoutForm({
 
     const started = await startCheckout({
       lines: cart.lines.map((l) => ({ slug: l.slug, qty: l.qty })),
-      giftSlug: cart.giftSlug,
       buyerName: name,
       phone,
       email,
@@ -439,38 +436,27 @@ export function CheckoutForm({
               ))}
             </ul>
 
-            <div className="mt-5">
-              <GiftBanner config={giftConfig} products={giftProducts} shipping={shippingConfig} readOnly />
-            </div>
-
             <dl className="mt-5 space-y-3 border-t border-line pt-4 text-[0.925rem]">
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-ink-soft">Subtotal</dt>
                 <dd className="text-ink tabular-nums">{money(cart.subtotal)}</dd>
               </div>
-              {gift && (
+              {cart.bulkSaving > 0 && (
                 <div className="flex items-baseline justify-between gap-4">
-                  <dt className="truncate text-ink-soft">
-                    {gift.name} <span className="text-ink-faint">(gift)</span>
-                  </dt>
-                  <dd className="shrink-0 tabular-nums">
-                    <s className="text-ink-faint">{money(singlePrice(gift))}</s>{" "}
-                    <b className="font-semibold text-[#3d5730]">FREE</b>
+                  <dt className="text-ink-soft">Bulk rate</dt>
+                  <dd className="shrink-0 font-semibold text-[#3d5730] tabular-nums">
+                    −{money(cart.bulkSaving)}
                   </dd>
-                </div>
-              )}
-              {surprise && (
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className="truncate text-ink-soft">
-                    {giftConfig.surpriseLabel} <span className="text-ink-faint">(gift)</span>
-                  </dt>
-                  <dd className="shrink-0 font-semibold text-[#3d5730]">FREE</dd>
                 </div>
               )}
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-ink-soft">Delivery</dt>
                 <dd className="text-ink tabular-nums">
-                  {shipping === 0 ? <span className="text-[#3d5730]">Free</span> : money(shipping)}
+                  {shipping === 0 ? (
+                    <span className="text-[#3d5730]">{freeByQty ? "Free — bulk order" : "Free"}</span>
+                  ) : (
+                    money(shipping)
+                  )}
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">

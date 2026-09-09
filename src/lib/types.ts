@@ -27,7 +27,7 @@ export type Product = {
    */
   packWeightGrams: number;
 
-  /** Price per piece. The only price there is — bulk is a conversation, not a slab. */
+  /** Price per piece at one. The slabs cut down from here. */
   basePrice: number;
   /** List price shown struck through. 0 hides it. */
   mrp: number;
@@ -39,12 +39,25 @@ export type Product = {
   minQty: number;
   packaging: string;
 
+  /**
+   * The most pieces of this design that may go through the checkout, set by how
+   * big it is: 7 for a peacock urli, 300 for a set-of-ten mithai candle. Past it
+   * the buyer is sent to the bulk enquiry form. 0 falls back to the site-wide
+   * ceiling.
+   */
+  maxQty: number;
+  /**
+   * How many of this one design earn free delivery on the whole order. 50 for
+   * most candles, but never above the ceiling — so a peacock urli earns it at 7.
+   * 0 switches it off for this candle.
+   */
+  freeShipQty: number;
+  /** Do the quantity slabs apply? False for the mithai sets, which are fixed. */
+  bulkPricing: boolean;
+
   inStock: boolean;
   featured: boolean;
   sortOrder: number;
-
-  /** May this candle be chosen as the free gift? Decided in the admin. */
-  giftEligible: boolean;
 };
 
 export type Collection = {
@@ -76,17 +89,15 @@ export type ShippingConfig = {
 };
 
 /**
- * The free-candle offer: one giftable candle, chosen by the buyer, once the
- * paid subtotal reaches the threshold.
+ * One rung of the bulk ladder: take this many of one design and the price per
+ * piece comes down by this much. Edited in the admin, so the ladder can be
+ * tuned against real costs without a deploy.
  */
-export type GiftConfig = {
-  enabled: boolean;
-  /** Paid subtotal (the gift itself excluded) that unlocks the free candle. */
-  threshold: number;
-  /** A second, unchosen gift thrown in at the same threshold. */
-  surpriseEnabled: boolean;
-  /** What the buyer is told they are getting, without giving the surprise away. */
-  surpriseLabel: string;
+export type BulkTier = {
+  /** Pieces of a single design needed to reach this rung. */
+  minQty: number;
+  /** Cut off the price per piece, as a percentage. */
+  percentOff: number;
 };
 
 export type SiteSettings = {
@@ -101,7 +112,8 @@ export type SiteSettings = {
   /** Offered on the booking form once an order gets large enough to customise. */
   fragrances: string[];
   shipping: ShippingConfig;
-  gift: GiftConfig;
+  /** The bulk ladder, cheapest rung first. Empty turns slab pricing off. */
+  bulkTiers: BulkTier[];
   termsIntro: string;
   termsSections: TermsSection[];
 };

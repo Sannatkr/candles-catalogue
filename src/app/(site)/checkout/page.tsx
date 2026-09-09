@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout-form";
-import { getProducts, getSettings } from "@/lib/data";
-import { eligibleGifts } from "@/lib/gift";
+import { getSettings } from "@/lib/data";
 import { isCheckoutConfigured } from "@/lib/orders";
 
 export const metadata: Metadata = {
@@ -10,15 +9,11 @@ export const metadata: Metadata = {
 };
 
 // The bag and the checkout must reflect the catalogue as it is right now — a
-// page cached from before a candle became giftable would quietly hide the offer.
+// page cached from before a slab changed would quote the old rate.
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
-  const [settings, configured, products] = await Promise.all([
-    getSettings(),
-    isCheckoutConfigured(),
-    getProducts(),
-  ]);
+  const [settings, configured] = await Promise.all([getSettings(), isCheckoutConfigured()]);
 
   return (
     <div className="mx-auto max-w-[1240px] px-5 pt-10 pb-24 sm:px-8">
@@ -33,8 +28,6 @@ export default async function CheckoutPage() {
         configured={configured}
         instagramHandle={settings.instagramHandle}
         shippingConfig={settings.shipping}
-        giftConfig={settings.gift}
-        giftProducts={eligibleGifts(products)}
       />
     </div>
   );

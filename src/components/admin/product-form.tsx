@@ -131,10 +131,36 @@ export function ProductForm({
           <Field
             label="Sold in sets of"
             hint="1 for most candles. 10 for the mithai candles — buyers take 10, 20, 30… or type any number of 10 or more."
-            className="sm:col-span-2"
           >
             <Input type="number" name="min_qty" min={1} step="1" defaultValue={product?.min_qty ?? 1} />
           </Field>
+
+          <Field
+            label="Most that can be bought online"
+            hint="Set by how big it is — 7 for a peacock urli, 300 for a mithai set. Past this the buyer gets the bulk enquiry form instead of the checkout."
+          >
+            <Input type="number" name="max_qty" min={0} step="1" defaultValue={product?.max_qty ?? 0} />
+          </Field>
+
+          <Field
+            label="Free delivery from (pcs)"
+            hint="This many of this one design and the whole order ships free. 0 switches it off — use that on anything heavy where the freight would eat the order."
+          >
+            <Input
+              type="number"
+              name="free_ship_qty"
+              min={0}
+              step="1"
+              defaultValue={product?.free_ship_qty ?? 0}
+            />
+          </Field>
+
+          <Toggle
+            name="bulk_pricing"
+            label="Bulk slabs apply"
+            hint="Off for anything already at its bulk price — the mithai candles sold in sets of ten."
+            defaultChecked={product?.bulk_pricing ?? true}
+          />
         </div>
       </Card>
 
@@ -183,12 +209,6 @@ export function ProductForm({
             label="Show on the home page"
             hint="Pick your best sellers."
             defaultChecked={product?.featured ?? false}
-          />
-          <Toggle
-            name="gift_eligible"
-            label="Can be given free"
-            hint="Buyers may choose this as their free candle once their bag is big enough. Keep it to your smaller pieces."
-            defaultChecked={product?.gift_eligible ?? false}
           />
           <Field label="Position in list" hint="Lower number shows first." className="sm:col-span-2">
             <Input type="number" name="sort_order" defaultValue={product?.sort_order ?? 0} />

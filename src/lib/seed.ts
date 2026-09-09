@@ -1,4 +1,4 @@
-import { DEFAULT_GIFT } from "./gift";
+import { DEFAULT_BULK_TIERS } from "./pricing";
 import { DEFAULT_SHIPPING } from "./shipping";
 import type { Collection, Product, SiteSettings } from "./types";
 
@@ -26,7 +26,7 @@ export const seedSettings: SiteSettings = {
   addressLines: ["Sugandha Candles", "Gaur City, Greater Noida", "Uttar Pradesh 201009, India"],
   currency: "INR",
   shipping: DEFAULT_SHIPPING,
-  gift: DEFAULT_GIFT,
+  bulkTiers: DEFAULT_BULK_TIERS,
   fragrances: [
     "Rose",
     "British Rose",
@@ -79,7 +79,7 @@ export const seedSettings: SiteSettings = {
       body: [
         "Most candles have no minimum — a single piece is welcome. The mithai candles are sold in sets of ten.",
         "One price per piece, whatever the quantity: the price on the page is the price you pay.",
-        "Buying in bulk? Tap Chat for bulk on any candle and we quote you directly — rate, fragrance and delivery date.",
+        "Buying in bulk? Tap Bulk enquiry, pick your candles and quantities, and we quote you directly — rate, fragrance and delivery date.",
         "You may mix designs and fragrances freely within one order.",
       ],
     },
@@ -613,9 +613,15 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   basePrice: sellingPrice(d.price),
   mrp: d.price,
   minQty: 1,
+  // The same buckets migration 024 uses, so the sample catalogue behaves like
+  // the real one: big (5 inches across) or dear (over ₹399) stops at 9, so the
+  // button changes at ten; everything else at 50.
+  maxQty: d.d >= 13 || sellingPrice(d.price) > 399 ? 9 : 50,
+  // Free delivery by quantity is switched off everywhere for now.
+  freeShipQty: 0,
+  bulkPricing: true,
   packaging: d.packaging,
   inStock: true,
   featured: Boolean(d.featured),
   sortOrder: i + 1,
-  giftEligible: false,
 }));
