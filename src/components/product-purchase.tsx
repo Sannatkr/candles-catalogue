@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Check, Layers, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import { BulkEnquiryDialog } from "@/components/bulk-enquiry-dialog";
+import { InstagramIcon } from "@/components/instagram-icon";
 import { track } from "@/lib/analytics";
 import { useCart } from "@/lib/cart";
 import { celebrateUnlock, originOf } from "@/lib/celebrate";
@@ -76,6 +77,17 @@ export function ProductPurchase({
   const freeShipRef = useRef<HTMLParagraphElement | null>(null);
   const wasFree = useRef(false);
 
+  /**
+   * The bulk action wears the Instagram gradient wherever it appears — the
+   * owner's own brand colour for "talk to us", and the one thing on this page
+   * that must not read as a second Add to bag. It opens the enquiry form, and
+   * the form's last step hands the buyer to the Instagram chat.
+   */
+  const INSTAGRAM =
+    "linear-gradient(95deg, #405DE6 0%, #833AB4 35%, #C13584 60%, #E1306C 80%, #F77737 100%)";
+  const bulkClass =
+    "insta-pulse inline-flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-[0.95rem] font-medium text-white shadow-sm transition-opacity hover:opacity-90";
+
   function changeQty(next: number) {
     setQty(Math.max(step, Math.min(100000, next)));
     setDraft(null);
@@ -125,7 +137,9 @@ export function ProductPurchase({
     <>
       <div className="mt-9 rounded-[16px] border border-line bg-surface p-5 sm:p-6">
         {/* The price, on its own line so nothing can crowd it on a phone. */}
-        <p className="eyebrow">{qty > step ? `Price per piece at ${qty}` : "Price per piece"}</p>
+        <p className="eyebrow">
+          {unitPrice < basePrice ? `Price per piece at ${qty}` : "Price per piece"}
+        </p>
 
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-display text-[2rem] leading-none text-ink tabular-nums">
@@ -154,33 +168,42 @@ export function ProductPurchase({
         {slabs.length > 0 && (
           <div className="mt-5 border-t border-line pt-5">
             <p className="text-[0.8rem] font-medium text-ink">Buying more? The price comes down.</p>
-            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {slabs.map((slab) => {
                 const live = online && qty >= slab.minQty;
                 return (
-                  <li
-                    key={slab.minQty}
-                    className={`rounded-[12px] border px-3 py-2.5 text-center transition-colors ${
-                      live
-                        ? "border-ember bg-ember-wash/60"
-                        : slab.online
-                          ? "border-line bg-canvas"
-                          : "border-dashed border-line bg-canvas"
-                    }`}
-                  >
-                    <span className="block text-[0.72rem] tracking-wide text-ink-faint tabular-nums">
-                      {slab.minQty}+ pcs
-                    </span>
-                    <span
-                      className={`mt-1 block text-[0.95rem] tabular-nums ${
-                        slab.online ? "text-ink" : "text-ink-faint"
+                  <li key={slab.minQty}>
+                    {/* Tapping a rung IS the quantity picker. On a candle whose
+                        ceiling sits below the rung this sets a quantity the
+                        checkout will not take, which is deliberate: the buy
+                        button turns into the quote button and the buyer lands
+                        exactly where that quantity has to be handled. */}
+                    <button
+                      type="button"
+                      onClick={() => changeQty(slab.minQty)}
+                      aria-pressed={live}
+                      className={`w-full rounded-[12px] border px-3 py-2.5 text-center transition-colors ${
+                        live
+                          ? "border-ember bg-ember-wash/60"
+                          : slab.online
+                            ? "border-line bg-canvas hover:border-ink"
+                            : "border-dashed border-line bg-canvas hover:border-ink"
                       }`}
                     >
-                      {money(slab.unitPrice)}
-                    </span>
-                    <span className="mt-0.5 block text-[0.68rem] text-ink-faint">
-                      {slab.online ? `${slab.percentOff}% off` : "On enquiry"}
-                    </span>
+                      <span className="block text-[0.72rem] tracking-wide text-ink-faint tabular-nums">
+                        {slab.minQty}+ pcs
+                      </span>
+                      <span
+                        className={`mt-1 block text-[0.95rem] tabular-nums ${
+                          slab.online ? "text-ink" : "text-ink-faint"
+                        }`}
+                      >
+                        {money(slab.unitPrice)}
+                      </span>
+                      <span className="mt-0.5 block text-[0.68rem] text-ink-faint">
+                        {slab.online ? `${slab.percentOff}% off` : "On enquiry"}
+                      </span>
+                    </button>
                   </li>
                 );
               })}
@@ -329,9 +352,10 @@ export function ProductPurchase({
               <button
                 type="button"
                 onClick={openEnquiry}
-                className="mt-2.5 inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-ink px-7 py-3.5 text-[0.92rem] font-medium text-ink transition-colors hover:bg-ink hover:text-canvas"
+                style={{ backgroundImage: INSTAGRAM }}
+                className={`mt-2.5 ${bulkClass}`}
               >
-                <Layers size={17} />
+                <InstagramIcon size={18} />
                 Buying in bulk? Get a quote
               </button>
             </>
@@ -339,9 +363,10 @@ export function ProductPurchase({
             <button
               type="button"
               onClick={openEnquiry}
-              className="inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-7 py-4 text-[0.95rem] text-canvas transition-colors hover:bg-ember"
+              style={{ backgroundImage: INSTAGRAM }}
+              className={bulkClass}
             >
-              <Layers size={17} />
+              <InstagramIcon size={18} />
               Get a quote for {qty} pieces
             </button>
           )}

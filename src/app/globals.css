@@ -111,6 +111,23 @@
   animation: cta-pulse 2.1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* The same heartbeat on the bulk button, in Instagram pink rather than ember,
+   because the button wears the Instagram gradient. */
+@keyframes insta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(193 53 132 / 0.34);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 14px rgb(193 53 132 / 0);
+  }
+}
+
+.insta-pulse {
+  animation: insta-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Scroll reveal — elements start slightly low and fade up once seen. */
 .reveal {
   opacity: 0;
@@ -137,6 +154,7 @@
   }
 
   .chevron-fall,
+  .insta-pulse,
   .cta-pulse {
     animation: none;
   }
