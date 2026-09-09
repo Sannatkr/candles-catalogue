@@ -29,6 +29,15 @@ export function BookingEdit({
 }) {
   const [state, save, saving] = useActionState(updateBooking, IDLE);
 
+  /**
+   * The stored timestamp as a yyyy-mm-dd the date box understands, read in IST
+   * — a payment taken at 9pm in Delhi is 15:30 UTC the same day, and rendering
+   * it in the server's zone would show the day before.
+   */
+  const paidOnValue = booking.paidAt
+    ? new Date(new Date(booking.paidAt).getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10)
+    : "";
+
   const [lines, setLines] = useState<EditLine[]>(() =>
     itemsOf(booking).map((it) => ({
       slug: it.slug,
@@ -260,6 +269,22 @@ export function BookingEdit({
             <label className="block">
               <span className={LABEL}>City or state</span>
               <input name="state" defaultValue={booking.state ?? ""} className={`mt-1.5 ${FIELD}`} />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className={LABEL}>
+                Payment received on{" "}
+                <span className="font-normal text-ink-faint">— the date revenue is counted under</span>
+              </span>
+              <input
+                type="date"
+                name="paid_on"
+                defaultValue={paidOnValue}
+                className={`mt-1.5 ${FIELD}`}
+              />
+              <span className="mt-1.5 block text-[0.75rem] leading-relaxed text-ink-faint">
+                Marking an order paid fills this in with today only if it is empty, so an old order
+                fulfilled today keeps its real date. Clear it to take the order off the revenue chart.
+              </span>
             </label>
             <label className="block sm:col-span-2">
               <span className={LABEL}>Note</span>

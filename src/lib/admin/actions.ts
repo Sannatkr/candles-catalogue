@@ -268,13 +268,29 @@ export async function setBookingStatus(fd: FormData) {
   const status = str(fd, "status");
   if (!isBookingStatus(status)) return;
 
-  // Stamp the moment money landed, so revenue can be reported by payment date
-  // rather than by when the order was first placed.
+  const id = str(fd, "id");
+
+  /**
+   * Stamp the moment money landed — but only once.
+   *
+   * This used to write today's date on every move into paid or fulfilled, so an
+   * August order marked fulfilled in September had its revenue dragged forward
+   * to September. Four of them on one afternoon put a ₹14,000 spike on a day
+   * nothing was actually sold, which is how this was noticed. A date already on
+   * the row is the truth; only a missing one gets filled in, and correcting a
+   * wrong one is done in the edit form, deliberately.
+   */
   const patch: Record<string, unknown> = { status };
-  if (status === "paid" || status === "fulfilled") patch.paid_at = new Date().toISOString();
+  if (status === "paid" || status === "fulfilled") {
+    const { data } = await supabase.from("bookings").select("paid_at").eq("id", id).maybeSingle();
+    if (!(data as { paid_at: string | null } | null)?.paid_at) {
+      patch.paid_at = new Date().toISOString();
+    }
+  }
+  // Back to unpaid: the money is not in, so neither is the date.
   if (status === "new" || status === "contacted" || status === "cancelled") patch.paid_at = null;
 
-  await supabase.from("bookings").update(patch).eq("id", str(fd, "id"));
+  await supabase.from("bookings").update(patch).eq("id", id);
   revalidatePath("/admin/bookings");
   revalidatePath("/admin/revenue");
   revalidatePath("/admin");
@@ -498,12 +514,23 @@ export async function setOrderStatus(fd: FormData) {
   const status = str(fd, "status");
   if (!isOrderStatus(status)) return;
 
-  const patch: Record<string, unknown> = { status };
-  // A payment recorded by hand still needs a timestamp, or the order sorts and
-  // reports as if the money never arrived.
-  if (PAID_STATUSES.includes(status)) patch.paid_at = new Date().toISOString();
+  const id = str(fd, "id");
 
-  await supabase.from("orders").update(patch).eq("id", str(fd, "id"));
+  const patch: Record<string, unknown> = { status };
+  /**
+   * A payment recorded by hand still needs a timestamp, or the order sorts and
+   * reports as if the money never arrived — but only if it does not have one.
+   * Every step of the fulfilment flow counts as paid, so re-stamping meant that
+   * marking a week-old order "shipped" moved its revenue onto today's chart.
+   */
+  if (PAID_STATUSES.includes(status)) {
+    const { data } = await supabase.from("orders").select("paid_at").eq("id", id).maybeSingle();
+    if (!(data as { paid_at: string | null } | null)?.paid_at) {
+      patch.paid_at = new Date().toISOString();
+    }
+  }
+
+  await supabase.from("orders").update(patch).eq("id", id);
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
 }
@@ -607,6 +634,13 @@ export async function updateBooking(_prev: ActionState, fd: FormData): Promise<A
     fragrance: str(fd, "fragrance") || null,
     note: str(fd, "note") || null,
   };
+
+  // The date revenue is reported against. Correctable here because the status
+  // buttons deliberately will not move a date that is already set — this is the
+  // one place a wrong one gets fixed. Left blank on a paid order it is cleared,
+  // which takes the row off the revenue chart until a date is given.
+  const paidOn = str(fd, "paid_on");
+  patch.paid_at = paidOn ? new Date(`${paidOn}T12:00:00${IST_OFFSET}`).toISOString() : null;
 
   // Rebuild the lines when the editor sends them. A custom ("unknown") candle
   // has no catalogue slug, so one is made from its name — an empty slug would be
