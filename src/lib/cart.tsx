@@ -45,6 +45,8 @@ export type StoredLine = {
   freeShipQty: number;
   /** Do the quantity slabs apply to it? */
   bulkPricing: boolean;
+  /** Hand-set rung prices, keyed by rung quantity. Usually empty. */
+  tierPrices: Record<string, number>;
 };
 
 /** A line as the screens see it, with the price this quantity actually earns. */
@@ -104,6 +106,8 @@ function parse(raw: string | null): StoredLine[] {
           maxQty,
           freeShipQty,
           bulkPricing: line.bulkPricing ?? true,
+          tierPrices:
+            line.tierPrices && typeof line.tierPrices === "object" ? line.tierPrices : {},
         },
       ];
     });

@@ -25,6 +25,7 @@ export type AdminProduct = {
   max_qty: number | null;
   free_ship_qty: number | null;
   bulk_pricing: boolean | null;
+  tier_prices: Record<string, number> | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;

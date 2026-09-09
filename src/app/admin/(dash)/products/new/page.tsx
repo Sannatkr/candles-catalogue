@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ProductForm } from "@/components/admin/product-form";
 import { listAdminCollections } from "@/lib/admin/queries";
+import { getSettings } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
-  const collections = await listAdminCollections();
+  const [collections, settings] = await Promise.all([listAdminCollections(), getSettings()]);
 
   if (collections.length === 0) {
     return (
@@ -31,7 +32,7 @@ export default async function NewProductPage() {
       <h1 className="mt-3 mb-8 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
         Add a candle
       </h1>
-      <ProductForm product={null} collections={collections} />
+      <ProductForm product={null} collections={collections} tiers={settings.bulkTiers} />
     </>
   );
 }

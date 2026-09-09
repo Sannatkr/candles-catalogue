@@ -620,6 +620,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   // Free delivery by quantity is switched off everywhere for now.
   freeShipQty: 0,
   bulkPricing: true,
+  tierPrices: {},
   packaging: d.packaging,
   inStock: true,
   featured: Boolean(d.featured),

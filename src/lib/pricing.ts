@@ -85,14 +85,33 @@ export function tierAt(
   return found;
 }
 
-/** What one piece costs at this quantity, slabs applied. */
+/** A price set by hand for this rung on this candle, or 0 for "use the percentage". */
+export function overrideFor(
+  product: Pick<Product, "tierPrices">,
+  minQty: number,
+): number {
+  const raw = Number(product.tierPrices?.[String(minQty)]);
+  return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+}
+
+/**
+ * What one piece costs at this quantity.
+ *
+ * A rung with a hand-set price is charged at exactly that, whatever the
+ * percentage says — the admin typed a number, and quietly moving it would make
+ * the field a lie. Everything else takes the percentage off the base price.
+ */
 export function unitPriceAt(
-  product: Pick<Product, "basePrice" | "bulkPricing">,
+  product: Pick<Product, "basePrice" | "bulkPricing" | "tierPrices">,
   tiers: BulkTier[],
   qty: number,
 ): number {
   const tier = tierAt(product, tiers, qty);
   if (!tier) return product.basePrice;
+
+  const byHand = overrideFor(product, tier.minQty);
+  if (byHand) return byHand;
+
   // Rounded to the rupee, and deliberately not charm-priced to a 9 like the
   // retail prices are. Two reasons. Snapping ₹75 down to ₹69 on a ₹79 candle
   // gives away 13% where 5% was promised, and it collapses three rungs of the
@@ -117,7 +136,7 @@ export type Slab = {
  * bulk enquiry button sitting underneath.
  */
 export function slabsFor(
-  product: Pick<Product, "basePrice" | "bulkPricing" | "maxQty" | "minQty">,
+  product: Pick<Product, "basePrice" | "bulkPricing" | "maxQty" | "minQty" | "tierPrices">,
   tiers: BulkTier[],
 ): Slab[] {
   if (!product.bulkPricing) return [];

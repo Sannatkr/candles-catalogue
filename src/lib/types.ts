@@ -54,6 +54,12 @@ export type Product = {
   freeShipQty: number;
   /** Do the quantity slabs apply? False for the mithai sets, which are fixed. */
   bulkPricing: boolean;
+  /**
+   * A hand-set price for a rung, keyed by the rung's quantity — {"25": 474}.
+   * A rung named here is charged at exactly that; a rung missing falls back to
+   * the percentage in Settings. Empty for most candles.
+   */
+  tierPrices: Record<string, number>;
 
   inStock: boolean;
   featured: boolean;

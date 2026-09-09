@@ -10,7 +10,7 @@ import { toOrderItems } from "@/lib/admin/queries";
 import { isOrderStatus, type OrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
 import { countWords, estimateDuration, isScriptStatus } from "@/lib/admin/script-status";
 import { slugify } from "@/lib/slug";
-import { getProducts } from "@/lib/data";
+import { getProducts, getSettings } from "@/lib/data";
 import { createPaymentLink } from "@/lib/payments/razorpay";
 import { createRapidshypShipment, isRapidshypConfigured } from "@/lib/rapidshyp";
 import { normaliseTiers } from "@/lib/pricing";
@@ -83,6 +83,29 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   const freeShipRaw = Math.max(0, Math.floor(num(fd, "free_ship_qty")));
   const freeShipQty = maxQty > 0 ? Math.min(freeShipRaw, maxQty) : freeShipRaw;
 
+  /**
+   * Hand-set rung prices, keyed by the rung's quantity.
+   *
+   * It starts from what the row already holds rather than from nothing, so a
+   * price set against a rung that has since been removed from Settings is kept
+   * rather than quietly dropped — put that rung back and the number is still
+   * there. The visible fields then set or clear the rungs actually on screen;
+   * an empty box means "use the percentage", so the key is deleted.
+   */
+  const tierPrices: Record<string, number> = {};
+  for (const [key, value] of Object.entries(
+    json<Record<string, number>>(fd, "tier_prices_existing", {}),
+  )) {
+    const price = Math.round(Number(value));
+    if (/^\d+$/.test(key) && Number.isFinite(price) && price > 0) tierPrices[key] = price;
+  }
+  const { bulkTiers } = await getSettings();
+  for (const tier of bulkTiers) {
+    const typed = Math.round(num(fd, `tier_price_${tier.minQty}`));
+    if (typed > 0) tierPrices[String(tier.minQty)] = typed;
+    else delete tierPrices[String(tier.minQty)];
+  }
+
   const row = {
     slug: str(fd, "slug") || slugify(name),
     name,
@@ -107,15 +130,29 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     max_qty: maxQty,
     free_ship_qty: freeShipQty,
     bulk_pricing: bool(fd, "bulk_pricing"),
+    tier_prices: tierPrices,
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),
     sort_order: num(fd, "sort_order"),
   };
 
   const id = str(fd, "id");
-  const { error } = id
-    ? await supabase.from("products").update(row).eq("id", id)
-    : await supabase.from("products").insert(row);
+  const write = (data: typeof row | Omit<typeof row, "tier_prices">) =>
+    id
+      ? supabase.from("products").update(data).eq("id", id)
+      : supabase.from("products").insert(data);
+
+  let { error } = await write(row);
+
+  // PGRST204 is PostgREST rejecting an unknown column from its schema cache;
+  // 42703 is Postgres saying the same. tier_prices arrives with migration 026,
+  // so until that is run a candle still saves — it just cannot carry hand-set
+  // rung prices yet.
+  if (error?.code === "PGRST204" || error?.code === "42703") {
+    const withoutTiers = { ...row };
+    delete (withoutTiers as Partial<typeof row>).tier_prices;
+    ({ error } = await write(withoutTiers));
+  }
 
   if (error) {
     const friendly = error.code === "23505" ? "A product with that web address already exists." : error.message;

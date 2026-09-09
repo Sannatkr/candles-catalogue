@@ -38,6 +38,7 @@ type ProductRow = {
   max_qty: number | null;
   free_ship_qty: number | null;
   bulk_pricing: boolean | null;
+  tier_prices: Record<string, number> | null;
   packaging: string | null;
   in_stock: boolean | null;
   featured: boolean | null;
@@ -85,6 +86,7 @@ function toProduct(row: ProductRow): Product {
     maxQty: Math.max(0, row.max_qty ?? 0),
     freeShipQty: Math.max(0, row.free_ship_qty ?? 0),
     bulkPricing: row.bulk_pricing ?? true,
+    tierPrices: row.tier_prices && typeof row.tier_prices === "object" ? row.tier_prices : {},
     packaging: row.packaging ?? "",
     inStock: row.in_stock ?? true,
     featured: row.featured ?? false,

@@ -8,20 +8,27 @@ import { IDLE } from "@/lib/admin/action-state";
 import { saveProduct } from "@/lib/admin/actions";
 import type { AdminCollection, AdminProduct } from "@/lib/admin/queries";
 import { slugify } from "@/lib/slug";
+import type { BulkTier } from "@/lib/types";
 
 export function ProductForm({
   product,
   collections,
+  tiers,
 }: {
   product: AdminProduct | null;
   collections: AdminCollection[];
+  /** The ladder from Settings, so each rung gets a price box of its own. */
+  tiers: BulkTier[];
 }) {
   const [state, action] = useActionState(saveProduct, IDLE);
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(product?.slug));
+  // Kept in state so the automatic rung prices below update as it is typed.
+  const [basePrice, setBasePrice] = useState(product?.base_price ?? 0);
 
   const effectiveSlug = slugTouched ? slug : slugify(name);
+  const overrides = product?.tier_prices ?? {};
 
   return (
     <form action={action} className="space-y-6 pb-24">
@@ -114,11 +121,19 @@ export function ProductForm({
 
       <Card
         title="Pricing"
-        hint="One price per piece, whatever the quantity. Bulk buyers use the chat button and are quoted directly."
+        hint="The price for one piece, and what a rung of the bulk ladder costs. Past the online ceiling the buyer gets the enquiry form instead of the checkout."
       >
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Price per piece (₹)">
-            <Input type="number" name="base_price" min={0} step="1" defaultValue={product?.base_price ?? 0} required />
+            <Input
+              type="number"
+              name="base_price"
+              min={0}
+              step="1"
+              value={basePrice}
+              onChange={(e) => setBasePrice(Number(e.target.value) || 0)}
+              required
+            />
           </Field>
 
           <Field
@@ -161,6 +176,44 @@ export function ProductForm({
             hint="Off for anything already at its bulk price — the mithai candles sold in sets of ten."
             defaultChecked={product?.bulk_pricing ?? true}
           />
+
+          {tiers.length > 0 && (
+            <div className="sm:col-span-2">
+              {/* Carries the rungs that are not on screen, so a price set
+                  against a rung later removed from Settings is not lost. */}
+              <input
+                type="hidden"
+                name="tier_prices_existing"
+                value={JSON.stringify(overrides)}
+                readOnly
+              />
+              <p className="text-[0.82rem] font-medium text-ink">Price at each bulk quantity (₹)</p>
+              <p className="mt-1 text-[0.78rem] leading-relaxed text-ink-soft">
+                Leave a box empty and that rung follows the percentage in Settings — the greyed
+                number is what it works out to. Type a price to fix that rung on this candle only.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                {tiers.map((tier) => {
+                  const auto = Math.round(basePrice * (1 - tier.percentOff / 100));
+                  return (
+                    <label key={tier.minQty} className="block">
+                      <span className="mb-2 block text-[0.75rem] text-ink-faint tabular-nums">
+                        {tier.minQty}+ pcs
+                      </span>
+                      <Input
+                        type="number"
+                        name={`tier_price_${tier.minQty}`}
+                        min={0}
+                        step="1"
+                        placeholder={String(auto)}
+                        defaultValue={overrides[String(tier.minQty)] ?? ""}
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 

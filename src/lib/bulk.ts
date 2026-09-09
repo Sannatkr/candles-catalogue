@@ -34,6 +34,8 @@ export type BulkChoice = {
   /** Do the quantity slabs apply? The picker prices the line with it, so the
    *  number the buyer is shown is the number the server will save. */
   bulkPricing: boolean;
+  /** Hand-set rung prices, keyed by rung quantity. Usually empty. */
+  tierPrices: Record<string, number>;
 };
 
 export async function bulkCatalogue(): Promise<BulkChoice[]> {
@@ -48,6 +50,7 @@ export async function bulkCatalogue(): Promise<BulkChoice[]> {
       minQty: minQtyOf(p),
       maxQty: maxQtyOf(p),
       bulkPricing: p.bulkPricing,
+      tierPrices: p.tierPrices,
     }));
 }
 

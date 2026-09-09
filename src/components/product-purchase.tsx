@@ -107,6 +107,7 @@ export function ProductPurchase({
         maxQty: cap,
         freeShipQty: freeShipAt,
         bulkPricing: product.bulkPricing,
+        tierPrices: product.tierPrices,
       },
       qty,
     );
