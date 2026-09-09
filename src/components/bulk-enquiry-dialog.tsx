@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -28,6 +28,8 @@ import {
   onMobileDevice,
 } from "@/lib/format";
 import { lookupPincode } from "@/lib/pincode";
+import { unitPriceAt } from "@/lib/pricing";
+import { useBulkTiers } from "@/lib/shop-config";
 
 /**
  * The bulk enquiry form: pick the candles, say how many of each, leave a way to
@@ -72,6 +74,13 @@ export function BulkEnquiryDialog({
   const [picks, setPicks] = useState<Record<string, number>>(() =>
     Object.fromEntries((initialPicks ?? []).map((p) => [p.slug, p.qty])),
   );
+  /**
+   * What is literally in each quantity box while it is being typed in, which is
+   * not the same thing as the quantity. Clearing the box has to leave it empty
+   * for a moment — and it must not take the candle out of the enquiry, which is
+   * what happened before: the line vanished mid-edit and took the box with it.
+   */
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [step, setStep] = useState<"pick" | "details">("pick");
 
@@ -90,6 +99,13 @@ export function BulkEnquiryDialog({
   const [copied, setCopied] = useState(false);
 
   const onPhone = onMobileDevice();
+  const tiers = useBulkTiers();
+
+  /** The rate this candle earns at the quantity chosen — the slab, not the one-piece price. */
+  const unitOf = useCallback(
+    (c: BulkChoice) => unitPriceAt(c, tiers, picks[c.slug] ?? 1),
+    [tiers, picks],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -139,7 +155,7 @@ export function BulkEnquiryDialog({
     [catalogue, picks],
   );
   const pieces = chosen.reduce((sum, c) => sum + (picks[c.slug] ?? 0), 0);
-  const value = chosen.reduce((sum, c) => sum + (picks[c.slug] ?? 0) * c.basePrice, 0);
+  const value = chosen.reduce((sum, c) => sum + (picks[c.slug] ?? 0) * unitOf(c), 0);
   const canPickFragrance = pieces >= CUSTOMISE_FROM;
 
   const shown = useMemo(() => {
@@ -155,11 +171,36 @@ export function BulkEnquiryDialog({
   const reachable = phoneOk || instagramOk;
   const canSubmit = Boolean(name.trim()) && reachable && pincodeOk && pieces > 0 && !busy;
 
-  function setQty(slug: string, qty: number, step: number) {
+  /**
+   * Steps a quantity up or down. Computed from the previous state rather than
+   * from this render's number, or several taps inside one frame all read the
+   * same starting value and only the last one counts.
+   *
+   * Never removes the line — only the photograph does that.
+   */
+  function bump(slug: string, delta: number, step: number) {
+    setPicks((prev) => ({
+      ...prev,
+      [slug]: Math.min(100000, Math.max(step, (prev[slug] ?? step) + delta)),
+    }));
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[slug];
+      return next;
+    });
+  }
+
+  /** Adds or takes the candle out entirely. This is what tapping the photo does. */
+  function toggle(slug: string, step: number) {
     setPicks((prev) => {
       const next = { ...prev };
-      if (qty < step) delete next[slug];
-      else next[slug] = Math.min(100000, qty);
+      if (next[slug]) delete next[slug];
+      else next[slug] = step;
+      return next;
+    });
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[slug];
       return next;
     });
   }
@@ -169,7 +210,9 @@ export function BulkEnquiryDialog({
       [
         `Bulk enquiry — ${businessName}`,
         ``,
-        ...chosen.map((c) => `${compactQty(picks[c.slug] ?? 0)} × ${c.name}`),
+        ...chosen.map(
+          (c) => `${compactQty(picks[c.slug] ?? 0)} × ${c.name} @ ${money(unitOf(c))}`,
+        ),
         ``,
         `Total: ${compactQty(pieces)} pcs`,
         `Indicative value: ${money(value)}`,
@@ -187,7 +230,7 @@ export function BulkEnquiryDialog({
         .join("\n"),
     [
       businessName, chosen, picks, pieces, value, canPickFragrance, fragrance, name,
-      instagramOk, instagram, phoneOk, phoneDigits, pincode, place, note, done,
+      instagramOk, instagram, phoneOk, phoneDigits, pincode, place, note, done, unitOf,
     ],
   );
 
@@ -398,6 +441,7 @@ export function BulkEnquiryDialog({
                   {shown.map((c) => {
                     const qty = picks[c.slug] ?? 0;
                     const step = Math.max(1, c.minQty);
+                    const unit = unitOf(c);
                     return (
                       <li key={c.slug}>
                         <div
@@ -407,7 +451,7 @@ export function BulkEnquiryDialog({
                         >
                           <button
                             type="button"
-                            onClick={() => setQty(c.slug, qty > 0 ? 0 : step, step)}
+                            onClick={() => toggle(c.slug, step)}
                             className="block w-full text-left"
                           >
                             <span className="relative block aspect-4/5 bg-canvas-deep">
@@ -431,7 +475,13 @@ export function BulkEnquiryDialog({
                                 {c.name}
                               </span>
                               <span className="mt-0.5 block text-[0.75rem] text-ink-faint tabular-nums">
-                                {money(c.basePrice)}
+                                {money(unit)}
+                                {unit < c.basePrice && (
+                                  <>
+                                    {" "}
+                                    <s>{money(c.basePrice)}</s>
+                                  </>
+                                )}
                                 {step > 1 && ` · sets of ${step}`}
                               </span>
                             </span>
@@ -441,9 +491,10 @@ export function BulkEnquiryDialog({
                             <div className="flex items-center justify-between gap-1 px-2 pt-2 pb-2.5">
                               <button
                                 type="button"
-                                onClick={() => setQty(c.slug, qty - step, step)}
+                                onClick={() => bump(c.slug, -step, step)}
+                                disabled={qty <= step}
                                 aria-label={`Fewer ${c.name}`}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-canvas text-ink"
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-canvas text-ink disabled:opacity-30"
                               >
                                 <Minus size={13} />
                               </button>
@@ -452,14 +503,35 @@ export function BulkEnquiryDialog({
                                 inputMode="numeric"
                                 min={step}
                                 step={step}
-                                value={qty}
-                                onChange={(e) => setQty(c.slug, Math.floor(Number(e.target.value) || 0), step)}
+                                value={drafts[c.slug] ?? String(qty)}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  const parsed = Number(raw);
+                                  setDrafts((prev) => ({ ...prev, [c.slug]: raw }));
+                                  // Follow the box only once it holds something
+                                  // sellable. Below the set size it may just be
+                                  // half-typed — "2" on its way to "25".
+                                  if (raw.trim() !== "" && Number.isFinite(parsed) && parsed >= step) {
+                                    setPicks((prev) => ({ ...prev, [c.slug]: Math.min(100000, Math.floor(parsed)) }));
+                                  }
+                                }}
+                                onBlur={() => {
+                                  // Left empty or below the set size? Then it
+                                  // goes back to the smallest it can be, rather
+                                  // than quietly dropping the candle.
+                                  setDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[c.slug];
+                                    return next;
+                                  });
+                                  setPicks((prev) => ({ ...prev, [c.slug]: Math.max(step, prev[c.slug] ?? step) }));
+                                }}
                                 aria-label={`How many ${c.name}`}
                                 className="h-8 w-full min-w-0 [appearance:textfield] rounded-[8px] border border-line bg-canvas text-center text-[0.85rem] text-ink tabular-nums focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                               />
                               <button
                                 type="button"
-                                onClick={() => setQty(c.slug, qty + step, step)}
+                                onClick={() => bump(c.slug, step, step)}
                                 aria-label={`More ${c.name}`}
                                 className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-canvas text-ink"
                               >
@@ -520,7 +592,7 @@ export function BulkEnquiryDialog({
                   )}
                   <span className="min-w-0 flex-1 truncate text-[0.85rem] text-ink">{c.name}</span>
                   <span className="shrink-0 text-[0.82rem] text-ink-soft tabular-nums">
-                    {compactQty(picks[c.slug] ?? 0)} pcs
+                    {compactQty(picks[c.slug] ?? 0)} × {money(unitOf(c))}
                   </span>
                 </li>
               ))}

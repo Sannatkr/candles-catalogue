@@ -31,6 +31,9 @@ export type BulkChoice = {
   basePrice: number;
   minQty: number;
   maxQty: number;
+  /** Do the quantity slabs apply? The picker prices the line with it, so the
+   *  number the buyer is shown is the number the server will save. */
+  bulkPricing: boolean;
 };
 
 export async function bulkCatalogue(): Promise<BulkChoice[]> {
@@ -44,6 +47,7 @@ export async function bulkCatalogue(): Promise<BulkChoice[]> {
       basePrice: p.basePrice,
       minQty: minQtyOf(p),
       maxQty: maxQtyOf(p),
+      bulkPricing: p.bulkPricing,
     }));
 }
 
