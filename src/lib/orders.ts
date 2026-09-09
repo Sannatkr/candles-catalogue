@@ -120,13 +120,31 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     unitPrice: number;
     total: number;
   };
-  const items: OrderItemRow[] = input.lines.flatMap((line): OrderItemRow[] => {
-    const product = catalogue.find((p) => p.slug === line.slug);
+  /**
+   * Fold the browser's lines together by design before anything is priced.
+   *
+   * The ceiling is a property of the design, not of a line: a peacock urli
+   * stops at nine because nine is what the parcel will take. Clamping each line
+   * on its own let a hand-built request send the same slug twenty times, nine
+   * on each, and walk 180 of them past a cap of nine — at one flat delivery
+   * fee. Summing first means the ceiling means what it says however the request
+   * was assembled.
+   */
+  const wanted = new Map<string, number>();
+  for (const line of input.lines.slice(0, 100)) {
+    const slug = typeof line?.slug === "string" ? line.slug : "";
+    const qty = Math.floor(Number(line?.qty) || 0);
+    if (!slug || qty < 1) continue;
+    wanted.set(slug, Math.min(1_000_000, (wanted.get(slug) ?? 0) + qty));
+  }
+
+  const items: OrderItemRow[] = [...wanted].flatMap(([slug, rawQty]): OrderItemRow[] => {
+    const product = catalogue.find((p) => p.slug === slug);
     if (!product || !product.inStock) return [];
     // Rounded up to the set size if a doctored cart asks for less than one set,
     // and capped at this candle's own ceiling. The buyer pays for exactly what
     // ships.
-    const qty = clampQty(Number(line.qty), minQtyOf(product), maxQtyOf(product));
+    const qty = clampQty(rawQty, minQtyOf(product), maxQtyOf(product));
     if (qty < 1) return [];
     // The slab rate for the quantity that survived the clamp — never the rate
     // the browser sent, and never the rate for a quantity it did not get.

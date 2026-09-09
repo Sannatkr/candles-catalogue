@@ -99,11 +99,20 @@ export async function placeBulkEnquiry(input: BulkEnquiryInput): Promise<Booking
 
   const [catalogue, settings] = await Promise.all([getProducts(), getSettings()]);
 
-  const items = input.picks.flatMap((pick) => {
-    const product = catalogue.find((p) => p.slug === pick.slug);
+  // Folded by design and bounded, the same way the checkout is. An enquiry is
+  // free to send and writes a row anyone can create, so the shape of what one
+  // request may write has to be decided here rather than trusted.
+  const wanted = new Map<string, number>();
+  for (const pick of (Array.isArray(input.picks) ? input.picks : []).slice(0, 60)) {
+    const slug = typeof pick?.slug === "string" ? pick.slug : "";
+    const qty = Math.floor(Number(pick?.qty) || 0);
+    if (!slug || qty < 1) continue;
+    wanted.set(slug, Math.min(100000, (wanted.get(slug) ?? 0) + qty));
+  }
+
+  const items = [...wanted].flatMap(([slug, qty]) => {
+    const product = catalogue.find((p) => p.slug === slug);
     if (!product) return [];
-    const qty = Math.floor(Number(pick.qty) || 0);
-    if (qty < 1 || qty > 100000) return [];
     // The rate the slabs would give at that quantity. Above the online ceiling
     // there is no slab left to read, so the deepest rung is the honest opener —
     // it is what the buyer would have paid had the parcel allowed it.
