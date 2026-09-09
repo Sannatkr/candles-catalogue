@@ -7,7 +7,7 @@ import { ArrowRight, Layers } from "lucide-react";
 import { BulkEnquiryDialog } from "@/components/bulk-enquiry-dialog";
 import { LotusMotif } from "@/components/lotus-motif";
 import { track } from "@/lib/analytics";
-import type { BulkTier, Product } from "@/lib/types";
+import type { Product } from "@/lib/types";
 
 /**
  * The offer, at the top of the page, before anything else.
@@ -31,21 +31,16 @@ import type { BulkTier, Product } from "@/lib/types";
  */
 export function OfferBanner({
   showcase,
-  tiers,
   fragrances,
   instagramHandle,
   businessName,
 }: {
   showcase: Product[];
-  tiers: BulkTier[];
   fragrances: string[];
   instagramHandle: string;
   businessName: string;
 }) {
   const [enquiry, setEnquiry] = useState(false);
-  if (!tiers.length) return null;
-
-  const deepest = tiers[tiers.length - 1];
 
   return (
     <section className="relative isolate overflow-hidden bg-ink">
@@ -77,24 +72,9 @@ export function OfferBanner({
             <em className="text-[#e5c07b] not-italic">The price is on the page.</em>
           </h2>
 
-          <p className="mt-4 max-w-[52ch] text-[0.98rem] leading-relaxed text-canvas/70 sm:text-[1.06rem]">
-            No waiting on a quotation to know your budget. The rate per piece falls at every step
-            below, up to {deepest.percentOff}% off — and for the bigger pieces, or a mixed order,
-            send us the list and we quote you the same working day.
+          <p className="mt-4 max-w-[46ch] text-[0.98rem] leading-relaxed text-canvas/70 sm:text-[1.06rem]">
+            Bulk rates on every candle, and a quote back the same working day.
           </p>
-
-          {/* The ladder itself, because printing it is the whole promise. */}
-          <ul className="mt-6 flex flex-wrap gap-2">
-            {tiers.map((tier) => (
-              <li
-                key={tier.minQty}
-                className="rounded-full border border-[#e5c07b]/35 px-4 py-2 text-[0.82rem] text-canvas/85 tabular-nums"
-              >
-                {tier.minQty}+ pcs
-                <span className="ml-1.5 text-[#e5c07b]">{tier.percentOff}% off</span>
-              </li>
-            ))}
-          </ul>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <button

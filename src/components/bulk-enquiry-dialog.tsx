@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -41,6 +42,13 @@ import { lookupPincode } from "@/lib/pincode";
  * Instagram is still here, but afterwards: the enquiry is saved first, then the
  * whole thing is copied to the clipboard so they can paste it into the chat if
  * they want an answer tonight.
+ *
+ * It renders through a portal onto <body>, and that is not decoration. The home
+ * banner it opens from is `relative isolate`, which is its own stacking
+ * context — a fixed overlay rendered inside it cannot rise above the sticky
+ * header no matter how large its z-index, so the header's Enquire pill painted
+ * straight over the dialog. A portal puts the overlay next to the header rather
+ * than under it, and immunises every future caller from the same trap.
  */
 
 const FIELD =
@@ -233,7 +241,7 @@ export function BulkEnquiryDialog({
     setDone(result.reference ?? "");
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-100 flex items-end justify-center bg-ink/45 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -658,6 +666,7 @@ export function BulkEnquiryDialog({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

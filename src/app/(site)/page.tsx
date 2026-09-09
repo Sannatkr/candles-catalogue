@@ -90,7 +90,6 @@ export default async function HomePage() {
           most people never find. */}
       <OfferBanner
         showcase={showcase}
-        tiers={settings.bulkTiers}
         fragrances={settings.fragrances}
         instagramHandle={settings.instagramHandle}
         businessName={settings.businessName}
