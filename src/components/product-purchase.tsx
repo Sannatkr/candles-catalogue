@@ -164,56 +164,37 @@ export function ProductPurchase({
           </p>
         )}
 
-        {/* The ladder. Shown whole, including what this candle cannot ship. */}
+        {/*
+          The ladder, as bare quantity chips. No price on them and no "on
+          enquiry" label: the price sits above, in one place, and follows
+          whichever chip is pressed. A chip above this candle's ceiling still
+          sets its quantity — the buy button then becomes the quote button,
+          which says what happens far better than a caption on a tile could.
+        */}
         {slabs.length > 0 && (
           <div className="mt-5 border-t border-line pt-5">
-            <p className="text-[0.8rem] font-medium text-ink">Buying more? The price comes down.</p>
-            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            <ul className="flex flex-wrap gap-2">
               {slabs.map((slab) => {
-                const live = online && qty >= slab.minQty;
+                const live = qty >= slab.minQty;
                 return (
                   <li key={slab.minQty}>
-                    {/* Tapping a rung IS the quantity picker. On a candle whose
-                        ceiling sits below the rung this sets a quantity the
-                        checkout will not take, which is deliberate: the buy
-                        button turns into the quote button and the buyer lands
-                        exactly where that quantity has to be handled. */}
                     <button
                       type="button"
                       onClick={() => changeQty(slab.minQty)}
                       aria-pressed={live}
-                      className={`w-full rounded-[12px] border px-3 py-2.5 text-center transition-colors ${
+                      aria-label={`${slab.minQty} pieces or more`}
+                      className={`rounded-full border px-4 py-2 text-[0.85rem] tabular-nums transition-colors ${
                         live
-                          ? "border-ember bg-ember-wash/60"
-                          : slab.online
-                            ? "border-line bg-canvas hover:border-ink"
-                            : "border-dashed border-line bg-canvas hover:border-ink"
+                          ? "border-ink bg-ink text-canvas"
+                          : "border-ink bg-canvas text-ink hover:bg-canvas-deep"
                       }`}
                     >
-                      <span className="block text-[0.72rem] tracking-wide text-ink-faint tabular-nums">
-                        {slab.minQty}+ pcs
-                      </span>
-                      <span
-                        className={`mt-1 block text-[0.95rem] tabular-nums ${
-                          slab.online ? "text-ink" : "text-ink-faint"
-                        }`}
-                      >
-                        {money(slab.unitPrice)}
-                      </span>
-                      <span className="mt-0.5 block text-[0.68rem] text-ink-faint">
-                        {slab.online ? `${slab.percentOff}% off` : "On enquiry"}
-                      </span>
+                      {slab.minQty}+
                     </button>
                   </li>
                 );
               })}
             </ul>
-            {slabs.some((s) => !s.online) && (
-              <p className="mt-2.5 text-[0.78rem] leading-relaxed text-ink-faint">
-                Up to {cap} of this design go through the checkout. Past that we quote you — and the
-                rate keeps falling.
-              </p>
-            )}
           </div>
         )}
 
@@ -374,7 +355,7 @@ export function ProductPurchase({
           <p className="mt-3 text-center text-[0.78rem] leading-relaxed text-ink-faint">
             {online
               ? "Secure checkout. Dispatched in 2–4 working days."
-              : `More than ${cap} of this design is a quote, not a checkout. No payment now — we confirm your rate, fragrance and delivery date first.`}
+              : "No payment now — we confirm your rate, fragrance and delivery date first."}
           </p>
         </div>
       </div>
