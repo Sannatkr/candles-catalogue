@@ -56,6 +56,28 @@ export type ShipmentOrder = {
   grams: number;
 };
 
+/**
+ * RapidShyp rejects an order that names the same SKU twice — "Duplicate sku in
+ * the order items" — and a real basket can carry one: the free gift is a candle
+ * the buyer had already put in the cart, so the order holds that slug at its
+ * price and again at zero. The courier only needs to know how many pieces of
+ * each design are in the box, so they are folded into one line: units added up,
+ * the dearer of the two rates kept, which keeps the declared value honest.
+ */
+function foldBySku(items: ShipmentOrder["items"]): ShipmentOrder["items"] {
+  const merged = new Map<string, ShipmentOrder["items"][number]>();
+  for (const item of items) {
+    const seen = merged.get(item.slug);
+    if (seen) {
+      seen.qty += item.qty;
+      seen.unitPrice = Math.max(seen.unitPrice, item.unitPrice);
+    } else {
+      merged.set(item.slug, { ...item });
+    }
+  }
+  return [...merged.values()];
+}
+
 export type ShipmentResult = { ok: true; id: string } | { ok: false; message: string };
 
 function todayIso() {
@@ -92,7 +114,7 @@ export async function createRapidshypShipment(order: ShipmentOrder): Promise<Shi
       email: order.email || undefined,
       phone: order.phone,
     },
-    orderItems: order.items.map((i) => ({
+    orderItems: foldBySku(order.items).map((i) => ({
       itemName: i.name.slice(0, 200),
       sku: i.slug,
       units: Math.max(1, Math.floor(i.qty)),
