@@ -80,6 +80,9 @@ export function OrderRow({ order }: { order: AdminOrder }) {
           >
             {ORDER_STATUS_LABEL[status] ?? order.status}
           </span>
+          {!order.rapidshypOrderId && (status === "paid" || status === "packed") && (
+            <p className="mt-1 text-[0.68rem] whitespace-nowrap text-ember-deep">No shipment</p>
+          )}
         </div>
 
         <div className="justify-self-end">

@@ -11,6 +11,7 @@ import { isOrderStatus, type OrderStatus, PAID_STATUSES } from "@/lib/admin/orde
 import { countWords, estimateDuration, isScriptStatus } from "@/lib/admin/script-status";
 import { slugify } from "@/lib/slug";
 import { getProducts, getSettings } from "@/lib/data";
+import { shipOrder } from "@/lib/fulfillment";
 import { createPaymentLink } from "@/lib/payments/razorpay";
 import { createRapidshypShipment, isRapidshypConfigured } from "@/lib/rapidshyp";
 import { normaliseTiers } from "@/lib/pricing";
@@ -553,6 +554,40 @@ export async function saveOrderTracking(fd: FormData) {
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+}
+
+/**
+ * Books a RapidShyp shipment for a website order, by hand.
+ *
+ * Checkout already does this on its own the moment Razorpay confirms the
+ * payment, but it is best-effort on purpose: if RapidShyp is down, or slow, or
+ * refuses the address, the sale still goes through and the order simply lands
+ * here with no shipment against it. This is the way to finish the job later,
+ * without retyping the order into the RapidShyp portal.
+ *
+ * Two-step in the UI, because it books a real pickup with a real courier.
+ */
+export async function createOrderShipment(id: string): Promise<ActionState> {
+  const supabase = await requireAdmin();
+  if (!id) return { ok: false, message: "Which order?" };
+
+  const { data } = await supabase.from("orders").select("status").eq("id", id).maybeSingle();
+  const status = String((data as { status?: string } | null)?.status ?? "");
+  if (!status) return { ok: false, message: "That order no longer exists." };
+  // No parcel leaves before the money is in. An order paid outside Razorpay is
+  // marked paid here first, which is a deliberate act of its own.
+  if (!isOrderStatus(status) || !PAID_STATUSES.includes(status)) {
+    return { ok: false, message: "This order is not paid yet — mark it paid first, or send a payment link." };
+  }
+
+  const result = await shipOrder(supabase, id);
+  if (!result.ok) return result;
+
+  revalidatePath("/admin/orders");
+  return {
+    ok: true,
+    message: result.already ? `Shipment already made: ${result.id}` : `Shipment created: ${result.id}`,
+  };
 }
 
 export async function deleteOrder(fd: FormData) {

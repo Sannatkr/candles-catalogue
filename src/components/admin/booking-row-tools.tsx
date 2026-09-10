@@ -5,7 +5,8 @@ import { FileText, Pencil } from "lucide-react";
 import { BookingEdit } from "@/components/admin/booking-edit";
 import { BookingMessage } from "@/components/admin/booking-message";
 import { BookingRowActions } from "@/components/admin/booking-row-actions";
-import { BookingShipButton } from "@/components/admin/booking-ship-button";
+import { ShipButton } from "@/components/admin/ship-button";
+import { createBookingShipment } from "@/lib/admin/actions";
 import type { AdminBooking } from "@/lib/admin/queries";
 import type { BookingStatus } from "@/lib/admin/booking-status";
 import type { Product } from "@/lib/types";
@@ -46,7 +47,10 @@ export function BookingRowTools({
         Edit
       </button>
 
-      <BookingShipButton booking={booking} />
+      <ShipButton
+        shipmentId={booking.rapidshypOrderId}
+        ship={() => createBookingShipment(booking.id)}
+      />
 
       <BookingRowActions
         id={booking.id}

@@ -4,8 +4,10 @@ import Image from "next/image";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, ExternalLink, Link2, Trash2, X } from "lucide-react";
+import { ShipButton } from "@/components/admin/ship-button";
 import {
   createOrderPaymentLink,
+  createOrderShipment,
   deleteOrder,
   saveOrderTracking,
   updateOrderDetails,
@@ -143,12 +145,6 @@ export function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: ()
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-soft">Razorpay</dt>
                 <dd className="truncate text-[0.8rem] text-ink-faint">{order.razorpayPaymentId}</dd>
-              </div>
-            )}
-            {order.rapidshypOrderId && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">RapidShyp</dt>
-                <dd className="truncate text-[0.8rem] text-ink-faint">{order.rapidshypOrderId}</dd>
               </div>
             )}
           </dl>
@@ -302,6 +298,26 @@ export function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: ()
               )}
             </div>
           </form>
+
+          {/* Shipment — checkout books this itself the moment Razorpay confirms,
+              but that is best-effort: if RapidShyp was down or refused the
+              address, the order arrives here with nothing against it. */}
+          {!unpaid && (
+            <div className="mt-7 border-t border-line-soft pt-6">
+              <p className="eyebrow">Shipment</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <ShipButton
+                  shipmentId={order.rapidshypOrderId}
+                  ship={() => createOrderShipment(order.id)}
+                />
+                <span className="text-[0.78rem] text-ink-faint">
+                  {order.rapidshypOrderId
+                    ? `RapidShyp order ${order.rapidshypOrderId}.`
+                    : "Checkout books this by itself. Press this if RapidShyp never got the order."}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Tracking — typed in by hand until a courier account is wired up. */}
           <form action={saveOrderTracking} className="mt-7 border-t border-line-soft pt-6">

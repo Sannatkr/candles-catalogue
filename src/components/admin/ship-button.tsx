@@ -3,24 +3,29 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Truck, X } from "lucide-react";
-import { createBookingShipment } from "@/lib/admin/actions";
-import type { AdminBooking } from "@/lib/admin/queries";
 
 /**
- * Creates a RapidShyp shipment for an enquiry, by hand. Two-step (Create →
- * Confirm) because it hits the live courier — one careless click should not book
- * a real pickup. On success it pops a confirmation dialog and refreshes the list.
+ * Creates a RapidShyp shipment by hand — for an enquiry, or for a website order
+ * whose automatic shipment never happened. Two-step (Create → Confirm) because
+ * it hits the live courier: one careless click should not book a real pickup.
+ * On success it pops a confirmation dialog and refreshes the screen.
  */
-export function BookingShipButton({ booking }: { booking: AdminBooking }) {
+export function ShipButton({
+  shipmentId,
+  ship,
+}: {
+  shipmentId: string | null;
+  ship: () => Promise<{ ok: boolean; message: string }>;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [popup, setPopup] = useState<{ ok: boolean; text: string } | null>(null);
 
-  if (booking.rapidshypOrderId) {
+  if (shipmentId) {
     return (
       <span
-        title={booking.rapidshypOrderId}
+        title={shipmentId}
         className="inline-flex items-center gap-1.5 rounded-full border border-[#cfe0c8] bg-[#eef3ea] px-3 py-1.5 text-[0.78rem] whitespace-nowrap text-[#3d5730]"
       >
         <Check size={13} />
@@ -32,7 +37,7 @@ export function BookingShipButton({ booking }: { booking: AdminBooking }) {
   function go() {
     setConfirming(false);
     start(async () => {
-      const res = await createBookingShipment(booking.id);
+      const res = await ship();
       setPopup({ ok: res.ok, text: res.message });
     });
   }
@@ -80,7 +85,7 @@ export function BookingShipButton({ booking }: { booking: AdminBooking }) {
 
       {popup && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4"
           onClick={closePopup}
         >
           <div
