@@ -121,6 +121,27 @@ export function unitPriceAt(
   return Math.min(product.basePrice, Math.round(product.basePrice * (1 - tier.percentOff / 100)));
 }
 
+/**
+ * The cheapest this candle ever gets — its rate at the bottom of the ladder.
+ *
+ * This is the number the grid leads with, as "From ₹169". Most of what leaves
+ * this kitchen leaves in hundreds, and a card that only ever said ₹299 was
+ * quoting the one price a bulk buyer will never pay. Null when there is no
+ * ladder to walk down — the mithai sets, sold at a flat price in tens — and the
+ * card falls back to the plain price.
+ *
+ * The whole ladder is scanned rather than just its last rung: a rate typed in
+ * by hand can sit lower than the one below it, and "from" has to mean from.
+ */
+export function bulkFromPrice(
+  product: Pick<Product, "basePrice" | "bulkPricing" | "tierPrices">,
+  tiers: BulkTier[],
+): number | null {
+  if (!product.bulkPricing || tiers.length === 0) return null;
+  const lowest = Math.min(...tiers.map((tier) => unitPriceAt(product, tiers, tier.minQty)));
+  return lowest < product.basePrice ? lowest : null;
+}
+
 export type Slab = {
   minQty: number;
   percentOff: number;

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { singlePrice } from "@/lib/pricing";
+import { bulkFromPrice, singlePrice } from "@/lib/pricing";
+import { useBulkTiers } from "@/lib/shop-config";
 import type { Product } from "@/lib/types";
 
 type Sort = "curated" | "price-asc" | "price-desc";
@@ -33,6 +34,7 @@ export function ProductBrowser({ products }: { products: Product[] }) {
   const [active, setActive] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("curated");
+  const tiers = useBulkTiers();
 
   const haystack = useMemo(() => {
     const map = new Map<string, string>();
@@ -66,11 +68,15 @@ export function ProductBrowser({ products }: { products: Product[] }) {
       return !q || text.includes(q);
     });
 
+    // Sorted on the number the cards are actually showing — the "from" rate
+    // where there is one — or low-to-high puts a card reading ₹155 above one
+    // reading ₹169 in the wrong order.
+    const shown = (p: Product) => bulkFromPrice(p, tiers) ?? singlePrice(p);
     const sorted = [...filtered];
-    if (sort === "price-asc") sorted.sort((a, b) => singlePrice(a) - singlePrice(b));
-    if (sort === "price-desc") sorted.sort((a, b) => singlePrice(b) - singlePrice(a));
+    if (sort === "price-asc") sorted.sort((a, b) => shown(a) - shown(b));
+    if (sort === "price-desc") sorted.sort((a, b) => shown(b) - shown(a));
     return sorted;
-  }, [products, active, query, sort, haystack]);
+  }, [products, active, query, sort, haystack, tiers]);
 
   return (
     <>
