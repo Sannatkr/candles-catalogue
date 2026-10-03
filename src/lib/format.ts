@@ -70,9 +70,22 @@ export function toInches(cm: number) {
   return Number((cm / CM_PER_INCH).toFixed(1)).toString();
 }
 
-export function sizeLabel({ diameterCm, heightCm }: { diameterCm: number; heightCm: number }) {
+export function toCm(inches: number) {
+  return Number((inches * CM_PER_INCH).toFixed(2));
+}
+
+export function sizeLabel({
+  diameterCm,
+  lengthCm = 0,
+  heightCm,
+}: {
+  diameterCm: number;
+  lengthCm?: number;
+  heightCm: number;
+}) {
   const parts = [];
   if (diameterCm > 0) parts.push(`W ${toInches(diameterCm)}`);
+  if (lengthCm > 0) parts.push(`L ${toInches(lengthCm)}`);
   if (heightCm > 0) parts.push(`H ${toInches(heightCm)}`);
   return parts.length ? `${parts.join(" × ")} in` : "";
 }

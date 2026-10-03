@@ -608,6 +608,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   burnTimeHours: d.burn,
   heightCm: d.h,
   diameterCm: d.d,
+  lengthCm: 0,
   weightGrams: d.g,
   packWeightGrams: 0,
   basePrice: sellingPrice(d.price),

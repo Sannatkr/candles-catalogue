@@ -30,6 +30,7 @@ type ProductRow = {
   burn_time_hours: number | null;
   height_cm: number | null;
   diameter_cm: number | null;
+  length_cm?: number | null;
   weight_grams: number | null;
   pack_weight_grams: number | null;
   base_price: number | null;
@@ -76,6 +77,8 @@ function toProduct(row: ProductRow): Product {
     burnTimeHours: row.burn_time_hours ?? 0,
     heightCm: row.height_cm ?? 0,
     diameterCm: row.diameter_cm ?? 0,
+    // Missing until migration 028 has run.
+    lengthCm: row.length_cm ?? 0,
     weightGrams: row.weight_grams ?? 0,
     packWeightGrams: row.pack_weight_grams ?? 0,
     basePrice: row.base_price ?? 0,

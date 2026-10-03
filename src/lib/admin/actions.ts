@@ -15,6 +15,7 @@ import { shipOrder } from "@/lib/fulfillment";
 import { createPaymentLink } from "@/lib/payments/razorpay";
 import { createRapidshypShipment, isRapidshypConfigured } from "@/lib/rapidshyp";
 import { normaliseTiers } from "@/lib/pricing";
+import { toCm } from "@/lib/format";
 import { packGramsOf } from "@/lib/shipping";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -122,8 +123,10 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     fragrance: str(fd, "fragrance"),
     wax_type: str(fd, "wax_type"),
     wick_type: str(fd, "wick_type"),
-    height_cm: num(fd, "height_cm"),
-    diameter_cm: num(fd, "diameter_cm"),
+    // Typed in inches — the way the trade quotes a size — and kept in centimetres.
+    height_cm: toCm(num(fd, "height_in")),
+    diameter_cm: toCm(num(fd, "width_in")),
+    length_cm: toCm(num(fd, "length_in")),
     pack_weight_grams: num(fd, "pack_weight_grams"),
     base_price: basePrice,
     mrp: num(fd, "mrp"),
@@ -138,7 +141,7 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   };
 
   const id = str(fd, "id");
-  const write = (data: typeof row | Omit<typeof row, "tier_prices">) =>
+  const write = (data: Partial<typeof row>) =>
     id
       ? supabase.from("products").update(data).eq("id", id)
       : supabase.from("products").insert(data);
@@ -146,13 +149,15 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   let { error } = await write(row);
 
   // PGRST204 is PostgREST rejecting an unknown column from its schema cache;
-  // 42703 is Postgres saying the same. tier_prices arrives with migration 026,
-  // so until that is run a candle still saves — it just cannot carry hand-set
-  // rung prices yet.
-  if (error?.code === "PGRST204" || error?.code === "42703") {
-    const withoutTiers = { ...row };
-    delete (withoutTiers as Partial<typeof row>).tier_prices;
-    ({ error } = await write(withoutTiers));
+  // 42703 is Postgres saying the same. The newest columns go first: length_cm
+  // arrives with migration 028, tier_prices with 026. Until those are run a
+  // candle still saves — it just cannot carry that field yet.
+  const missingColumn = () => error?.code === "PGRST204" || error?.code === "42703";
+  const fallback: Partial<typeof row> = { ...row };
+  for (const column of ["length_cm", "tier_prices"] as const) {
+    if (!missingColumn()) break;
+    delete fallback[column];
+    ({ error } = await write(fallback));
   }
 
   if (error) {

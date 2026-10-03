@@ -22,19 +22,26 @@ const PACKING_FACTOR = 3;
 const FLOOR_GRAMS = 250;
 
 /** A rough shipping weight for a candle that has none set by hand. */
-export function estimatePackGrams(weightGrams: number, heightCm: number, diameterCm: number): number {
+export function estimatePackGrams(
+  weightGrams: number,
+  heightCm: number,
+  diameterCm: number,
+  lengthCm = 0,
+): number {
   // Volumetric grams for the candle's own bounding box: (L×W×H cm³)/5000 kg → ×1000 g.
-  const volumetric = (heightCm * diameterCm * diameterCm) / 5;
+  // A round candle has no length of its own, so its width stands in for it.
+  const volumetric = (heightCm * diameterCm * (lengthCm || diameterCm)) / 5;
   const base = Math.max(weightGrams || 0, volumetric || 0);
   return Math.max(FLOOR_GRAMS, Math.round(base * PACKING_FACTOR));
 }
 
 /** The chargeable shipping weight of one piece: the value set by hand, or an estimate. */
 export function packGramsOf(
-  product: Pick<Product, "packWeightGrams" | "weightGrams" | "heightCm" | "diameterCm">,
+  product: Pick<Product, "packWeightGrams" | "weightGrams" | "heightCm" | "diameterCm"> &
+    Partial<Pick<Product, "lengthCm">>,
 ): number {
   if (product.packWeightGrams && product.packWeightGrams > 0) return product.packWeightGrams;
-  return estimatePackGrams(product.weightGrams, product.heightCm, product.diameterCm);
+  return estimatePackGrams(product.weightGrams, product.heightCm, product.diameterCm, product.lengthCm);
 }
 
 /**

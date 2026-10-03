@@ -17,6 +17,7 @@ export type AdminProduct = {
   burn_time_hours: number | null;
   height_cm: number | null;
   diameter_cm: number | null;
+  length_cm?: number | null;
   weight_grams: number | null;
   pack_weight_grams: number | null;
   base_price: number | null;

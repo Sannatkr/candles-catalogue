@@ -17,7 +17,10 @@ export type Product = {
   burnTimeHours: number;
 
   heightCm: number;
+  /** Width — the measurement across. Named for the round candles it began with. */
   diameterCm: number;
+  /** Length, for the rectangular pieces (sachets, boxes). 0 for round ones. */
+  lengthCm: number;
   weightGrams: number;
 
   /**

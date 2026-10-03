@@ -9,6 +9,10 @@ import { saveProduct } from "@/lib/admin/actions";
 import type { AdminCollection, AdminProduct } from "@/lib/admin/queries";
 import { slugify } from "@/lib/slug";
 import type { BulkTier } from "@/lib/types";
+import { toInches } from "@/lib/format";
+
+/** Sizes are stored in cm but typed in inches. */
+const inches = (cm: number | null | undefined) => (cm ? Number(toInches(cm)) : 0);
 
 export function ProductForm({
   product,
@@ -228,11 +232,14 @@ export function ProductForm({
           <Field label="Wick">
             <Input name="wick_type" defaultValue={product?.wick_type ?? ""} placeholder="Cotton, single" />
           </Field>
-          <Field label="Height (cm)">
-            <Input type="number" step="0.1" name="height_cm" min={0} defaultValue={product?.height_cm ?? 0} />
+          <Field label="Width (inches)" hint="Across the widest part. Leave 0 if not measured.">
+            <Input type="number" step="0.1" name="width_in" min={0} defaultValue={inches(product?.diameter_cm)} />
           </Field>
-          <Field label="Diameter (cm)">
-            <Input type="number" step="0.1" name="diameter_cm" min={0} defaultValue={product?.diameter_cm ?? 0} />
+          <Field label="Length (inches)" hint="Only for long or rectangular pieces, like sachets. 0 for round ones.">
+            <Input type="number" step="0.1" name="length_in" min={0} defaultValue={inches(product?.length_cm)} />
+          </Field>
+          <Field label="Height (inches)">
+            <Input type="number" step="0.1" name="height_in" min={0} defaultValue={inches(product?.height_cm)} />
           </Field>
           <Field
             label="Pack weight (g)"
