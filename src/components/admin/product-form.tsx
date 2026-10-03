@@ -260,8 +260,8 @@ export function ProductForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Toggle
             name="in_stock"
-            label="Ready stock"
-            hint="Turn off for made-to-order designs."
+            label="In stock"
+            hint="Turn off when it is out of stock — the site shows it faded, marked Out of stock, and it cannot be bought."
             defaultChecked={product?.in_stock ?? true}
           />
           <Toggle

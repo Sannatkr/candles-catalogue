@@ -37,13 +37,13 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           fill
           sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 30vw"
           priority={priority}
-          className="object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.045]"
+          className={`object-cover transition-transform ${!product.inStock ? "opacity-55 saturate-[0.85]" : ""} duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.045]`}
         />
 
 
         {!product.inStock && (
           <span className="absolute top-3 left-3 rounded-full bg-ink/85 px-3 py-1 text-[0.7rem] tracking-wide text-canvas backdrop-blur-sm">
-            Made to order
+            Out of stock
           </span>
         )}
 

@@ -118,7 +118,10 @@ export default async function ProductPage({
 
       <article className="mx-auto grid max-w-[1240px] gap-12 px-5 pt-8 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
         <Reveal>
-          <ProductGallery images={product.images} alt={product.name} />
+          {/* Faded, not hidden: the photos still sell the design for next time. */}
+          <div className={product.inStock ? undefined : "opacity-55 saturate-[0.85]"}>
+            <ProductGallery images={product.images} alt={product.name} />
+          </div>
         </Reveal>
 
         <Reveal delay={90} className="lg:pt-4">
@@ -130,7 +133,7 @@ export default async function ProductPage({
 
           {!product.inStock && (
             <span className="mt-5 inline-block rounded-full bg-ember-wash px-3.5 py-1.5 text-[0.78rem] text-ember-deep">
-              Made to order · add 5–7 days to lead time
+              Out of stock
             </span>
           )}
 

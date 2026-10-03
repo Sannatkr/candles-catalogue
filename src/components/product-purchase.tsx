@@ -304,7 +304,16 @@ export function ProductPurchase({
 
         {/* The one action that matters — it follows the quantity. */}
         <div className="mt-6">
-          {online ? (
+          {/* The checkout refuses an out-of-stock candle, so the page does too. */}
+          {!product.inStock ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-full bg-ink/40 px-7 py-4 text-[0.95rem] text-canvas"
+            >
+              Out of stock
+            </button>
+          ) : online ? (
             <>
               <button
                 type="button"
