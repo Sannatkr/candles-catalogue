@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
   // This project sits inside a folder that has its own stray package-lock.json.
   // Pinning the root keeps Turbopack looking only at our files.
   turbopack: { root: import.meta.dirname },
+  // Candles renamed after their link was already out. Permanent, so Google
+  // carries the old address over to the new one.
+  async redirects() {
+    return [
+      {
+        source: "/products/green-lotus-urli-candle",
+        destination: "/products/green-pond-urli-candle",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     // The starter artwork in /public/placeholders is SVG. Served sandboxed with
     // scripts disabled, which is what the CSP below enforces.
