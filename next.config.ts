@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
         destination: "/products/green-pond-urli-candle",
         permanent: true,
       },
+      {
+        source: "/products/three-tier-pink-urli-candle",
+        destination: "/products/three-tier-blush-pink-urli-candle",
+        permanent: true,
+      },
+      {
+        source: "/products/three-tier-blue-urli-candle",
+        destination: "/products/three-tier-sky-blue-urli-candle",
+        permanent: true,
+      },
+      {
+        source: "/products/three-tier-yellow-urli-candle",
+        destination: "/products/three-tier-mint-marigold-urli-candle",
+        permanent: true,
+      },
     ];
   },
   images: {
