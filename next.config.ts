@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // Vercel's free plan resizes only so many photos a month. Past that it
+    // answers "402 Payment required" for any size it hasn't made yet, and the
+    // photo shows blank. Photos are already sized (1200×1500) when uploaded,
+    // so serve them as they are.
+    unoptimized: true,
     // The starter artwork in /public/placeholders is SVG. Served sandboxed with
     // scripts disabled, which is what the CSP below enforces.
     dangerouslyAllowSVG: true,
