@@ -21,6 +21,7 @@ const SORTS: { value: Sort; label: string }[] = [
  */
 const FILTERS: { label: string; match: string[] }[] = [
   { label: "Urli & brass", match: ["urli", "brass"] },
+  { label: "Mini hampers", match: ["mini hamper"] },
   { label: "Wax sachets", match: ["sachet"] },
   { label: "Ocean", match: ["ocean", "seashell"] },
   { label: "Lotus", match: ["lotus"] },
