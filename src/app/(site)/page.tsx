@@ -49,11 +49,15 @@ export default async function HomePage() {
   ]);
   // The pieces to photograph the bulk banner with: the dearest in-stock
   // candles, because the banner's job is to make the range look worth ordering
-  // a hundred of.
-  const showcase = allProducts
+  // a hundred of. The middle tile is always the dearest piece from the lead
+  // collection, so whatever leads the home page (now Mini Hampers, at ₹189–279)
+  // shows up here too instead of being priced out by the ₹700 urlis.
+  const byPrice = allProducts
     .filter((p) => p.inStock && p.images.length > 0)
-    .sort((a, b) => b.basePrice - a.basePrice)
-    .slice(0, 3);
+    .sort((a, b) => b.basePrice - a.basePrice);
+  const lead = byPrice.find((p) => p.collectionSlug === collections[0]?.slug);
+  const rest = byPrice.filter((p) => p !== lead).slice(0, lead ? 2 : 3);
+  const showcase = lead ? [...rest.slice(0, 1), lead, ...rest.slice(1)] : rest;
 
   // Four distinct photographs for the hero mosaic: the lead collection cover,
   // then the best sellers behind it, de-duplicated so the same candle never
