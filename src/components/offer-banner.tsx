@@ -93,10 +93,10 @@ export function OfferBanner({
             </button>
 
             <Link
-              href="/products"
+              href="/collections"
               className="rounded-full border border-canvas/25 px-6 py-3.5 text-[0.9rem] text-canvas/80 transition-colors hover:border-canvas/60 hover:text-canvas"
             >
-              Shop the range
+              Collections
             </Link>
           </div>
         </div>

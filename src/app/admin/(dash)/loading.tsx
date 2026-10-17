@@ -1,10 +1,10 @@
-import { Loader2 } from "lucide-react";
+import { ListPageSkeleton } from "@/components/admin/skeleton";
 
-/** Shown while an admin page loads, so a click never feels like it hung. */
+/**
+ * Shown the instant an admin link is pressed, before the screen's data has
+ * arrived. The shape matches the list screens (Orders, Enquiries, Products);
+ * screens with another shape bring their own skeleton inside a Suspense.
+ */
 export default function Loading() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader2 className="h-7 w-7 animate-spin text-ink-faint" aria-label="Loading" />
-    </div>
-  );
+  return <ListPageSkeleton />;
 }

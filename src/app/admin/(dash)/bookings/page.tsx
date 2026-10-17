@@ -1,30 +1,111 @@
-import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import { BookingFilters } from "@/components/admin/booking-filters";
-import { BookingRowTools } from "@/components/admin/booking-row-tools";
-import { itemsLabel, itemsOf } from "@/lib/admin/booking-items";
-import { SOURCE_LABEL, STATUS_LABEL, STATUS_STYLE, type BookingStatus } from "@/lib/admin/booking-status";
+import { BookingRow } from "@/components/admin/booking-row";
+import { ChipsSkeleton, Skeleton, TableSkeleton } from "@/components/admin/skeleton";
 import { isRazorpayConfigured } from "@/lib/payments/razorpay";
 import { listBookings } from "@/lib/admin/queries";
 import { getProducts, getSettings } from "@/lib/data";
-import { compactQty, money } from "@/lib/format";
+import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBookingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ added?: string; from?: string; status?: string }>;
-}) {
-  const [{ added, from = "all", status: statusFilter = "all" }, all, settings, paymentsReady, products] =
-    await Promise.all([
-      searchParams,
-      listBookings(),
-      getSettings(),
-      isRazorpayConfigured(),
-      getProducts(),
-    ]);
+type Params = { added?: string; edit?: string; from?: string; status?: string };
+
+/**
+ * The heading and the Add button paint at once; the counts and the table
+ * stream in. A filter change re-keys the Suspense so the skeleton shows
+ * again instead of the old rows sitting there looking stuck.
+ */
+export default async function AdminBookingsPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const params = await searchParams;
+  const { added, edit, from = "all", status: statusFilter = "all" } = params;
+
+  return (
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Enquiries</p>
+          <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
+            Bookings
+          </h1>
+          <Suspense fallback={<Skeleton className="mt-3.5 h-3.5 w-80 max-w-full" />}>
+            <Summary from={from} status={statusFilter} />
+          </Suspense>
+        </div>
+        <Link
+          href="/admin/bookings/new"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[0.9rem] text-canvas transition-colors hover:bg-ember"
+        >
+          <Plus size={16} />
+          Add booking
+        </Link>
+      </div>
+
+      {added && (
+        <p className="mt-6 rounded-[10px] bg-[#eaf0e6] px-4 py-3 text-[0.875rem] text-[#41552f]">Booking added.</p>
+      )}
+      {edit && (
+        <p className="mt-6 rounded-[10px] bg-ember-wash px-4 py-3 text-[0.875rem] text-ember-deep">
+          Copy made. It is highlighted below and open for editing.
+        </p>
+      )}
+
+      <Suspense
+        key={`${from}|${statusFilter}`}
+        fallback={
+          <>
+            <div className="mt-8 rounded-[14px] border border-line bg-canvas px-4 py-4">
+              <ChipsSkeleton count={4} />
+            </div>
+            <div className="mt-6">
+              <TableSkeleton rows={7} />
+            </div>
+          </>
+        }
+      >
+        <BookingsTable from={from} status={statusFilter} edit={edit} />
+      </Suspense>
+    </>
+  );
+}
+
+function filterAll<T extends { source: string; status: string }>(all: T[], from: string, status: string) {
+  return all.filter((b) => {
+    const bySource = from === "all" || (from === "manual" ? b.source === "manual" : b.source !== "manual");
+    const byStatus = status === "all" || b.status === status;
+    return bySource && byStatus;
+  });
+}
+
+async function Summary({ from, status }: { from: string; status: string }) {
+  const all = await listBookings();
+  const bookings = filterAll(all, from, status);
+  const open = bookings.filter((b) => b.status === "new" || b.status === "contacted").length;
+  const earned = bookings
+    .filter((b) => b.status === "paid" || b.status === "fulfilled")
+    .reduce((sum, b) => sum + b.totalPrice, 0);
+  const filtered = bookings.length !== all.length;
+
+  return (
+    <p className="mt-2.5 text-[0.925rem] text-ink-soft">
+      {all.length === 0
+        ? "Nothing booked yet."
+        : `${bookings.length}${filtered ? ` of ${all.length}` : ""} ${
+            bookings.length === 1 ? "order" : "orders"
+          } · ${open} still to answer · ${money(earned)} collected`}
+    </p>
+  );
+}
+
+async function BookingsTable({ from, status, edit }: { from: string; status: string; edit?: string }) {
+  const [all, settings, paymentsReady, products] = await Promise.all([
+    listBookings(),
+    getSettings(),
+    isRazorpayConfigured(),
+    getProducts(),
+  ]);
 
   const sourceCounts: Record<string, number> = { all: all.length, website: 0, manual: 0 };
   const statusCounts: Record<string, number> = { all: all.length };
@@ -34,17 +115,7 @@ export default async function AdminBookingsPage({
     statusCounts[b.status] = (statusCounts[b.status] ?? 0) + 1;
   });
 
-  const bookings = all.filter((b) => {
-    const bySource = from === "all" || (from === "manual" ? b.source === "manual" : b.source !== "manual");
-    const byStatus = statusFilter === "all" || b.status === statusFilter;
-    return bySource && byStatus;
-  });
-
-  const open = bookings.filter((b) => b.status === "new" || b.status === "contacted").length;
-  const earned = bookings
-    .filter((b) => b.status === "paid" || b.status === "fulfilled")
-    .reduce((sum, b) => sum + b.totalPrice, 0);
-  const filtered = bookings.length !== all.length;
+  const bookings = filterAll(all, from, status);
 
   const columns = [
     { label: "Candle", align: "text-left" },
@@ -58,179 +129,56 @@ export default async function AdminBookingsPage({
     { label: "", align: "text-right" },
   ];
 
+  if (all.length === 0) {
+    return (
+      <p className="mt-8 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
+        Orders from the site land here. You can also add one yourself for anything sold offline.
+      </p>
+    );
+  }
+
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Enquiries</p>
-          <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
-            Bookings
-          </h1>
-          <p className="mt-2.5 text-[0.925rem] text-ink-soft">
-            {all.length === 0
-              ? "Nothing booked yet."
-              : `${bookings.length}${filtered ? ` of ${all.length}` : ""} ${
-                  bookings.length === 1 ? "order" : "orders"
-                } · ${open} still to answer · ${money(earned)} collected`}
-          </p>
-        </div>
-        <Link
-          href="/admin/bookings/new"
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[0.9rem] text-canvas transition-colors hover:bg-ember"
-        >
-          <Plus size={16} />
-          Add booking
-        </Link>
+      <div className="mt-8">
+        <BookingFilters source={from} status={status} sourceCounts={sourceCounts} statusCounts={statusCounts} />
       </div>
 
-      {added && (
-        <p className="mt-6 rounded-[10px] bg-[#eaf0e6] px-4 py-3 text-[0.875rem] text-[#41552f]">
-          Booking added.
-        </p>
-      )}
-
-      {all.length === 0 ? (
-        <p className="mt-8 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
-          Orders from the site land here. You can also add one yourself for anything sold offline.
+      {bookings.length === 0 ? (
+        <p className="mt-6 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
+          No orders match that filter.
         </p>
       ) : (
-        <>
-          {/* Filters */}
-          <div className="mt-8">
-            <BookingFilters
-              source={from}
-              status={statusFilter}
-              sourceCounts={sourceCounts}
-              statusCounts={statusCounts}
-            />
-          </div>
+        <div className="mt-6 overflow-x-auto rounded-[14px] border border-line bg-canvas">
+          <table className="w-full min-w-[900px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-line bg-canvas-deep/35">
+                {columns.map((col, i) => (
+                  <th
+                    key={col.label || i}
+                    className={`px-4 py-3 text-[0.68rem] font-medium tracking-[0.12em] whitespace-nowrap text-ink-faint uppercase ${col.align} ${
+                      i === 0 ? "sticky left-0 z-10 border-r border-line bg-[#f5f0e6]" : ""
+                    }`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
-          {bookings.length === 0 ? (
-            <p className="mt-6 rounded-[14px] border border-dashed border-line bg-canvas p-10 text-center text-[0.925rem] text-ink-soft">
-              No orders match that filter.
-            </p>
-          ) : (
-            <div className="mt-6 overflow-x-auto rounded-[14px] border border-line bg-canvas">
-                <table className="w-full min-w-[900px] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-line bg-canvas-deep/35">
-                      {columns.map((col, i) => (
-                        <th
-                          key={col.label || i}
-                          className={`px-4 py-3 text-[0.68rem] font-medium tracking-[0.12em] whitespace-nowrap text-ink-faint uppercase ${col.align} ${
-                            i === 0 ? "sticky left-0 z-10 border-r border-line bg-[#f5f0e6]" : ""
-                          }`}
-                        >
-                          {col.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {bookings.map((b) => {
-                      const status = b.status as BookingStatus;
-                      const items = itemsOf(b);
-                      const first = items[0];
-                      return (
-                        <tr
-                          key={b.id}
-                          className="group border-b border-line-soft align-middle transition-colors last:border-0 hover:bg-canvas-deep/25"
-                        >
-                          <td className="sticky left-0 z-10 border-r border-line-soft bg-canvas px-4 py-3.5 transition-colors group-hover:bg-[#f7f2e8]">
-                            <div className="flex items-center gap-3">
-                              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-canvas-deep">
-                                {(first?.image ?? b.productImage) && (
-                                  <Image
-                                    src={first?.image ?? b.productImage!}
-                                    alt=""
-                                    fill
-                                    sizes="44px"
-                                    className="object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p
-                                  className="truncate text-[0.9rem] text-ink"
-                                  title={items.map((i) => i.name).join(", ")}
-                                >
-                                  {itemsLabel(items)}
-                                </p>
-                                <p className="text-[0.75rem] text-ink-faint">
-                                  {new Date(b.createdAt).toLocaleDateString("en-IN", {
-                                    day: "numeric",
-                                    month: "short",
-                                  })}
-                                  {b.fragrance && ` · ${b.fragrance}`}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-3.5 text-right text-[0.9rem] text-ink tabular-nums">
-                            {compactQty(b.quantity)}
-                          </td>
-                          <td className="px-4 py-3.5 text-right text-[0.9rem] whitespace-nowrap text-ink-soft tabular-nums">
-                            {items.length > 1 ? "Mixed" : money(b.unitPrice)}
-                          </td>
-                          <td className="px-4 py-3.5 text-right text-[0.9rem] font-medium whitespace-nowrap text-ink tabular-nums">
-                            {money(b.totalPrice)}
-                          </td>
-
-                          <td className="max-w-[170px] px-4 py-3.5">
-                            <p className="truncate text-[0.875rem] text-ink">
-                              {b.buyerContact ? `@${b.buyerContact.replace(/^@/, "")}` : b.buyerName || "—"}
-                            </p>
-                            <p className="truncate text-[0.78rem] text-ink-faint">
-                              {[b.buyerContact ? b.buyerName : null, b.phone].filter(Boolean).join(" · ") || "—"}
-                            </p>
-                          </td>
-
-                          <td className="max-w-[150px] px-4 py-3.5">
-                            <p className="text-[0.875rem] text-ink tabular-nums">{b.pincode || "—"}</p>
-                            {b.state && (
-                              <p className="truncate text-[0.78rem] text-ink-faint" title={b.state}>
-                                {b.state}
-                              </p>
-                            )}
-                          </td>
-
-                          <td className="px-4 py-3.5 text-[0.8rem] whitespace-nowrap text-ink-soft">
-                            {SOURCE_LABEL[b.source] ?? b.source}
-                          </td>
-
-                          <td className="max-w-[190px] px-4 py-3.5">
-                            <span
-                              className={`inline-block rounded-full px-2.5 py-1 text-[0.7rem] tracking-wide whitespace-nowrap uppercase ${
-                                STATUS_STYLE[status] ?? STATUS_STYLE.cancelled
-                              }`}
-                            >
-                              {STATUS_LABEL[status] ?? b.status}
-                            </span>
-                            {b.note && (
-                              <p className="mt-1.5 truncate text-[0.75rem] text-ink-faint" title={b.note}>
-                                “{b.note}”
-                              </p>
-                            )}
-                          </td>
-
-                          <td className="px-4 py-3.5 text-right">
-                            <BookingRowTools
-                              booking={b}
-                              businessName={settings.businessName}
-                              paymentsReady={paymentsReady}
-                              products={products}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-        </>
+            <tbody>
+              {bookings.map((b) => (
+                <BookingRow
+                  key={b.id}
+                  booking={b}
+                  businessName={settings.businessName}
+                  paymentsReady={paymentsReady}
+                  products={products}
+                  autoEdit={edit === b.id}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

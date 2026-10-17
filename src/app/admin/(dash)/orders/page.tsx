@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Package } from "lucide-react";
 import { ORDER_GRID, OrderRow } from "@/components/admin/order-row";
+import { ChipsSkeleton, Skeleton, TableSkeleton } from "@/components/admin/skeleton";
 import { PAID_STATUSES, type OrderStatus } from "@/lib/admin/order-status";
 import { listOrders } from "@/lib/admin/queries";
 import { money } from "@/lib/format";
@@ -16,29 +18,85 @@ const FILTERS: { key: string; label: string }[] = [
   { key: "pending", label: "Unpaid" },
 ];
 
+/**
+ * The heading paints at once; everything that needs the database streams in
+ * underneath it. Switching a filter re-keys the Suspense, so the table shows
+ * its skeleton again rather than sitting frozen on the old rows.
+ */
 export default async function AdminOrdersPage({
   searchParams,
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  const [{ view = "open" }, all] = await Promise.all([searchParams, listOrders()]);
+  const { view = "open" } = await searchParams;
+
+  return (
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Shop</p>
+          <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
+            Orders
+          </h1>
+          <Suspense fallback={<Skeleton className="mt-3.5 h-3.5 w-80 max-w-full" />}>
+            <Summary />
+          </Suspense>
+        </div>
+        <Link
+          href="/admin/bookings"
+          className="rounded-full border border-line px-5 py-2.5 text-[0.875rem] text-ink-soft transition-colors hover:border-ink hover:text-ink"
+        >
+          Enquiries instead →
+        </Link>
+      </div>
+
+      <Suspense
+        key={view}
+        fallback={
+          <>
+            <div className="mt-7">
+              <ChipsSkeleton count={6} />
+            </div>
+            <div className="mt-6">
+              <TableSkeleton rows={6} />
+            </div>
+          </>
+        }
+      >
+        <OrdersTable view={view} />
+      </Suspense>
+    </>
+  );
+}
+
+async function Summary() {
+  const all = await listOrders();
+  if (all === null) return null;
+  const paid = all.filter((o) => PAID_STATUSES.includes(o.status as OrderStatus));
+  const open = all.filter((o) => o.status === "paid" || o.status === "packed").length;
+  const collected = paid.reduce((sum, o) => sum + o.total, 0);
+  return (
+    <p className="mt-2.5 text-[0.925rem] text-ink-soft">
+      {all.length === 0
+        ? "Nobody has checked out yet."
+        : `${open} to ship · ${money(collected)} collected across ${paid.length} paid orders`}
+    </p>
+  );
+}
+
+async function OrdersTable({ view }: { view: string }) {
+  const all = await listOrders();
 
   if (all === null) {
     return (
-      <>
-        <p className="eyebrow">Shop</p>
-        <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
-          Orders
-        </h1>
-        <div className="mt-8 rounded-[16px] border border-ember/40 bg-ember-wash px-6 py-8">
-          <p className="font-display text-[1.15rem] text-ember-deep">The orders table is not there yet</p>
-          <p className="mt-2 max-w-[60ch] text-[0.9rem] leading-relaxed text-ember-deep">
-            Open Supabase → SQL Editor, paste in{" "}
-            <code className="rounded bg-canvas px-1.5 py-0.5 text-[0.85em]">supabase/013-orders.sql</code>{" "}
-            and press Run. This page fills itself in after that.
-          </p>
-        </div>
-      </>
+      <div className="mt-8 rounded-[16px] border border-ember/40 bg-ember-wash px-6 py-8">
+        <p className="font-display text-[1.15rem] text-ember-deep">The orders table is not there yet</p>
+        <p className="mt-2 max-w-[60ch] text-[0.9rem] leading-relaxed text-ember-deep">
+          Open Supabase → SQL Editor, paste in{" "}
+          <code className="rounded bg-canvas px-1.5 py-0.5 text-[0.85em]">supabase/013-orders.sql</code>{" "}
+          and press Run. This page fills itself in after that.
+        </p>
+      </div>
     );
   }
 
@@ -56,34 +114,8 @@ export default async function AdminOrdersPage({
     return o.status === view;
   });
 
-  const collected = all
-    .filter((o) => PAID_STATUSES.includes(o.status as OrderStatus))
-    .reduce((sum, o) => sum + o.total, 0);
-
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">Shop</p>
-          <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
-            Orders
-          </h1>
-          <p className="mt-2.5 text-[0.925rem] text-ink-soft">
-            {all.length === 0
-              ? "Nobody has checked out yet."
-              : `${counts.open} to ship · ${money(collected)} collected across ${
-                  all.filter((o) => PAID_STATUSES.includes(o.status as OrderStatus)).length
-                } paid orders`}
-          </p>
-        </div>
-        <Link
-          href="/admin/bookings"
-          className="rounded-full border border-line px-5 py-2.5 text-[0.875rem] text-ink-soft transition-colors hover:border-ink hover:text-ink"
-        >
-          Enquiries instead →
-        </Link>
-      </div>
-
       {/* Filters */}
       <div className="-mx-1 mt-7 flex gap-2 overflow-x-auto px-1 pb-1">
         {FILTERS.map((filter) => {

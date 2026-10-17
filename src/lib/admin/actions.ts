@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/admin/action-state";
 import { type BookingItem, itemsLabel, itemsTotals, parseItems } from "@/lib/admin/booking-items";
 import { isBookingStatus } from "@/lib/admin/booking-status";
-import { checkIsAdmin } from "@/lib/admin/is-admin";
+import { checkIsAdmin, verifiedUserId } from "@/lib/admin/is-admin";
 import { toOrderItems } from "@/lib/admin/queries";
 import { isOrderStatus, type OrderStatus, PAID_STATUSES } from "@/lib/admin/order-status";
 import { countWords, estimateDuration, isScriptStatus } from "@/lib/admin/script-status";
@@ -44,12 +44,12 @@ const json = <T,>(fd: FormData, key: string, fallback: T): T => {
  */
 async function requireAdmin() {
   const supabase = await getServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/admin/login");
+  // Verified locally against the signing key, then remembered per user for a
+  // few minutes — a button press no longer waits on two auth round trips.
+  const userId = await verifiedUserId(supabase);
+  if (!userId) redirect("/admin/login");
 
-  if (!(await checkIsAdmin(supabase))) redirect("/");
+  if (!(await checkIsAdmin(supabase, userId))) redirect("/");
 
   return supabase;
 }
@@ -314,32 +314,42 @@ export async function createBooking(_prev: ActionState, fd: FormData): Promise<A
   const supabase = await requireAdmin();
 
   // One order, one or many candles. The form sends the lines as JSON so the
-  // whole basket arrives in a single save.
-  const lines = json<{ slug: string; qty: number; unitPrice: number }[]>(fd, "items", []).filter(
-    (line) => line.slug && line.qty > 0,
-  );
+  // whole basket arrives in a single save. A line is either a catalogue candle
+  // (a slug) or a custom one (just a name) — a stall sells things that were
+  // never listed.
+  const lines = json<{ slug?: string; name?: string; qty: number; unitPrice: number }[]>(fd, "items", [])
+    .map((line) => ({
+      slug: String(line.slug ?? "").trim(),
+      name: String(line.name ?? "").trim(),
+      qty: Math.floor(Number(line.qty) || 0),
+      unitPrice: Number(line.unitPrice) || 0,
+    }))
+    .filter((line) => (line.slug || line.name) && line.qty > 0);
   if (lines.length === 0) return { ok: false, message: "Add at least one candle to the order." };
   if (lines.some((line) => !(line.unitPrice > 0))) {
     return { ok: false, message: "Every line needs the rate you sold it at." };
   }
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("slug, name, images")
-    .in("slug", lines.map((line) => line.slug));
+  const slugs = lines.map((line) => line.slug).filter(Boolean);
+  const { data: products } = slugs.length
+    ? await supabase.from("products").select("slug, name, images").in("slug", slugs)
+    : { data: [] as { slug: string; name: string; images: string[] | null }[] };
 
   const catalogue = new Map((products ?? []).map((p) => [p.slug as string, p]));
 
-  const items: BookingItem[] = lines.map((line) => {
-    const product = catalogue.get(line.slug);
-    const qty = Math.floor(line.qty);
+  const items: BookingItem[] = lines.map((line, i) => {
+    const product = line.slug ? catalogue.get(line.slug) : undefined;
+    const name = (product?.name as string | undefined) ?? line.name ?? line.slug;
+    // A custom candle gets a slug made from its name, as the edit form does,
+    // so it never vanishes when the lines are read back.
+    const slug = line.slug || slugify(name) || `line-${i + 1}`;
     return {
-      slug: line.slug,
-      name: (product?.name as string) ?? line.slug,
+      slug,
+      name: name || slug,
       image: (product?.images as string[] | null)?.[0] ?? null,
-      qty,
+      qty: line.qty,
       unitPrice: line.unitPrice,
-      total: Math.round(line.unitPrice * qty),
+      total: Math.round(line.unitPrice * line.qty),
     };
   });
 
@@ -367,6 +377,7 @@ export async function createBooking(_prev: ActionState, fd: FormData): Promise<A
     fragrance: str(fd, "fragrance") || null,
     pincode: str(fd, "pincode") || null,
     state: str(fd, "state") || null,
+    address: str(fd, "address") || null,
     buyer_name: str(fd, "buyer_name") || null,
     buyer_contact: str(fd, "buyer_contact").replace(/^@/, "") || null,
     phone: str(fd, "phone") || null,
@@ -382,6 +393,54 @@ export async function createBooking(_prev: ActionState, fd: FormData): Promise<A
   revalidatePath("/admin/revenue");
   revalidatePath("/admin");
   redirect("/admin/bookings?added=1");
+}
+
+/**
+ * A copy of an enquiry, to be edited into the next order from the same buyer.
+ *
+ * Everything about who and what is carried over. Everything about money and
+ * movement is not: the copy starts as a new, unpaid enquiry with no payment
+ * link and no shipment, because those belong to the original and would be
+ * dangerous to duplicate. The caller opens the copy in the editor straight
+ * away.
+ */
+export async function cloneBooking(id: string): Promise<ActionState & { id?: string }> {
+  const supabase = await requireAdmin();
+  if (!id) return { ok: false, message: "Which enquiry?" };
+
+  const { data: b } = await supabase.from("bookings").select("*").eq("id", id).maybeSingle();
+  if (!b) return { ok: false, message: "That enquiry no longer exists." };
+
+  const { data: made, error } = await supabase
+    .from("bookings")
+    .insert({
+      items: b.items ?? [],
+      product_slug: b.product_slug,
+      product_name: b.product_name,
+      product_image: b.product_image,
+      quantity: b.quantity,
+      unit_price: b.unit_price,
+      total_price: b.total_price,
+      fragrance: b.fragrance,
+      pincode: b.pincode,
+      state: b.state,
+      address: b.address ?? null,
+      buyer_name: b.buyer_name,
+      buyer_contact: b.buyer_contact,
+      phone: b.phone,
+      note: b.note,
+      status: "new",
+      source: "manual",
+      paid_at: null,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin");
+  return { ok: true, message: "Copied.", id: String((made as { id: string } | null)?.id ?? "") };
 }
 
 /* ------------------------------------------------------- payment links -- */

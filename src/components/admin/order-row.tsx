@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import type { RowState } from "@/components/admin/booking-row-actions";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, type OrderStatus } from "@/lib/admin/order-status";
@@ -27,11 +28,16 @@ function when(iso: string) {
 
 export function OrderRow({ order }: { order: AdminOrder }) {
   const [open, setOpen] = useState(false);
+  const [rowState, setRowState] = useState<RowState>(null);
   const status = order.status as OrderStatus;
   const pieces = order.items.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div className="border-b border-line-soft last:border-0">
+    <div
+      className={`border-b border-line-soft last:border-0 ${
+        rowState === "busy" ? "row-busy" : rowState === "leaving" ? "row-leave" : ""
+      }`}
+    >
       <div
         role="button"
         tabIndex={0}
@@ -86,7 +92,7 @@ export function OrderRow({ order }: { order: AdminOrder }) {
         </div>
 
         <div className="justify-self-end">
-          <OrderRowActions id={order.id} status={status} label={order.reference} />
+          <OrderRowActions id={order.id} status={status} label={order.reference} onState={setRowState} />
         </div>
       </div>
 

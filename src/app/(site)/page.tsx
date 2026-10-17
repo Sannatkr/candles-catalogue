@@ -2,10 +2,12 @@ import { jsonLd, organizationSchema } from "@/lib/schema";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { CollectionCard } from "@/components/collection-card";
 import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { OfferBanner } from "@/components/offer-banner";
+import { collageImages } from "@/lib/collage";
 import {
   getCollections,
   getFeaturedProducts,
@@ -55,27 +57,22 @@ export default async function HomePage() {
   const byPrice = allProducts
     .filter((p) => p.inStock && p.images.length > 0)
     .sort((a, b) => b.basePrice - a.basePrice);
-  const lead = byPrice.find((p) => p.collectionSlug === collections[0]?.slug);
-  const rest = byPrice.filter((p) => p !== lead).slice(0, lead ? 2 : 3);
-  const showcase = lead ? [...rest.slice(0, 1), lead, ...rest.slice(1)] : rest;
+  const leadPiece = byPrice.find((p) => p.collectionSlug === collections[0]?.slug);
+  const rest = byPrice.filter((p) => p !== leadPiece).slice(0, leadPiece ? 2 : 3);
+  const showcase = leadPiece ? [...rest.slice(0, 1), leadPiece, ...rest.slice(1)] : rest;
 
-  // Four distinct photographs for the hero mosaic: the lead collection cover,
-  // then the best sellers behind it, de-duplicated so the same candle never
-  // appears twice in one grid.
-  const hero =
-    collections[0]?.coverImage ??
-    featured[0]?.images[0] ??
-    "/placeholders/candle-01.svg";
-  // The whole catalogue is the fallback pool, not just the featured six — the
-  // lead collection's cover is usually also a featured product's photo, and
-  // de-duplicating those left the grid a tile short.
+  // Four photographs for the hero mosaic, all from the lead collection (Mini
+  // Hampers): the hero's job is to show that one range properly, as a
+  // collage, rather than one of everything. Short collections are padded
+  // from the rest of the catalogue so the grid is never a tile short.
+  const lead = collections[0];
   const mosaic = Array.from(
     new Set(
       [
-        hero,
+        ...(lead ? collageImages(lead, allProducts, 4) : []),
         ...featured.map((p) => p.images[0]),
-        ...collections.map((c) => c.coverImage),
         ...allProducts.map((p) => p.images[0]),
+        "/placeholders/candle-01.svg",
       ].filter(Boolean),
     ),
   ).slice(0, 4);
@@ -99,12 +96,54 @@ export default async function HomePage() {
         businessName={settings.businessName}
       />
 
+      {/* Collections, straight under the offer. Someone who has just read
+          "the price is on the page" should see the range next, not a
+          headline about wax: each collection as a collage of three of its
+          own candles. */}
+      {collections.length > 0 && (
+        <section className="mx-auto max-w-[1240px] px-5 pt-16 sm:px-8 lg:pt-20">
+          <Reveal className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">The range</p>
+              <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.85rem)] leading-tight tracking-[-0.015em] text-ink">
+                {collections.length === 1
+                  ? "One collection"
+                  : `${collections.length} collections`}
+              </h2>
+            </div>
+            <Link
+              href="/collections"
+              className="group inline-flex items-center gap-2 text-[0.925rem] text-ink-soft transition-colors hover:text-ember"
+            >
+              See all
+              <ArrowRight
+                size={16}
+                className="transition-transform duration-300 group-hover:translate-x-1"
+              />
+            </Link>
+          </Reveal>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {collections.map((collection, i) => (
+              <Reveal key={collection.id} delay={(i % 3) * 80} className="h-full">
+                <CollectionCard
+                  collection={collection}
+                  images={collageImages(collection, allProducts)}
+                  count={allProducts.filter((p) => p.collectionSlug === collection.slug).length}
+                  priority={i < 3}
+                />
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="relative overflow-hidden">
         {/* Warm glow behind the hero image. On a phone the column stacks, so it
             would sit straight on top of the headline — keep it off small screens. */}
         <div className="pointer-events-none absolute -top-40 -right-32 -z-10 hidden h-[520px] w-[520px] rounded-full bg-ember-wash blur-[120px] lg:block" />
 
-        <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:pt-24 lg:pb-28">
+        <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 pt-20 pb-20 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:pt-28 lg:pb-28">
           <Reveal>
             <p className="eyebrow">Handmade soy candles</p>
             <h1 className="mt-5 font-display text-[clamp(2.6rem,6.5vw,4.6rem)] leading-[1.02] tracking-[-0.02em] text-ink">
@@ -137,18 +176,25 @@ export default async function HomePage() {
           </Reveal>
 
           <Reveal delay={120}>
-            {/* A mosaic, not one photograph. The range is the argument — four
-                pieces say "there is a lot here to choose from" in a way a single
-                hero shot cannot. Same grid at every width, so a phone gets the
-                whole set rather than the desktop layout with the good bits
-                switched off. */}
+            {/* A collage of the lead collection — four Mini Hampers — not one
+                photograph. Same grid at every width, so a phone gets the whole
+                set rather than the desktop layout with the good bits switched
+                off. */}
             <div className="flex flex-col gap-3 sm:gap-4">
+              {lead && (
+                <Link
+                  href={`/collections/${lead.slug}`}
+                  className="group inline-flex items-center gap-2 self-start text-[0.8rem] tracking-[0.14em] text-ink-faint uppercase transition-colors hover:text-ember"
+                >
+                  {lead.name}
+                  <ArrowRight size={13} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              )}
               <div className="relative aspect-16/11 overflow-hidden rounded-[20px] bg-canvas-deep">
                 <Image
                   src={mosaic[0]}
-                  alt="Sugandha Candles"
+                  alt={lead?.name ?? "Sugandha Candles"}
                   fill
-                  priority
                   sizes="(max-width: 1024px) 92vw, 46vw"
                   className="object-cover"
                 />
@@ -192,65 +238,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* The offer, straight after the hero. Not pinned to the top of the window:
-          70% of mobile visitors scroll the whole homepage, and a strip above the
-          masthead is the one place shoppers have trained themselves to ignore. */}
-      {/* Collections */}
-      {collections.length > 0 && (
-        <section className="mx-auto max-w-[1240px] px-5 pt-24 sm:px-8">
-          <Reveal className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow">The range</p>
-              <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.85rem)] leading-tight tracking-[-0.015em] text-ink">
-                {collections.length === 1
-                  ? "One collection"
-                  : `${collections.length} collections`}
-              </h2>
-            </div>
-            <Link
-              href="/collections"
-              className="group inline-flex items-center gap-2 text-[0.925rem] text-ink-soft transition-colors hover:text-ember"
-            >
-              See all
-              <ArrowRight
-                size={16}
-                className="transition-transform duration-300 group-hover:translate-x-1"
-              />
-            </Link>
-          </Reveal>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {collections.map((collection, i) => (
-              <Reveal key={collection.id} delay={i * 80}>
-                <Link
-                  href={`/collections/${collection.slug}`}
-                  className="group block"
-                >
-                  <div className="relative aspect-16/11 overflow-hidden rounded-card bg-canvas-deep">
-                    <Image
-                      src={collection.coverImage}
-                      alt={collection.name}
-                      fill
-                      sizes="(max-width: 640px) 92vw, 46vw"
-                      className="object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-ink/70 via-ink/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-6">
-                      <p className="text-[0.7rem] tracking-[0.18em] text-canvas/70 uppercase">
-                        {collection.tagline}
-                      </p>
-                      <h3 className="mt-1.5 font-display text-[1.6rem] text-canvas">
-                        {collection.name}
-                      </h3>
-                    </div>
-                  </div>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Featured */}
       {featured.length > 0 && (

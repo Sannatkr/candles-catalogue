@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Clapperboard,
@@ -17,6 +17,24 @@ import {
   Users,
 } from "lucide-react";
 import { signOut } from "@/lib/admin/actions";
+
+/**
+ * A small pulse at the end of a link while its screen is still on the way —
+ * so a press on "Revenue" is answered at once, even when the data takes a
+ * second. Always rendered at a fixed size and only toggled in opacity, so the
+ * rail never shifts.
+ */
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-current transition-opacity duration-200 ${
+        pending ? "animate-pulse opacity-70" : "opacity-0"
+      }`}
+    />
+  );
+}
 
 const LINKS = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
@@ -65,6 +83,7 @@ export function AdminNav() {
             >
               <Icon size={16} className="shrink-0" />
               {link.label}
+              <PendingDot />
             </Link>
           );
         })}

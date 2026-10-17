@@ -2,8 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Trash2, X } from "lucide-react";
-import { Select } from "@/components/admin/ui";
+import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { CandlePicker } from "@/components/admin/candle-picker";
+import { DatePicker } from "@/components/admin/date-picker";
+import { PincodeHint, usePincodeFill } from "@/components/admin/pincode-fill";
 import { updateBooking } from "@/lib/admin/actions";
 import { IDLE } from "@/lib/admin/action-state";
 import { itemsOf } from "@/lib/admin/booking-items";
@@ -21,22 +23,30 @@ type EditLine = { slug: string; name: string; image: string | null; qty: number;
 export function BookingEdit({
   booking,
   products,
+  fresh = false,
   onClose,
 }: {
   booking: AdminBooking;
   products: Product[];
+  /** A copy that was just made — the title says so. */
+  fresh?: boolean;
   onClose: () => void;
 }) {
   const [state, save, saving] = useActionState(updateBooking, IDLE);
+  const [pincode, setPincode] = useState(booking.pincode ?? "");
+  const [place, setPlace] = useState(booking.state ?? "");
+  const pin = usePincodeFill(pincode, place, setPlace);
 
   /**
    * The stored timestamp as a yyyy-mm-dd the date box understands, read in IST
    * — a payment taken at 9pm in Delhi is 15:30 UTC the same day, and rendering
    * it in the server's zone would show the day before.
    */
-  const paidOnValue = booking.paidAt
-    ? new Date(new Date(booking.paidAt).getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10)
-    : "";
+  const [paidOn, setPaidOn] = useState(
+    booking.paidAt
+      ? new Date(new Date(booking.paidAt).getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10)
+      : "",
+  );
 
   const [lines, setLines] = useState<EditLine[]>(() =>
     itemsOf(booking).map((it) => ({
@@ -94,7 +104,7 @@ export function BookingEdit({
         className="flex max-h-[92dvh] w-full max-w-[620px] flex-col overflow-hidden rounded-t-[20px] bg-canvas sm:rounded-[20px]"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-line px-6 py-4">
-          <p className="font-display text-[1.15rem] text-ink">Edit enquiry</p>
+          <p className="font-display text-[1.15rem] text-ink">{fresh ? "Edit the copy" : "Edit enquiry"}</p>
           <button
             type="button"
             onClick={onClose}
@@ -171,21 +181,11 @@ export function BookingEdit({
               <Plus size={15} />
               Add a custom candle
             </button>
-            <Select
-              defaultValue=""
-              onChange={(e) => {
-                if (e.target.value) addProduct(e.target.value);
-                e.target.value = "";
-              }}
-              className="w-auto text-[0.85rem]"
-            >
-              <option value="">Add from catalogue…</option>
-              {products.map((p) => (
-                <option key={p.slug} value={p.slug}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+            <CandlePicker
+              products={products}
+              mode="add"
+              onChange={(choice) => (choice.custom ? addCustom() : addProduct(choice.slug))}
+            />
           </div>
 
           {/* Price — subtotal vs the agreed final (discounts) */}
@@ -261,26 +261,31 @@ export function BookingEdit({
               <span className={LABEL}>Pincode</span>
               <input
                 name="pincode"
-                defaultValue={booking.pincode ?? ""}
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 inputMode="numeric"
                 className={`mt-1.5 ${FIELD}`}
               />
+              <PincodeHint hint={pin.hint} looking={pin.looking} />
             </label>
             <label className="block">
               <span className={LABEL}>City or state</span>
-              <input name="state" defaultValue={booking.state ?? ""} className={`mt-1.5 ${FIELD}`} />
+              <input
+                name="state"
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                placeholder="Greater Noida, Uttar Pradesh"
+                className={`mt-1.5 ${FIELD}`}
+              />
             </label>
             <label className="block sm:col-span-2">
               <span className={LABEL}>
                 Payment received on{" "}
                 <span className="font-normal text-ink-faint">— the date revenue is counted under</span>
               </span>
-              <input
-                type="date"
-                name="paid_on"
-                defaultValue={paidOnValue}
-                className={`mt-1.5 ${FIELD}`}
-              />
+              <span className="mt-1.5 block">
+                <DatePicker name="paid_on" value={paidOn} onChange={setPaidOn} placeholder="Not paid yet" />
+              </span>
               <span className="mt-1.5 block text-[0.75rem] leading-relaxed text-ink-faint">
                 Marking an order paid fills this in with today only if it is empty, so an old order
                 fulfilled today keeps its real date. Clear it to take the order off the revenue chart.
@@ -303,6 +308,7 @@ export function BookingEdit({
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[0.875rem] text-canvas transition-colors hover:bg-ember disabled:opacity-50"
             >
+              {saving && <Loader2 size={14} className="animate-spin" />}
               {saving ? "Saving…" : "Save changes"}
             </button>
             <button

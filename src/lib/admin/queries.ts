@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { type BookingItem, parseItems } from "@/lib/admin/booking-items";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -141,7 +142,11 @@ function toAdminBooking(row: BookingRow): AdminBooking {
   };
 }
 
-export async function listBookings(): Promise<AdminBooking[]> {
+/**
+ * Wrapped in React's cache so the heading, the filters and the table of one
+ * screen share a single query per request instead of each running their own.
+ */
+export const listBookings = cache(async (): Promise<AdminBooking[]> => {
   const supabase = await getServerSupabase();
   const { data } = await supabase
     .from("bookings")
@@ -150,7 +155,7 @@ export async function listBookings(): Promise<AdminBooking[]> {
     .limit(300);
 
   return (data ?? []).map(toAdminBooking);
-}
+});
 
 /** Paid and fulfilled orders in a window, keyed on when the money landed. */
 export async function listRevenueBookings(fromISO: string, toISO: string): Promise<AdminBooking[]> {
@@ -282,7 +287,7 @@ export async function listRevenueOrders(fromISO: string, toISO: string): Promise
  * Returns null — not an empty list — when the orders table has not been created
  * yet, so the screen can say "run the migration" instead of "no orders".
  */
-export async function listOrders(): Promise<AdminOrder[] | null> {
+export const listOrders = cache(async (): Promise<AdminOrder[] | null> => {
   const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("orders")
@@ -292,7 +297,7 @@ export async function listOrders(): Promise<AdminOrder[] | null> {
 
   if (error) return error.code === "42P01" || error.code === "PGRST205" ? null : [];
   return (data ?? []).map(toAdminOrder);
-}
+});
 
 /* ---------------------------------------------------------- reel scripts -- */
 

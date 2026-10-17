@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { normaliseTiers } from "./pricing";
 import { seedCollections, seedProducts, seedSettings } from "./seed";
 import { isSupabaseConfigured } from "./supabase/config";
@@ -100,7 +101,12 @@ function toProduct(row: ProductRow): Product {
 const bySortOrder = <T extends { sortOrder: number; name: string }>(a: T, b: T) =>
   a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
 
-export async function getCollections(): Promise<Collection[]> {
+/**
+ * The three catalogue reads are wrapped in React's cache, so one request that
+ * asks for the products five times over (the home page does) runs the query
+ * once.
+ */
+export const getCollections = cache(async (): Promise<Collection[]> => {
   if (!isSupabaseConfigured) return [...seedCollections].sort(bySortOrder);
 
   const { data, error } = await getPublicSupabase()
@@ -110,14 +116,14 @@ export async function getCollections(): Promise<Collection[]> {
 
   if (error || !data) return [...seedCollections].sort(bySortOrder);
   return (data as CollectionRow[]).map(toCollection);
-}
+});
 
 export async function getCollection(slug: string): Promise<Collection | null> {
   const all = await getCollections();
   return all.find((c) => c.slug === slug) ?? null;
 }
 
-export async function getProducts(): Promise<Product[]> {
+export const getProducts = cache(async (): Promise<Product[]> => {
   if (!isSupabaseConfigured) return [...seedProducts].sort(bySortOrder);
 
   const { data, error } = await getPublicSupabase()
@@ -127,7 +133,7 @@ export async function getProducts(): Promise<Product[]> {
 
   if (error || !data) return [...seedProducts].sort(bySortOrder);
   return (data as ProductRow[]).map(toProduct);
-}
+});
 
 export async function getProductsByCollection(slug: string): Promise<Product[]> {
   const all = await getProducts();
@@ -145,7 +151,7 @@ export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
   return (featured.length ? featured : all).slice(0, limit);
 }
 
-export async function getSettings(): Promise<SiteSettings> {
+export const getSettings = cache(async (): Promise<SiteSettings> => {
   if (!isSupabaseConfigured) return seedSettings;
 
   const { data, error } = await getPublicSupabase()
@@ -167,4 +173,4 @@ export async function getSettings(): Promise<SiteSettings> {
       ? normaliseTiers(stored.bulkTiers)
       : seedSettings.bulkTiers,
   };
-}
+});

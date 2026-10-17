@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { type Bucket, RevenueColumns, SourceSplit, TopProducts } from "@/components/admin/charts";
 import { RangePicker } from "@/components/admin/range-picker";
+import { RevenueSkeleton } from "@/components/admin/skeleton";
 import { itemsOf } from "@/lib/admin/booking-items";
 import { listRevenueBookings, listRevenueOrders } from "@/lib/admin/queries";
 import { compactQty, money } from "@/lib/format";
@@ -15,6 +17,11 @@ function resolveRange(range: string, from?: string, to?: string) {
 
   if (range === "custom" && from && to) {
     return { start: new Date(`${from}T00:00:00`), end: new Date(`${to}T00:00:00`) };
+  }
+  if (range === "today") return { start: end, end };
+  if (range === "yesterday") {
+    const y = new Date(end.getTime() - DAY);
+    return { start: y, end: y };
   }
   if (range === "month") return { start: new Date(now.getFullYear(), now.getMonth(), 1), end };
   if (range === "year") return { start: new Date(now.getFullYear(), 0, 1), end };
@@ -70,6 +77,11 @@ function bucketise(start: Date, end: Date, rows: { paidAt: string | null; totalP
   return [...buckets.values()];
 }
 
+/**
+ * The heading and the range pills paint at once; the figures stream in under
+ * a skeleton of the same shape. Changing the range re-keys the Suspense so the
+ * skeleton shows again rather than the old numbers sitting still.
+ */
 export default async function RevenuePage({
   searchParams,
 }: {
@@ -78,6 +90,32 @@ export default async function RevenuePage({
   const { range = "30d", from, to } = await searchParams;
   const { start, end } = resolveRange(range, from, to);
 
+  return (
+    <>
+      <p className="eyebrow">Money in</p>
+      <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
+        Revenue
+      </h1>
+      <p className="mt-2.5 text-[0.925rem] text-ink-soft">
+        Paid website orders and paid/fulfilled enquiries together, on the date the money came in.
+      </p>
+
+      <div className="mt-7">
+        <Suspense fallback={null}>
+          <RangePicker range={range} from={from ?? iso(start)} to={to ?? iso(end)} />
+        </Suspense>
+      </div>
+
+      <div className="mt-8">
+        <Suspense key={`${range}|${from ?? ""}|${to ?? ""}`} fallback={<RevenueSkeleton />}>
+          <RevenueFigures start={start} end={end} />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+async function RevenueFigures({ start, end }: { start: Date; end: Date }) {
   const endOfDay = new Date(end);
   endOfDay.setHours(23, 59, 59, 999);
 
@@ -118,25 +156,17 @@ export default async function RevenuePage({
     { label: "Pieces sold", value: compactQty(pieces) },
   ];
 
+  const sameDay = iso(start) === iso(end);
+
   return (
-    <>
-      <p className="eyebrow">Money in</p>
-      <h1 className="mt-3 font-display text-[clamp(1.8rem,3.6vw,2.4rem)] leading-tight tracking-[-0.02em] text-ink">
-        Revenue
-      </h1>
-      <p className="mt-2.5 text-[0.925rem] text-ink-soft">
-        Paid website orders and paid/fulfilled enquiries together, on the date the money came in.
-      </p>
-
-      <div className="mt-7">
-        <RangePicker range={range} from={from ?? iso(start)} to={to ?? iso(end)} />
-      </div>
-
+    <div className="rise-in">
       {/* Hero figure */}
-      <div className="mt-8 rounded-[16px] border border-line bg-canvas p-6 sm:p-7">
+      <div className="rounded-[16px] border border-line bg-canvas p-6 sm:p-7">
         <p className="eyebrow">
-          {start.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} –{" "}
-          {end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          {start.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          {!sameDay && (
+            <> – {end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</>
+          )}
         </p>
         <p className="mt-2 font-sans text-[clamp(2.4rem,6vw,3.4rem)] leading-none font-semibold tracking-[-0.03em] text-ink tabular-nums">
           {money(revenue)}
@@ -177,6 +207,6 @@ export default async function RevenuePage({
           />
         </section>
       </div>
-    </>
+    </div>
   );
 }

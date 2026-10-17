@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 
 export function Field({
   label,
@@ -70,8 +71,9 @@ export function SubmitButton({ children = "Save" }: { children?: React.ReactNode
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-ink px-7 py-3 text-[0.9rem] text-canvas transition-colors hover:bg-ember disabled:opacity-50"
+      className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[0.9rem] text-canvas transition-colors hover:bg-ember disabled:opacity-60"
     >
+      {pending && <Loader2 size={15} className="animate-spin" />}
       {pending ? "Saving…" : children}
     </button>
   );

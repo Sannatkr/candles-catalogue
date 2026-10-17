@@ -1,8 +1,7 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { CollectionCard } from "@/components/collection-card";
 import { EmptyState } from "@/components/empty-state";
 import { Reveal } from "@/components/reveal";
+import { collageImages } from "@/lib/collage";
 import { getCollections, getProducts } from "@/lib/data";
 
 export const metadata = { title: "Collections" };
@@ -33,47 +32,16 @@ export default async function CollectionsPage() {
       )}
 
       <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {collections.map((collection, i) => {
-          const count = products.filter((p) => p.collectionSlug === collection.slug).length;
-
-          return (
-            <Reveal key={collection.id} delay={i * 70} className="h-full">
-              <Link
-                href={`/collections/${collection.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-line bg-surface transition-colors hover:border-ink/25"
-              >
-                <div className="relative aspect-4/3 overflow-hidden bg-canvas-deep sm:aspect-4/5">
-                  <Image
-                    src={collection.coverImage}
-                    alt={collection.name}
-                    fill
-                    sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 30vw"
-                    className="object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06]"
-                  />
-                </div>
-
-                <div className="flex flex-1 flex-col p-6">
-                  <p className="eyebrow">
-                    {collection.tagline} · {count} {count === 1 ? "design" : "designs"}
-                  </p>
-                  <h2 className="mt-3 font-display text-[1.6rem] leading-tight text-ink transition-colors group-hover:text-ember">
-                    {collection.name}
-                  </h2>
-                  <p className="mt-3 line-clamp-3 text-[0.92rem] leading-relaxed text-ink-soft">
-                    {collection.description}
-                  </p>
-                  <span className="mt-auto inline-flex items-center gap-2 pt-5 text-[0.9rem] text-ember">
-                    Open collection
-                    <ArrowRight
-                      size={16}
-                      className="transition-transform duration-300 group-hover:translate-x-1"
-                    />
-                  </span>
-                </div>
-              </Link>
-            </Reveal>
-          );
-        })}
+        {collections.map((collection, i) => (
+          <Reveal key={collection.id} delay={i * 70} className="h-full">
+            <CollectionCard
+              collection={collection}
+              images={collageImages(collection, products)}
+              count={products.filter((p) => p.collectionSlug === collection.slug).length}
+              priority={i < 3}
+            />
+          </Reveal>
+        ))}
       </div>
     </div>
   );
