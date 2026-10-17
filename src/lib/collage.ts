@@ -12,6 +12,16 @@ export function collageImages(collection: Collection, products: Product[], count
   const own = products.filter((p) => inCollection(p, collection.slug));
   const ordered = [...own.filter((p) => p.inStock), ...own.filter((p) => !p.inStock)];
 
+  // A collection of one candle leads with that candle's second photograph —
+  // the first is already its card and its cover; the big tile should show
+  // the other side of it.
+  if (ordered.length === 1 && ordered[0].images.length > 1) {
+    const [first, second, ...more] = ordered[0].images;
+    const images = Array.from(new Set([second, first, ...more])).slice(0, count);
+    while (images.length < count) images.push(collection.coverImage);
+    return images;
+  }
+
   // Round-robin: every candle's first photo, then every candle's second, …
   const pool: string[] = [];
   const most = Math.max(0, ...ordered.map((p) => p.images.length));

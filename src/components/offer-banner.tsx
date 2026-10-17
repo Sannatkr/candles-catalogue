@@ -38,7 +38,7 @@ import type { Product } from "@/lib/types";
 const SLOTS = [
   { left: "36%", top: "4%", w: "30%", cls: "drift-a", z: 3 },
   { left: "4%", top: "22%", w: "26%", cls: "drift-b", z: 2 },
-  { left: "70%", top: "28%", w: "26%", cls: "drift-c", z: 2 },
+  { left: "66%", top: "28%", w: "26%", cls: "drift-c", z: 2 },
   { left: "18%", top: "58%", w: "22%", cls: "drift-c", z: 1 },
   { left: "48%", top: "56%", w: "22%", cls: "drift-b", z: 1 },
 ];
@@ -71,8 +71,8 @@ export function OfferBanner({
 
       {/* The rosette, sized off the banner height so it never crops oddly, and
           bled off the right edge the way an engraved border would be. */}
-      <LotusMotif className="pointer-events-none absolute top-1/2 right-[-9rem] hidden h-[150%] -translate-y-1/2 text-[#e5c07b]/30 sm:right-[-6rem] sm:block lg:right-[26%]" />
-      <LotusMotif className="pointer-events-none absolute -top-16 -right-24 h-[22rem] text-[#e5c07b]/20 sm:hidden" />
+      <LotusMotif className="spin-slow pointer-events-none absolute top-1/2 right-[-9rem] hidden h-[150%] -translate-y-1/2 text-[#e5c07b]/30 sm:right-[-6rem] sm:block lg:right-[26%]" />
+      <LotusMotif className="spin-slow pointer-events-none absolute -top-16 -right-24 h-[22rem] text-[#e5c07b]/20 sm:hidden" />
 
       <div className="relative mx-auto flex max-w-[1240px] flex-col gap-8 px-5 py-11 sm:px-8 sm:py-14 lg:flex-row lg:items-center lg:justify-between lg:gap-14 lg:py-16">
         <div className="min-w-0 max-w-[46rem] flex-1">
