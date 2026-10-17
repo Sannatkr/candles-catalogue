@@ -119,14 +119,27 @@ export function OfferBanner({
             drifting in the air the way the collection pages open, so the
             banner shows the whole range it is selling. Phones get the first
             three; there is no room for five to move. */}
-        <ul className="relative aspect-[5/3] w-full shrink-0 sm:aspect-[5/2.6] lg:aspect-[5/3.6] lg:w-[44%]">
+        {/* A phone has no room for five pieces in the air: it gets a neat row
+            of three, the middle one lifted, still drifting. From `sm` up the
+            five take their places on the canvas. */}
+        <ul className="relative flex w-full shrink-0 items-end justify-center gap-3 px-2 sm:block sm:aspect-[5/2.6] sm:px-0 lg:aspect-[5/3.6] lg:w-[44%]">
           {showcase.slice(0, SLOTS.length).map((product, i) => {
             const s = SLOTS[i];
             return (
               <li
                 key={product.slug}
-                style={{ left: s.left, top: s.top, width: s.w, zIndex: s.z, animationDelay: `${i * -1.9}s` }}
-                className={`${s.cls} absolute ${i >= 3 ? "hidden sm:block" : ""}`}
+                style={
+                  {
+                    "--l": s.left,
+                    "--t": s.top,
+                    "--w": s.w,
+                    zIndex: s.z,
+                    animationDelay: `${i * -1.9}s`,
+                  } as React.CSSProperties
+                }
+                className={`${s.cls} w-[30%] sm:absolute sm:top-(--t) sm:left-(--l) sm:w-(--w) ${
+                  i === 1 ? "-translate-y-4 sm:translate-y-0" : ""
+                } ${i >= 3 ? "hidden sm:block" : ""}`}
               >
                 <Link
                   href={`/products/${product.slug}`}

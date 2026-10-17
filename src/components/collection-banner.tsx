@@ -60,7 +60,9 @@ export function CollectionBanner({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_100%_at_92%_-10%,rgba(229,192,123,0.22)_0%,transparent_60%)]"
       />
       {/* The rosette, turning once every couple of minutes. */}
-      <LotusMotif className="spin-slow pointer-events-none absolute top-1/2 left-1/2 h-[150%] -translate-x-1/2 -translate-y-1/2 text-[#e5c07b]/18 lg:left-[72%]" />
+      {/* On a phone the rosette sits up in the corner, out from behind the
+          words; from `sm` up it fills the ground. */}
+      <LotusMotif className="spin-slow pointer-events-none absolute top-[6%] left-[88%] h-[70%] -translate-x-1/2 -translate-y-1/2 text-[#e5c07b]/18 sm:top-1/2 sm:left-1/2 sm:h-[150%] lg:left-[72%]" />
 
       <div className="relative mx-auto grid max-w-[1240px] items-center gap-10 px-5 pt-8 pb-14 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pt-10 lg:pb-20">
         <div className="rise-in">
@@ -100,9 +102,10 @@ export function CollectionBanner({
           </dl>
         </div>
 
-        {/* The candles, in the air. On a phone the canvas is shorter and the
-            smallest two are left out, so what remains has room to move. */}
-        <div className="relative aspect-[5/4] w-full sm:aspect-[4/3] lg:aspect-[5/4]">
+        {/* The candles, in the air. A phone gets a neat row of three, the
+            middle one lifted; from `sm` up the five take their places on the
+            canvas. */}
+        <div className="relative flex w-full items-end justify-center gap-3 px-1 sm:block sm:aspect-[4/3] sm:px-0 lg:aspect-[5/4]">
           {products.slice(0, 5).map((p, i) => {
             const s = slots[i];
             return (
@@ -110,8 +113,18 @@ export function CollectionBanner({
                 key={p.slug}
                 href={`/products/${p.slug}`}
                 aria-label={p.name}
-                style={{ left: s.left, top: s.top, width: s.w, zIndex: s.z, animationDelay: `${i * -1.7}s` }}
-                className={`${s.cls} group absolute block ${i >= 3 ? "hidden sm:block" : ""}`}
+                style={
+                  {
+                    "--l": s.left,
+                    "--t": s.top,
+                    "--w": s.w,
+                    zIndex: s.z,
+                    animationDelay: `${i * -1.7}s`,
+                  } as React.CSSProperties
+                }
+                className={`${s.cls} group block w-[30%] sm:absolute sm:top-(--t) sm:left-(--l) sm:w-(--w) ${
+                  i === 1 ? "-translate-y-4 sm:translate-y-0" : ""
+                } ${i >= 3 ? "hidden sm:block" : ""}`}
               >
                 <span className="rise-in relative block aspect-4/5 overflow-hidden rounded-[16px] bg-ink/40 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.65)] ring-1 ring-[#e5c07b]/40 transition-shadow duration-500 group-hover:ring-[#e5c07b]/80" style={{ animationDelay: `${120 + i * 110}ms` }}>
                   <Image
