@@ -138,6 +138,12 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
     in_stock: bool(fd, "in_stock"),
     featured: bool(fd, "featured"),
     sort_order: num(fd, "sort_order"),
+    // Guest appearances in other collections. Its own collection is never
+    // listed twice.
+    also_in: fd
+      .getAll("also_in")
+      .map((v) => String(v).trim())
+      .filter((v) => v && v !== collectionSlug),
   };
 
   const id = str(fd, "id");
@@ -149,12 +155,13 @@ export async function saveProduct(_prev: ActionState, fd: FormData): Promise<Act
   let { error } = await write(row);
 
   // PGRST204 is PostgREST rejecting an unknown column from its schema cache;
-  // 42703 is Postgres saying the same. The newest columns go first: length_cm
-  // arrives with migration 028, tier_prices with 026. Until those are run a
-  // candle still saves — it just cannot carry that field yet.
+  // 42703 is Postgres saying the same. The newest columns go first: also_in
+  // arrives with migration 030, length_cm with 028, tier_prices with 026.
+  // Until those are run a candle still saves — it just cannot carry that
+  // field yet.
   const missingColumn = () => error?.code === "PGRST204" || error?.code === "42703";
   const fallback: Partial<typeof row> = { ...row };
-  for (const column of ["length_cm", "tier_prices"] as const) {
+  for (const column of ["also_in", "length_cm", "tier_prices"] as const) {
     if (!missingColumn()) break;
     delete fallback[column];
     ({ error } = await write(fallback));

@@ -45,6 +45,7 @@ type ProductRow = {
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
+  also_in?: string[] | null;
 };
 
 const FALLBACK_IMAGE = "/placeholders/candle-01.svg";
@@ -95,7 +96,14 @@ function toProduct(row: ProductRow): Product {
     inStock: row.in_stock ?? true,
     featured: row.featured ?? false,
     sortOrder: row.sort_order ?? 0,
+    // Missing until migration 030 has run.
+    alsoIn: Array.isArray(row.also_in) ? row.also_in.filter((s) => typeof s === "string") : [],
   };
+}
+
+/** Does this candle belong on the page of this collection? Home or guest. */
+export function inCollection(product: Pick<Product, "collectionSlug" | "alsoIn">, slug: string) {
+  return product.collectionSlug === slug || product.alsoIn.includes(slug);
 }
 
 const bySortOrder = <T extends { sortOrder: number; name: string }>(a: T, b: T) =>
@@ -137,7 +145,7 @@ export const getProducts = cache(async (): Promise<Product[]> => {
 
 export async function getProductsByCollection(slug: string): Promise<Product[]> {
   const all = await getProducts();
-  return all.filter((p) => p.collectionSlug === slug);
+  return all.filter((p) => inCollection(p, slug));
 }
 
 export async function getProduct(slug: string): Promise<Product | null> {

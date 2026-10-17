@@ -2,7 +2,7 @@ import { CollectionCard } from "@/components/collection-card";
 import { EmptyState } from "@/components/empty-state";
 import { Reveal } from "@/components/reveal";
 import { collageImages } from "@/lib/collage";
-import { getCollections, getProducts } from "@/lib/data";
+import { getCollections, getProducts, inCollection } from "@/lib/data";
 
 export const metadata = { title: "Collections" };
 
@@ -37,7 +37,7 @@ export default async function CollectionsPage() {
             <CollectionCard
               collection={collection}
               images={collageImages(collection, products)}
-              count={products.filter((p) => p.collectionSlug === collection.slug).length}
+              count={products.filter((p) => inCollection(p, collection.slug)).length}
               priority={i < 3}
             />
           </Reveal>

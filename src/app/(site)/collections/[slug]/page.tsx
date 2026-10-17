@@ -3,7 +3,7 @@ import { CollectionBanner } from "@/components/collection-banner";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { showcaseProducts } from "@/lib/collage";
-import { getCollection, getCollections, getProducts } from "@/lib/data";
+import { getCollection, getCollections, getProducts, inCollection } from "@/lib/data";
 
 export async function generateStaticParams() {
   const collections = await getCollections();
@@ -33,7 +33,7 @@ export default async function CollectionPage({
   const [collection, all] = await Promise.all([getCollection(slug), getProducts()]);
   if (!collection) notFound();
 
-  const products = all.filter((p) => p.collectionSlug === slug);
+  const products = all.filter((p) => inCollection(p, slug));
   // The dearest pieces float in the banner; the cheapest sets the "from".
   const floating = showcaseProducts(collection, all).sort((a, b) => b.basePrice - a.basePrice);
   const from = products.length ? Math.min(...products.map((p) => p.basePrice)) : 0;

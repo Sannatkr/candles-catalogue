@@ -273,6 +273,29 @@ export function ProductForm({
           <Field label="Position in list" hint="Lower number shows first." className="sm:col-span-2">
             <Input type="number" name="sort_order" defaultValue={product?.sort_order ?? 0} />
           </Field>
+          <Field
+            label="Also show in"
+            hint="Its home stays the collection above; tick any others it should appear in as well."
+            className="sm:col-span-2"
+          >
+            <span className="flex flex-wrap gap-2">
+              {collections.map((c) => (
+                <label
+                  key={c.id}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-2 text-[0.85rem] text-ink has-checked:border-ink has-checked:bg-ink has-checked:text-canvas"
+                >
+                  <input
+                    type="checkbox"
+                    name="also_in"
+                    value={c.slug}
+                    defaultChecked={product?.also_in?.includes(c.slug) ?? false}
+                    className="sr-only"
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </span>
+          </Field>
         </div>
       </Card>
 

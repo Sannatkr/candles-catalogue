@@ -29,6 +29,20 @@ import type { Product } from "@/lib/types";
  * which is the claim the whole shop rests on — and it costs a few hundred bytes
  * instead of a hero JPEG.
  */
+/**
+ * Where each floating candle sits on the banner's canvas — left, top and
+ * width as percentages, a layer, and which drift it follows. Five slots for
+ * five collections; laid out so nothing overlaps badly and the first (the
+ * lead collection) sits biggest and highest.
+ */
+const SLOTS = [
+  { left: "36%", top: "4%", w: "30%", cls: "drift-a", z: 3 },
+  { left: "4%", top: "22%", w: "26%", cls: "drift-b", z: 2 },
+  { left: "70%", top: "28%", w: "26%", cls: "drift-c", z: 2 },
+  { left: "18%", top: "58%", w: "22%", cls: "drift-c", z: 1 },
+  { left: "48%", top: "56%", w: "22%", cls: "drift-b", z: 1 },
+];
+
 export function OfferBanner({
   showcase,
   fragrances,
@@ -101,31 +115,37 @@ export function OfferBanner({
           </div>
         </div>
 
-        {/* The range beside the promise — three of the shop's best pieces, so the
-            banner looks like what it is selling. */}
-        <ul className="flex shrink-0 items-end gap-3 sm:gap-4">
-          {showcase.slice(0, 3).map((product, i) => (
-            <li
-              key={product.slug}
-              className={i === 1 ? "" : "translate-y-4 sm:translate-y-5"}
-            >
-              <Link
-                href={`/products/${product.slug}`}
-                aria-label={product.name}
-                className="group block w-[92px] sm:w-[116px] lg:w-[132px]"
+        {/* The range beside the promise — one candle from every collection,
+            drifting in the air the way the collection pages open, so the
+            banner shows the whole range it is selling. Phones get the first
+            three; there is no room for five to move. */}
+        <ul className="relative aspect-[5/3] w-full shrink-0 sm:aspect-[5/2.6] lg:aspect-[5/3.6] lg:w-[44%]">
+          {showcase.slice(0, SLOTS.length).map((product, i) => {
+            const s = SLOTS[i];
+            return (
+              <li
+                key={product.slug}
+                style={{ left: s.left, top: s.top, width: s.w, zIndex: s.z, animationDelay: `${i * -1.9}s` }}
+                className={`${s.cls} absolute ${i >= 3 ? "hidden sm:block" : ""}`}
               >
-                <span className="relative block aspect-4/5 overflow-hidden rounded-[14px] bg-ink/40 ring-1 ring-[#e5c07b]/35 transition-shadow duration-500 group-hover:ring-[#e5c07b]/70">
-                  <Image
-                    src={product.images[0]}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 96px, 132px"
-                    className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.07]"
-                  />
-                </span>
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={`/products/${product.slug}`}
+                  aria-label={product.name}
+                  className="group block"
+                >
+                  <span className="relative block aspect-4/5 overflow-hidden rounded-[14px] bg-ink/40 shadow-[0_26px_50px_-18px_rgba(0,0,0,0.7)] ring-1 ring-[#e5c07b]/40 transition-shadow duration-500 group-hover:ring-[#e5c07b]/80">
+                    <Image
+                      src={product.images[0]}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 34vw, (max-width: 1024px) 22vw, 14vw"
+                      className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.07]"
+                    />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
 

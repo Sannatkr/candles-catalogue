@@ -597,6 +597,7 @@ export const seedProducts: Product[] = drafts.map((d, i) => ({
   slug: d.slug,
   name: d.name,
   collectionSlug: COLLECTION,
+  alsoIn: [],
   tagline: d.tagline,
   description: d.description,
   images: [img(d.slug)],

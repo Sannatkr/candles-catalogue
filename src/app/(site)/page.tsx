@@ -7,12 +7,13 @@ import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { OfferBanner } from "@/components/offer-banner";
-import { collageImages } from "@/lib/collage";
+import { collageImages, onePerCollection } from "@/lib/collage";
 import {
   getCollections,
   getFeaturedProducts,
   getProducts,
   getSettings,
+  inCollection,
 } from "@/lib/data";
 
 const FACTS = [
@@ -49,17 +50,9 @@ export default async function HomePage() {
     getFeaturedProducts(6),
     getProducts(),
   ]);
-  // The pieces to photograph the bulk banner with: the dearest in-stock
-  // candles, because the banner's job is to make the range look worth ordering
-  // a hundred of. The middle tile is always the dearest piece from the lead
-  // collection, so whatever leads the home page (now Mini Hampers, at ₹189–279)
-  // shows up here too instead of being priced out by the ₹700 urlis.
-  const byPrice = allProducts
-    .filter((p) => p.inStock && p.images.length > 0)
-    .sort((a, b) => b.basePrice - a.basePrice);
-  const leadPiece = byPrice.find((p) => p.collectionSlug === collections[0]?.slug);
-  const rest = byPrice.filter((p) => p !== leadPiece).slice(0, leadPiece ? 2 : 3);
-  const showcase = leadPiece ? [...rest.slice(0, 1), leadPiece, ...rest.slice(1)] : rest;
+  // The banner floats one candle from every collection, in collection order
+  // — the whole range in one glance, rather than the three dearest pieces.
+  const showcase = onePerCollection(collections, allProducts);
 
   // Four photographs for the hero mosaic, all from the lead collection (Mini
   // Hampers): the hero's job is to show that one range properly, as a
@@ -129,7 +122,7 @@ export default async function HomePage() {
                 <CollectionCard
                   collection={collection}
                   images={collageImages(collection, allProducts)}
-                  count={allProducts.filter((p) => p.collectionSlug === collection.slug).length}
+                  count={allProducts.filter((p) => inCollection(p, collection.slug)).length}
                   priority={i < 3}
                 />
               </Reveal>

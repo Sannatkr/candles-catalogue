@@ -32,6 +32,7 @@ export type AdminProduct = {
   in_stock: boolean | null;
   featured: boolean | null;
   sort_order: number | null;
+  also_in?: string[] | null;
 };
 
 export type AdminCollection = {

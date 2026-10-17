@@ -67,6 +67,13 @@ export type Product = {
   inStock: boolean;
   featured: boolean;
   sortOrder: number;
+  /**
+   * Other collections this candle also appears in, by slug. A candle lives in
+   * one collection (`collectionSlug`) but can be shown in more — the mithai
+   * pieces sit in their own collection and in Festive Candles, where most
+   * buyers actually look.
+   */
+  alsoIn: string[];
 };
 
 export type Collection = {
