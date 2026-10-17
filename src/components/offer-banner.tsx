@@ -36,11 +36,11 @@ import type { Product } from "@/lib/types";
  * lead collection) sits biggest and highest.
  */
 const SLOTS = [
-  { left: "36%", top: "4%", w: "30%", cls: "drift-a", z: 3 },
-  { left: "4%", top: "22%", w: "26%", cls: "drift-b", z: 2 },
-  { left: "66%", top: "28%", w: "26%", cls: "drift-c", z: 2 },
-  { left: "18%", top: "58%", w: "22%", cls: "drift-c", z: 1 },
-  { left: "48%", top: "56%", w: "22%", cls: "drift-b", z: 1 },
+  { left: "35%", top: "0%", w: "30%", cls: "drift-a", z: 3 },
+  { left: "3%", top: "12%", w: "28%", cls: "drift-b", z: 2 },
+  { left: "69%", top: "12%", w: "28%", cls: "drift-c", z: 2 },
+  { left: "19%", top: "56%", w: "25%", cls: "drift-c", z: 1 },
+  { left: "51%", top: "56%", w: "25%", cls: "drift-b", z: 1 },
 ];
 
 export function OfferBanner({
@@ -122,7 +122,7 @@ export function OfferBanner({
         {/* A phone has no room for five pieces in the air: it gets a neat row
             of three, the middle one lifted, still drifting. From `sm` up the
             five take their places on the canvas. */}
-        <ul className="relative flex w-full shrink-0 items-end justify-center gap-3 px-2 sm:block sm:aspect-[5/2.6] sm:px-0 lg:aspect-[5/3.6] lg:w-[44%]">
+        <ul className="relative mt-6 flex w-full shrink-0 items-end justify-center gap-3 px-2 pt-6 sm:mt-0 sm:block sm:aspect-[5/2.6] sm:px-0 sm:pt-0 lg:aspect-[5/3.7] lg:w-[44%]">
           {showcase.slice(0, SLOTS.length).map((product, i) => {
             const s = SLOTS[i];
             return (
@@ -138,7 +138,7 @@ export function OfferBanner({
                   } as React.CSSProperties
                 }
                 className={`${s.cls} w-[30%] sm:absolute sm:top-(--t) sm:left-(--l) sm:w-(--w) ${
-                  i === 1 ? "-translate-y-4 sm:translate-y-0" : ""
+                  i === 1 ? "-translate-y-3 sm:translate-y-0" : ""
                 } ${i >= 3 ? "hidden sm:block" : ""}`}
               >
                 <Link
