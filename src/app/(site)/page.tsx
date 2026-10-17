@@ -16,6 +16,11 @@ import {
   inCollection,
 } from "@/lib/data";
 
+/** "Five collections", not "5 collections" — a headline, not a count. */
+const WORDS: Record<number, string> = {
+  2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten",
+};
+
 const FACTS = [
   { label: "Wax", value: "100% natural soy" },
   { label: "Burn", value: "Smokeless, no soot" },
@@ -101,7 +106,7 @@ export default async function HomePage() {
               <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.85rem)] leading-tight tracking-[-0.015em] text-ink">
                 {collections.length === 1
                   ? "One collection"
-                  : `${collections.length} collections`}
+                  : `${WORDS[collections.length] ?? collections.length} collections`}
               </h2>
             </div>
             <Link
