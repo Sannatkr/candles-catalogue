@@ -6,12 +6,15 @@ import { usePathname } from "next/navigation";
 /**
  * Meta (Facebook/Instagram) Pixel, so ads can see what people did after the click.
  *
- * Off unless NEXT_PUBLIC_META_PIXEL_ID is set — no ID, no script, no cookies.
+ * The shop's pixel ID is the default (a pixel ID is public: it sits in every
+ * page's HTML). Set NEXT_PUBLIC_META_PIXEL_ID to override it, or to "off" to
+ * switch the pixel off entirely (e.g. in local development).
  * `fbTrack` is called from the PostHog `track()` helper so every existing event
  * reaches both tools without touching the components that fire them.
  */
 
-const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
+const RAW_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "3464135120427522";
+const PIXEL_ID = RAW_ID === "off" ? "" : RAW_ID;
 
 export const pixelEnabled = Boolean(PIXEL_ID);
 
