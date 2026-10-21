@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
+import { mirrorToPixel } from "@/lib/meta-pixel";
 
 /**
  * Product analytics, so there is an answer to "what did people actually do".
@@ -36,7 +37,9 @@ function start() {
 
 /** Fire and forget. Safe to call before init, or with analytics switched off. */
 export function track(event: string, properties?: Record<string, unknown>) {
-  if (!KEY || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+  mirrorToPixel(event, properties);
+  if (!KEY) return;
   start();
   posthog.capture(event, properties);
 }

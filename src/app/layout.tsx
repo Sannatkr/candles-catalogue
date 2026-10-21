@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Fraunces, Inter } from "next/font/google";
 import { AnalyticsProvider } from "@/lib/analytics";
+import { MetaPixel } from "@/lib/meta-pixel";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -64,6 +65,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AnalyticsProvider />
         </Suspense>
+        <MetaPixel />
         {children}
       </body>
     </html>
