@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2, X } from "lucide-react";
 import { PRODUCT_IMAGE_BUCKET } from "@/lib/supabase/config";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { shrinkImage } from "@/lib/shrink-image";
 
 type Props = {
   /** Form field name. Multiple mode submits a JSON array, single mode a plain URL. */
@@ -16,8 +17,7 @@ type Props = {
   folder?: string;
 };
 
-function safeName(file: File) {
-  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+function safeName(ext: string) {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 }
 
@@ -43,15 +43,18 @@ export function ImageUploader({
     const uploaded: string[] = [];
 
     for (const file of Array.from(files)) {
-      if (file.size > 8 * 1024 * 1024) {
-        setError(`${file.name} is over 8 MB. Please use a smaller photo.`);
+      if (file.size > 25 * 1024 * 1024) {
+        setError(`${file.name} is over 25 MB. Please use a smaller photo.`);
         continue;
       }
 
-      const path = `${folder}/${safeName(file)}`;
+      // Resized to 1200×1500 WebP here, so Storage (and its egress quota) only
+      // ever sees ~100 KB per photo instead of a multi-MB phone original.
+      const { blob, ext } = await shrinkImage(file);
+      const path = `${folder}/${safeName(ext)}`;
       const { error: uploadError } = await supabase.storage
         .from(PRODUCT_IMAGE_BUCKET)
-        .upload(path, file, { cacheControl: "31536000", upsert: false });
+        .upload(path, blob, { cacheControl: "31536000", upsert: false, contentType: blob.type });
 
       if (uploadError) {
         setError(uploadError.message);
