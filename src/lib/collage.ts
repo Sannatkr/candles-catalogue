@@ -47,18 +47,40 @@ export function showcaseProducts(collection: Collection, products: Product[], co
  * One candle for every collection, in collection order — the dearest in-stock
  * piece whose home is that collection, so the home banner shows the whole
  * range in as many tiles as there are collections.
+ *
+ * A collection with nothing in stock (the mithai candles sell out before
+ * Diwali) would otherwise leave its tile empty, so the list is padded to
+ * `count` with the next-dearest in-stock candles from the other collections,
+ * taking one from each in turn before coming back for a second.
  */
-export function onePerCollection(collections: Collection[], products: Product[]): Product[] {
+export function onePerCollection(
+  collections: Collection[],
+  products: Product[],
+  count = collections.length,
+): Product[] {
   const used = new Set<string>();
   const picks: Product[] = [];
-  for (const c of collections) {
-    const pick = products
-      .filter((p) => p.collectionSlug === c.slug && p.inStock && p.images[0] && !used.has(p.images[0]))
-      .sort((a, b) => b.basePrice - a.basePrice)[0];
-    if (pick) {
-      used.add(pick.images[0]);
-      picks.push(pick);
+  const ranked = (slug: string) =>
+    products
+      .filter((p) => p.collectionSlug === slug && p.inStock && p.images[0])
+      .sort((a, b) => b.basePrice - a.basePrice);
+  const take = (p: Product | undefined) => {
+    if (!p || used.has(p.images[0])) return false;
+    used.add(p.images[0]);
+    picks.push(p);
+    return true;
+  };
+
+  for (const c of collections) take(ranked(c.slug)[0]);
+
+  // Fill the gaps: a second pick from each collection in turn, then a third…
+  for (let round = 1; picks.length < count; round++) {
+    let added = false;
+    for (const c of collections) {
+      if (picks.length >= count) break;
+      if (take(ranked(c.slug).find((p) => !used.has(p.images[0])))) added = true;
     }
+    if (!added) break; // nothing left in stock anywhere
   }
-  return picks;
+  return picks.slice(0, count);
 }

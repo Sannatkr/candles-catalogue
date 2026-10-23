@@ -57,7 +57,8 @@ export default async function HomePage() {
   ]);
   // The banner floats one candle from every collection, in collection order
   // — the whole range in one glance, rather than the three dearest pieces.
-  const showcase = onePerCollection(collections, allProducts);
+  // Five tiles: a sold-out collection's tile is filled from the others.
+  const showcase = onePerCollection(collections, allProducts, 5);
 
   // Four photographs for the hero mosaic, all from the lead collection (Mini
   // Hampers): the hero's job is to show that one range properly, as a
