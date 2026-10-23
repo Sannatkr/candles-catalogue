@@ -10,6 +10,12 @@ import { money } from "@/lib/format";
  */
 const EMBER = "#b45f2b";
 const INDIGO = "#3d6bb3";
+const MOSS = "#4f7a3a";
+const PLUM = "#7a4f8a";
+const STONE = "#8a8378";
+
+/** One hue per order source, in the order the admin lists them. */
+export const SOURCE_COLORS = [EMBER, INDIGO, MOSS, PLUM, STONE];
 
 const GRID = "var(--color-line)";
 
@@ -199,6 +205,50 @@ export function SourceSplit({
             <span className="text-[0.875rem] text-ink tabular-nums">{money(s.value)}</span>
             <span className="w-12 text-right text-[0.78rem] text-ink-faint tabular-nums">
               {Math.round((s.value / total) * 100)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ source breakdown ------- */
+
+export type SourceRow = { label: string; value: number; count: number; color: string };
+
+/** Like SourceSplit, but any number of sources, each with an order count. */
+export function SourceBreakdown({ rows, empty = "No paid orders yet." }: { rows: SourceRow[]; empty?: string }) {
+  const total = rows.reduce((sum, r) => sum + r.value, 0);
+  if (total === 0) {
+    return <p className="py-10 text-center text-[0.9rem] text-ink-faint">{empty}</p>;
+  }
+
+  return (
+    <div>
+      <div className="flex h-3 gap-[2px] overflow-hidden rounded-[4px]">
+        {rows.map((r) =>
+          r.value > 0 ? (
+            <div
+              key={r.label}
+              className="h-full first:rounded-l-[4px] last:rounded-r-[4px]"
+              style={{ width: `${(r.value / total) * 100}%`, background: r.color }}
+            />
+          ) : null,
+        )}
+      </div>
+
+      <ul className="mt-4 space-y-2.5">
+        {rows.map((r) => (
+          <li key={r.label} className="flex items-center gap-2.5">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
+            <span className="flex-1 text-[0.875rem] text-ink-soft">{r.label}</span>
+            <span className="w-14 text-right text-[0.78rem] text-ink-faint tabular-nums">
+              {r.count} {r.count === 1 ? "order" : "orders"}
+            </span>
+            <span className="w-20 text-right text-[0.875rem] text-ink tabular-nums">{money(r.value)}</span>
+            <span className="w-12 text-right text-[0.78rem] text-ink-faint tabular-nums">
+              {Math.round((r.value / total) * 100)}%
             </span>
           </li>
         ))}

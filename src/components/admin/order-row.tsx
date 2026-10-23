@@ -7,6 +7,7 @@ import { OrderDetail } from "@/components/admin/order-detail";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, type OrderStatus } from "@/lib/admin/order-status";
 import type { AdminOrder } from "@/lib/admin/queries";
+import { ORDER_SOURCE_LABEL, type OrderSource } from "@/lib/order-source";
 import { compactQty, money } from "@/lib/format";
 
 /**
@@ -65,7 +66,15 @@ export function OrderRow({ order }: { order: AdminOrder }) {
           </div>
           <div className="min-w-0">
             <p className="truncate font-display text-[0.95rem] text-ink">{order.buyerName}</p>
-            <p className="truncate text-[0.76rem] text-ink-faint">{order.reference}</p>
+            <p className="truncate text-[0.76rem] text-ink-faint">
+              {order.reference}
+              {order.source && order.source !== "direct" && (
+                <span className={order.source === "meta_ads" ? "text-ember-deep" : ""}>
+                  {" "}
+                  · {ORDER_SOURCE_LABEL[order.source as OrderSource] ?? order.source}
+                </span>
+              )}
+            </p>
           </div>
         </div>
 

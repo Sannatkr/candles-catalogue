@@ -1,9 +1,20 @@
 "use server";
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  type Attribution,
+  classifySource,
+  cleanAttribution,
+} from "@/lib/order-source";
 import { createClient } from "@supabase/supabase-js";
 import { getProducts, getSettings } from "@/lib/data";
-import { clampQty, freeShipQtyOf, maxQtyOf, minQtyOf, unitPriceAt } from "@/lib/pricing";
+import {
+  clampQty,
+  freeShipQtyOf,
+  maxQtyOf,
+  minQtyOf,
+  unitPriceAt,
+} from "@/lib/pricing";
 import { shipOrderRow } from "@/lib/fulfillment";
 import { freeShipEarned, packGramsOf, shippingCost } from "@/lib/shipping";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
@@ -31,6 +42,8 @@ export type CheckoutInput = {
   addressLine1: string;
   addressLine2: string;
   note: string;
+  /** How the visitor arrived (UTM / fbclid / referrer); see attribution.tsx. */
+  attribution?: Attribution | null;
 };
 
 export type CheckoutStart =
@@ -69,44 +82,65 @@ function getServiceSupabase() {
 
 export async function isCheckoutConfigured() {
   return Boolean(
-    isSupabaseConfigured && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET,
+    isSupabaseConfigured &&
+    process.env.RAZORPAY_KEY_ID &&
+    process.env.RAZORPAY_KEY_SECRET,
   );
 }
 
-export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart> {
+export async function startCheckout(
+  input: CheckoutInput,
+): Promise<CheckoutStart> {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {
-    return { ok: false, message: "Payments are not switched on yet. Message us on Instagram instead." };
+    return {
+      ok: false,
+      message:
+        "Payments are not switched on yet. Message us on Instagram instead.",
+    };
   }
   if (!isSupabaseConfigured) {
-    return { ok: false, message: "The shop is not connected to its database yet." };
+    return {
+      ok: false,
+      message: "The shop is not connected to its database yet.",
+    };
   }
 
   const name = input.buyerName.trim();
   if (!name) return { ok: false, message: "Add your name." };
 
   const phone = input.phone.replace(/\D/g, "").slice(-10);
-  if (phone.length !== 10) return { ok: false, message: "That needs to be a 10-digit mobile number." };
+  if (phone.length !== 10)
+    return { ok: false, message: "That needs to be a 10-digit mobile number." };
 
   // Required, not optional. An order placed with only a phone number can never
   // be reached again: sign-in is by email, so its buyer has no way back to their
   // own receipt — and verifying a phone number instead would mean SMS OTP, DLT
   // registration and a per-message fee.
   const email = input.email.trim();
-  if (!email) return { ok: false, message: "Add your email — your receipt and order updates go there." };
+  if (!email)
+    return {
+      ok: false,
+      message: "Add your email — your receipt and order updates go there.",
+    };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, message: "That email address does not look right." };
   }
 
   const pincode = input.pincode.trim();
-  if (!/^\d{6}$/.test(pincode)) return { ok: false, message: "A pincode is 6 digits." };
+  if (!/^\d{6}$/.test(pincode))
+    return { ok: false, message: "A pincode is 6 digits." };
 
   const addressLine1 = input.addressLine1.trim();
   if (addressLine1.length < 6) {
-    return { ok: false, message: "Add the house or flat number and the street." };
+    return {
+      ok: false,
+      message: "Add the house or flat number and the street.",
+    };
   }
-  if (!input.city.trim()) return { ok: false, message: "Add your town or city." };
+  if (!input.city.trim())
+    return { ok: false, message: "Add your town or city." };
 
   // Rebuild every line from the catalogue. Unknown slugs are dropped rather
   // than failing the whole order — a candle can be retired mid-session.
@@ -138,32 +172,37 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     wanted.set(slug, Math.min(1_000_000, (wanted.get(slug) ?? 0) + qty));
   }
 
-  const items: OrderItemRow[] = [...wanted].flatMap(([slug, rawQty]): OrderItemRow[] => {
-    const product = catalogue.find((p) => p.slug === slug);
-    if (!product || !product.inStock) return [];
-    // Rounded up to the set size if a doctored cart asks for less than one set,
-    // and capped at this candle's own ceiling. The buyer pays for exactly what
-    // ships.
-    const qty = clampQty(rawQty, minQtyOf(product), maxQtyOf(product));
-    if (qty < 1) return [];
-    // The slab rate for the quantity that survived the clamp — never the rate
-    // the browser sent, and never the rate for a quantity it did not get.
-    const unitPrice = unitPriceAt(product, bulkTiers, qty);
-    if (!(unitPrice > 0)) return [];
-    return [
-      {
-        slug: product.slug,
-        name: product.name,
-        image: product.images[0] ?? null,
-        qty,
-        unitPrice,
-        total: unitPrice * qty,
-      },
-    ];
-  });
+  const items: OrderItemRow[] = [...wanted].flatMap(
+    ([slug, rawQty]): OrderItemRow[] => {
+      const product = catalogue.find((p) => p.slug === slug);
+      if (!product || !product.inStock) return [];
+      // Rounded up to the set size if a doctored cart asks for less than one set,
+      // and capped at this candle's own ceiling. The buyer pays for exactly what
+      // ships.
+      const qty = clampQty(rawQty, minQtyOf(product), maxQtyOf(product));
+      if (qty < 1) return [];
+      // The slab rate for the quantity that survived the clamp — never the rate
+      // the browser sent, and never the rate for a quantity it did not get.
+      const unitPrice = unitPriceAt(product, bulkTiers, qty);
+      if (!(unitPrice > 0)) return [];
+      return [
+        {
+          slug: product.slug,
+          name: product.name,
+          image: product.images[0] ?? null,
+          qty,
+          unitPrice,
+          total: unitPrice * qty,
+        },
+      ];
+    },
+  );
 
   if (!items.length) {
-    return { ok: false, message: "Your bag is empty, or those candles are no longer available." };
+    return {
+      ok: false,
+      message: "Your bag is empty, or those candles are no longer available.",
+    };
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.total, 0);
@@ -190,7 +229,8 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   const shipping = shippingCost(shippingConfig, { grams, subtotal, freeByQty });
   const total = subtotal + shipping;
   const paise = Math.round(total * 100);
-  if (paise < 100) return { ok: false, message: "That order is too small to charge." };
+  if (paise < 100)
+    return { ok: false, message: "That order is too small to charge." };
 
   // Razorpay first: if it refuses, no half-made order is left in the table. The
   // row can then be written with its razorpay id already in place, which
@@ -212,13 +252,23 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
       }),
       cache: "no-store",
     });
-    const json = (await res.json()) as { id?: string; error?: { description?: string } };
+    const json = (await res.json()) as {
+      id?: string;
+      error?: { description?: string };
+    };
     if (!res.ok || !json.id) {
-      return { ok: false, message: json.error?.description ?? "Razorpay would not open that order." };
+      return {
+        ok: false,
+        message:
+          json.error?.description ?? "Razorpay would not open that order.",
+      };
     }
     razorpayOrderId = json.id;
   } catch {
-    return { ok: false, message: "Could not reach Razorpay. Try again in a moment." };
+    return {
+      ok: false,
+      message: "Could not reach Razorpay. Try again in a moment.",
+    };
   }
 
   // If they are already signed in, tie the order to them now. If they are not,
@@ -229,30 +279,45 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
     data: { user },
   } = await session.auth.getUser();
 
+  const arrived = cleanAttribution(input.attribution);
   const id = crypto.randomUUID();
-  const { error } = await getPublicSupabase()
-    .from("orders")
-    .insert({
-      id,
-      user_id: user?.id ?? null,
-      reference,
-      items,
-      subtotal,
-      shipping,
-      total,
-      buyer_name: name.slice(0, 120),
-      phone,
-      email: email.slice(0, 160),
-      instagram: input.instagram.trim().replace(/^@/, "").slice(0, 120) || null,
-      pincode,
-      state: input.state.trim().slice(0, 120) || null,
-      city: input.city.trim().slice(0, 120),
-      address_line1: addressLine1.slice(0, 240),
-      address_line2: input.addressLine2.trim().slice(0, 240) || null,
-      note: input.note.trim().slice(0, 500) || null,
-      status: "pending",
-      razorpay_order_id: razorpayOrderId,
-    });
+  const sourceColumns = {
+    // Where they came from, so the admin can tell ad sales from the rest.
+    source: classifySource(arrived),
+    utm_source: arrived?.utmSource ?? null,
+    utm_medium: arrived?.utmMedium ?? null,
+    utm_campaign: arrived?.utmCampaign ?? null,
+    fbclid: arrived?.fbclid ?? null,
+    referrer: arrived?.referrer ?? null,
+    landing_path: arrived?.landingPath ?? null,
+  };
+  const row = {
+    id,
+    user_id: user?.id ?? null,
+    reference,
+    items,
+    subtotal,
+    shipping,
+    total,
+    buyer_name: name.slice(0, 120),
+    phone,
+    email: email.slice(0, 160),
+    instagram: input.instagram.trim().replace(/^@/, "").slice(0, 120) || null,
+    pincode,
+    state: input.state.trim().slice(0, 120) || null,
+    city: input.city.trim().slice(0, 120),
+    address_line1: addressLine1.slice(0, 240),
+    address_line2: input.addressLine2.trim().slice(0, 240) || null,
+    note: input.note.trim().slice(0, 500) || null,
+    status: "pending",
+    razorpay_order_id: razorpayOrderId,
+  };
+  const orders = getPublicSupabase().from("orders");
+  let { error } = await orders.insert({ ...row, ...sourceColumns });
+  // PGRST204 is PostgREST saying a column does not exist: migration 033 has
+  // not been run yet. A sale must never fail over bookkeeping, so write the
+  // order without its source rather than turn the buyer away.
+  if (error?.code === "PGRST204") ({ error } = await orders.insert(row));
 
   if (error) {
     // 42P01 is Postgres reporting a missing table; PGRST205 is PostgREST saying
@@ -280,15 +345,24 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutStart
   };
 }
 
-export type ConfirmResult = { ok: true; orderId: string; reference: string } | { ok: false; message: string };
+export type ConfirmResult =
+  | { ok: true; orderId: string; reference: string }
+  | { ok: false; message: string };
 
 /**
  * Razorpay signs `order_id|payment_id` with the key secret. Recomputing that
  * here is the only proof the payment is real — the browser's word for it is
  * worth nothing.
  */
-function signatureMatches(orderId: string, paymentId: string, signature: string, secret: string) {
-  const expected = createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
+function signatureMatches(
+  orderId: string,
+  paymentId: string,
+  signature: string,
+  secret: string,
+) {
+  const expected = createHmac("sha256", secret)
+    .update(`${orderId}|${paymentId}`)
+    .digest("hex");
   const a = Buffer.from(expected, "utf8");
   const b = Buffer.from(signature, "utf8");
   return a.length === b.length && timingSafeEqual(a, b);
@@ -304,7 +378,14 @@ export async function confirmPayment(input: {
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keySecret) return { ok: false, message: "Payments are not configured." };
 
-  if (!signatureMatches(input.razorpayOrderId, input.razorpayPaymentId, input.signature, keySecret)) {
+  if (
+    !signatureMatches(
+      input.razorpayOrderId,
+      input.razorpayPaymentId,
+      input.signature,
+      keySecret,
+    )
+  ) {
     return { ok: false, message: "That payment could not be verified." };
   }
 
@@ -338,11 +419,17 @@ export async function confirmPayment(input: {
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, message: "Payment taken, but recording it failed. Message us." };
+    return {
+      ok: false,
+      message: "Payment taken, but recording it failed. Message us.",
+    };
   }
 
   // amount_paid mirrors the total, which was fixed server-side at start.
-  await service.from("orders").update({ amount_paid: data.total }).eq("id", input.orderId);
+  await service
+    .from("orders")
+    .update({ amount_paid: data.total })
+    .eq("id", input.orderId);
 
   // Hand it to RapidShyp as a shipment. Best-effort + skipped in test mode; see
   // shipOrderRow. Shared with the webhook so both confirmation paths ship.
@@ -366,7 +453,14 @@ export async function abandonOrder(orderId: string, reference: string) {
 
 export type Receipt = {
   reference: string;
-  items: { slug: string; name: string; image: string | null; qty: number; unitPrice: number; total: number }[];
+  items: {
+    slug: string;
+    name: string;
+    image: string | null;
+    qty: number;
+    unitPrice: number;
+    total: number;
+  }[];
   subtotal: number;
   shipping: number;
   total: number;
@@ -379,7 +473,10 @@ export type Receipt = {
 };
 
 /** Reads back one order for its own thank-you page. Needs both id and reference. */
-export async function getReceipt(id: string, reference: string): Promise<Receipt | null> {
+export async function getReceipt(
+  id: string,
+  reference: string,
+): Promise<Receipt | null> {
   if (!isSupabaseConfigured) return null;
 
   const { data, error } = await getPublicSupabase()

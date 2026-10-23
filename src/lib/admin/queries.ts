@@ -214,6 +214,14 @@ export type AdminOrder = {
   trackingUrl: string | null;
   rapidshypOrderId: string | null;
   paymentLinkUrl: string | null;
+  /** meta_ads | social | google | direct | other; null on orders before 033. */
+  source: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  fbclid: string | null;
+  referrer: string | null;
+  landingPath: string | null;
 };
 
 export function toOrderItems(value: unknown): OrderItem[] {
@@ -265,6 +273,13 @@ function toAdminOrder(row: Record<string, unknown>): AdminOrder {
     trackingUrl: text(row.tracking_url),
     rapidshypOrderId: text(row.rapidshyp_order_id),
     paymentLinkUrl: text(row.payment_link_url),
+    source: text(row.source),
+    utmSource: text(row.utm_source),
+    utmMedium: text(row.utm_medium),
+    utmCampaign: text(row.utm_campaign),
+    fbclid: text(row.fbclid),
+    referrer: text(row.referrer),
+    landingPath: text(row.landing_path),
   };
 }
 

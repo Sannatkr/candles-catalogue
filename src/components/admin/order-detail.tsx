@@ -20,6 +20,7 @@ import {
   PAID_STATUSES,
 } from "@/lib/admin/order-status";
 import type { AdminOrder } from "@/lib/admin/queries";
+import { ORDER_SOURCE_LABEL, type OrderSource } from "@/lib/order-source";
 import { money } from "@/lib/format";
 
 const FIELD =
@@ -141,6 +142,17 @@ export function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: ()
               <dt className="text-ink">Total</dt>
               <dd className="font-medium text-ink tabular-nums">{money(order.total)}</dd>
             </div>
+            {order.source && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-soft">Came from</dt>
+                <dd className="truncate text-right text-ink">
+                  {ORDER_SOURCE_LABEL[order.source as OrderSource] ?? order.source}
+                  {order.utmCampaign && (
+                    <span className="text-[0.8rem] text-ink-faint"> · {order.utmCampaign}</span>
+                  )}
+                </dd>
+              </div>
+            )}
             {order.razorpayPaymentId && (
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-soft">Razorpay</dt>

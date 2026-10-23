@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Fraunces, Inter } from "next/font/google";
 import { AnalyticsProvider } from "@/lib/analytics";
+import { AttributionCapture } from "@/lib/attribution";
 import { MetaPixel } from "@/lib/meta-pixel";
 import "./globals.css";
 
@@ -64,6 +65,7 @@ export default function RootLayout({
             reason a page falls back to client-side rendering. */}
         <Suspense fallback={null}>
           <AnalyticsProvider />
+          <AttributionCapture />
         </Suspense>
         <MetaPixel />
         {children}

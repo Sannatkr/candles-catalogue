@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { getAttribution } from "@/lib/attribution";
 import { useCart } from "@/lib/cart";
 import { instagramChatLink, money } from "@/lib/format";
 import { abandonOrder, confirmPayment, startCheckout } from "@/lib/orders";
@@ -161,6 +162,7 @@ export function CheckoutForm({
       addressLine1: address1,
       addressLine2: address2,
       note,
+      attribution: getAttribution(),
     });
 
     if (!started.ok) {

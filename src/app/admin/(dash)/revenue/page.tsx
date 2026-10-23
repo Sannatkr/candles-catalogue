@@ -1,5 +1,13 @@
 import { Suspense } from "react";
-import { type Bucket, RevenueColumns, SourceSplit, TopProducts } from "@/components/admin/charts";
+import {
+  type Bucket,
+  RevenueColumns,
+  SOURCE_COLORS,
+  SourceBreakdown,
+  SourceSplit,
+  TopProducts,
+} from "@/components/admin/charts";
+import { ORDER_SOURCE_LABEL, type OrderSource } from "@/lib/order-source";
 import { RangePicker } from "@/components/admin/range-picker";
 import { RevenueSkeleton } from "@/components/admin/skeleton";
 import { itemsOf } from "@/lib/admin/booking-items";
@@ -150,6 +158,22 @@ async function RevenueFigures({ start, end }: { start: Date; end: Date }) {
   orders.forEach((o) => o.items.forEach((i) => addItem(i.slug, i.name, i.total, i.qty)));
   const top = [...byProduct.values()].sort((a, b) => b.value - a.value).slice(0, 6);
 
+  // Website orders by where the buyer came from. Orders placed before the
+  // source columns existed have no source and are counted as direct.
+  const SOURCES: OrderSource[] = ["meta_ads", "social", "google", "direct", "other"];
+  const bySource = new Map(SOURCES.map((k) => [k, { value: 0, count: 0 }]));
+  orders.forEach((o) => {
+    const key = (SOURCES as string[]).includes(o.source ?? "") ? (o.source as OrderSource) : "direct";
+    const entry = bySource.get(key)!;
+    entry.value += o.total;
+    entry.count += 1;
+  });
+  const sourceRows = SOURCES.map((k, i) => ({
+    label: ORDER_SOURCE_LABEL[k],
+    ...bySource.get(k)!,
+    color: SOURCE_COLORS[i],
+  }));
+
   const stats = [
     { label: "Orders revenue", value: money(ordersRevenue) },
     { label: "Enquiries revenue", value: money(enquiriesRevenue) },
@@ -205,6 +229,15 @@ async function RevenueFigures({ start, end }: { start: Date; end: Date }) {
             labelA="Orders"
             labelB="Enquiries"
           />
+        </section>
+
+        <section className="rounded-[16px] border border-line bg-canvas p-6 sm:p-7 lg:col-span-2">
+          <h2 className="font-display text-[1.15rem] text-ink">Where website orders came from</h2>
+          <p className="mt-1 mb-6 text-[0.8rem] text-ink-faint">
+            Paid checkouts by how the buyer first arrived: a Meta ad, Instagram or Facebook
+            directly, Google, or typing the address. Only orders placed after 23 Oct 2026 carry this.
+          </p>
+          <SourceBreakdown rows={sourceRows} empty="No paid website orders in this period." />
         </section>
       </div>
     </div>
