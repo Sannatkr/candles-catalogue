@@ -1,6 +1,6 @@
 -- 034 — Diwali 2026 price rise, part 2: the hand-set bulk rates (2026-10-23).
 --
--- 031 raised every candle's single-piece price and MRP, but 70 candles carry
+-- 031 raised every candle's single-piece price and MRP, but 68 candles carry
 -- hand-set bulk rates in `tier_prices` (10+ / 25+ / 50+ / 100+ / 200+), and
 -- those are charged as-is, so they stayed at the old level. This raises each
 -- rung by the same percentage that candle's single price went up, rounded to
